@@ -29,10 +29,6 @@
 		<Content Include="Assets\RadarChart.html">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
-		<Content Include="..\\.env">
-			<Link>.env</Link>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -56,6 +52,7 @@
 		<PackageReference Include="DotNetEnv" Version="3.1.1" />
 		<PackageReference Include="LiveChartsCore.SkiaSharpView.WinUI" Version="2.0.0-rc3.3" />
 		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.0" />
+		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.5" />
 		<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3595.46" />
 		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.6901" />
 		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.251106002" />
@@ -64,6 +61,33 @@
 
 	<ItemGroup>
 		<Folder Include="Controls\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Update="Assets\Map\Data\vietnam.pmtiles">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	  <Content Update="Assets\Map\libs\maplibre-gl.css">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	  <Content Update="Assets\Map\libs\maplibre-gl.js">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	  <Content Update="Assets\Map\libs\pmtiles.js">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	  <Content Update="Assets\Map\map.html">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	  <Content Update="Assets\Map\style.json">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Update=".env">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
 	</ItemGroup>
 
 

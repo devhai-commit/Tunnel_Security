@@ -19,6 +19,7 @@ using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
 using Station.Config;
+using Windows.Storage.Streams;
 
 namespace Station.Views
 {
@@ -196,53 +197,30 @@ namespace Station.Views
             }
         }
 
-        private async void InitializeSecurityMap()
-        {
-            try
-            {
-                await SecurityMapWebView.EnsureCoreWebView2Async();
+		private async void InitializeSecurityMap()
+		{
+			try
+			{
+				await SecurityMapWebView.EnsureCoreWebView2Async();
 
-                // Enable settings for WebView2
-                SecurityMapWebView.CoreWebView2.Settings.AreDevToolsEnabled = true;
-                SecurityMapWebView.CoreWebView2.Settings.IsWebMessageEnabled = true;
+				// CHỈ CẦN DUY NHẤT 2 DÒNG NÀY ĐỂ MỞ ĐƯỜNG CHO JS ĐỌC FILE
+				var assetsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets");
+				SecurityMapWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+					"app.local", assetsPath, CoreWebView2HostResourceAccessKind.Allow);
 
-                // Nhận message từ JS (mapready / viewcamera / managedevice)
-                SecurityMapWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
+				// Các dòng còn lại giữ nguyên
+				SecurityMapWebView.CoreWebView2.Navigate("https://app.local/Map/map.html");
 
-                // Khi HTML load xông sẽ bắn NavigationCompleted
-                SecurityMapWebView.NavigationCompleted += SecurityMapWebView_NavigationCompleted;
+				SecurityMapWebView.NavigationCompleted += SecurityMapWebView_NavigationCompleted;
+				SecurityMapWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"Lỗi Init Map: {ex.Message}");
+			}
+		}
 
-                // Đọc file HTML (Mapbox)
-                var htmlPath = Path.Combine(
-                    AppDomain.CurrentDomain.BaseDirectory,
-                    "Assets",
-                    "Map",
-                    "map.html");
-
-                if (!File.Exists(htmlPath))
-                {
-                    Debug.WriteLine($"Security map HTML not found at: {htmlPath}");
-                    return;
-                }
-
-                // Use SetVirtualHostNameToFolderMapping to allow external resources (Mapbox CDN)
-                var assetsFolderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets");
-                SecurityMapWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
-                    "app.local",
-                    assetsFolderPath,
-                    Microsoft.Web.WebView2.Core.CoreWebView2HostResourceAccessKind.Allow);
-
-                // Navigate using virtual host to avoid ERR_CONNECTION_RESET with CDN resources
-                SecurityMapWebView.CoreWebView2.Navigate("https://app.local/Map/map.html");
-                Debug.WriteLine($"Loading map from virtual host: https://app.local/Map/map.html");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error initializing security map: {ex.Message}");
-            }
-        }
-
-        private async void SecurityMapWebView_NavigationCompleted(
+		private async void SecurityMapWebView_NavigationCompleted(
             WebView2 sender,
             CoreWebView2NavigationCompletedEventArgs args)
         {
@@ -943,4 +921,6 @@ namespace Station.Views
             }
         }
     }
+
+
 }
