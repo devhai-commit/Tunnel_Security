@@ -1,27 +1,93 @@
+using Backend.Data;
 using Backend.Hubs;
 using Backend.Services;
+using Backend.Services.Caching;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
-// Add Swagger
+// ── SQLite (relational topology) ──────────────────────────────────────────────
+builder.Services.AddDbContext<TunnelDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("Default")));
+
+// ── TimescaleDB / PostgreSQL (time-series hypertables) ────────────────────────
+// Enabled by TimeSeries:Enabled flag. App starts fine without TimescaleDB running;
+// writes gracefully degrade and SignalR still works.
+if (builder.Configuration.GetValue<bool>("TimeSeries:Enabled"))
+{
+    builder.Services.AddDbContext<TimeSeriesDbContext>(options =>
+        options.UseNpgsql(builder.Configuration.GetConnectionString("TimeSeries")));
+}
+
+// ── Application services ──────────────────────────────────────────────────────
+builder.Services.AddScoped<DataSeeder>();
+
+// IMemoryCache for sensor/node metadata (avoids 2 DB queries per reading on hot path).
+// SizeLimit = 10_000 → each entry uses Size=1, supports up to 10k cached sensor+node pairs.
+builder.Services.AddMemoryCache(o => o.SizeLimit = 10_000);
+builder.Services.AddScoped<ISensorRepository, SensorRepository>();
+builder.Services.AddScoped<SensorBroadcaster>();
+
+builder.Services.AddHttpClient();
+
+// Video capture services
+builder.Services.AddHostedService<VideoCaptureService>();
+builder.Services.AddSingleton<VideoClipService>();
+
+// SensorBroadcastQueue: registered as singleton so SensorBroadcaster (scoped) can inject it.
+// AddHostedService uses the same instance — avoids the double-instantiation trap.
+builder.Services.AddSingleton<SensorBroadcastQueue>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<SensorBroadcastQueue>());
+
+// Device ingestion (disabled by default; enable via appsettings)
+builder.Services.AddHostedService<MqttIngestionService>();
+builder.Services.AddHostedService<HttpPollingService>();
+builder.Services.AddHostedService<WebSocketIngestionService>();
+builder.Services.AddHostedService<DeviceHealthService>();
+builder.Services.AddHostedService<DataRetentionService>();
+
+
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddCors(options =>
-{
     options.AddPolicy("AllowAll", p =>
-        p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
-});
-
-// Register background sensor simulation service
-builder.Services.AddSingleton<BackgroundSensorSimulation>();
+        p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 
 var app = builder.Build();
 
-// Enable Swagger
+// ── Startup: apply migrations / seed data ─────────────────────────────────────
+using (var scope = app.Services.CreateScope())
+{
+    // SQLite — apply pending migrations (creates DB on first run)
+    var db = scope.ServiceProvider.GetRequiredService<TunnelDbContext>();
+    await db.Database.MigrateAsync();
+
+    var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
+    await seeder.SeedAsync();
+
+    // TimescaleDB — EnsureCreated + hypertable init
+    var ts = scope.ServiceProvider.GetService<TimeSeriesDbContext>();
+    if (ts != null)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        try
+        {
+            await TimescaleInitializer.InitializeAsync(ts, logger);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning("[Startup] TimescaleDB initialization failed: {Msg} — " +
+                              "time-series writes will be skipped", ex.Message);
+        }
+    }
+}
+
+// ── Middleware ────────────────────────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -29,23 +95,30 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowAll");
+app.UseStaticFiles();
+app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(30) });
 
-// Register and start background sensor simulation
-var sensorSimulation = app.Services.GetRequiredService<BackgroundSensorSimulation>();
-sensorSimulation.Start();
+// ── Device simulator WebSocket endpoint ──────────────────────────────────────
+app.Map("/ws/device", async context =>
+{
+    if (!context.WebSockets.IsWebSocketRequest) { context.Response.StatusCode = 400; return; }
+    var nodeId = context.Request.Query["nodeId"].FirstOrDefault() ?? "NODE-SIM-01";
+    var socket = await context.WebSockets.AcceptWebSocketAsync();
+    using var scope = context.RequestServices.CreateScope();
+    var broadcaster = scope.ServiceProvider.GetRequiredService<SensorBroadcaster>();
+    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+    await DeviceSimulatorWsHandler.HandleAsync(socket, nodeId, broadcaster, logger, context.RequestAborted);
+});
 
-// Root endpoint
+// ── Routes ────────────────────────────────────────────────────────────────────
 app.MapGet("/", () => new
 {
     message = "Tunnel Security Backend API",
-    version = "1.0.0",
-    endpoints = new
-    {
-        swagger = "/swagger",
-        sensors = "/api/sensors",
-        stations = "/api/stations",
-        signalR = "/hubs/sensors"
-    }
+    version = "2.0.0",
+    databases = new { relational = "SQLite", timeSeries = "TimescaleDB/PostgreSQL" },
+    endpoints = new { swagger = "/swagger", sensors = "/api/sensors",
+                      readings = "/api/readings", stations = "/api/stations",
+                      signalR = "/hubs/sensors" }
 });
 
 app.MapControllers();

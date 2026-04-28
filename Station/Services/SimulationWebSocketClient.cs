@@ -28,7 +28,7 @@ namespace Station.Services
             _wsUrl = wsUrl ?? "ws://localhost:5050/ws";
         }
 
-        public async Task ConnectAsync()
+        public async Task ConnectAsync(CancellationToken externalToken = default)
         {
             if (_ws != null)
             {
@@ -38,9 +38,10 @@ namespace Station.Services
             _ws = new ClientWebSocket();
             _cts = new CancellationTokenSource();
 
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, externalToken);
             try
             {
-                await _ws.ConnectAsync(new Uri(_wsUrl), _cts.Token);
+                await _ws.ConnectAsync(new Uri(_wsUrl), linked.Token);
                 _isConnected = true;
                 ConnectionChanged?.Invoke(this, true);
                 System.Diagnostics.Debug.WriteLine($"[SimWS] Connected to {_wsUrl}");

@@ -17,7 +17,7 @@ namespace Station.ViewModels
         private readonly DispatcherQueue _dispatcherQueue;
         private readonly Timer _blinkTimer;
         private bool _blinkState = true;
-        private readonly MockDataService _mockData = MockDataService.Instance;
+        private readonly IDataService _mockData = DataServiceLocator.Current;
 
         // Current layout
         [ObservableProperty]
@@ -136,11 +136,12 @@ namespace Station.ViewModels
             foreach (var simCam in _mockData.Cameras)
             {
                 int idx = ++camIdx;
+                var apiBaseUrl = Environment.GetEnvironmentVariable("BACKEND_BASE_URL") ?? "http://localhost:5280";
                 CameraStreams.Add(new CameraStreamViewModel
                 {
                     CameraId = simCam.CameraId,
                     CameraName = $"{simCam.CameraName} · {simCam.Location}",
-                    StreamUrl = $"rtsp://station/{simCam.CameraId.ToLower()}",
+                    StreamUrl = simCam.StreamUrl ?? $"{apiBaseUrl}/api/cameras/{simCam.CameraId}/stream",
                     Resolution = "1280×720",
                     IrStatus = "ON",
                     HdrStatus = "AUTO",

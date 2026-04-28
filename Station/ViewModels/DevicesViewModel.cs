@@ -22,7 +22,7 @@ namespace Station.ViewModels
     public partial class DevicesViewModel : ObservableObject
     {
         // Mock data service for real-time updates
-        private readonly MockDataService _mock = MockDataService.Instance;
+        private readonly IDataService _mock = DataServiceLocator.Current;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(IsSidebarSummaryVisible))]
@@ -217,7 +217,7 @@ namespace Station.ViewModels
             StatusFilters.Add("Tắt");
 
             LineFilters.Add("Tất cả tuyến");
-            var mock = Station.Services.MockDataService.Instance;
+            var mock = Station.Services.DataServiceLocator.Current;
             foreach (var line in mock.Lines)
                 LineFilters.Add(line.LineName);
 
@@ -344,7 +344,7 @@ namespace Station.ViewModels
             }
 
             // Group by nodes (location-based grouping)
-            var mock = Station.Services.MockDataService.Instance;
+            var mock = Station.Services.DataServiceLocator.Current;
 
             var nodeGroups = filtered.GroupBy(d =>
             {

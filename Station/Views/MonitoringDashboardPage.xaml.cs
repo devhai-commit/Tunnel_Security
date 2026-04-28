@@ -48,7 +48,6 @@ namespace Station.Views
 
         // Alert filter variables
         private enum AlertFilterPeriod { Day, Week, Month }
-        private AlertFilterPeriod _currentAlertFilter = AlertFilterPeriod.Day;
 
         // Alert notification badge
         private int _pendingAlertCount = 0;
@@ -531,7 +530,7 @@ namespace Station.Views
 
         private void DataPanelMenuButton_Click(object sender, RoutedEventArgs e)
         {
-            OpenModuleWindow("Giám sát dữ liệu", typeof(DataPage));
+            OpenModuleWindow("Giám sát dữ liệu", typeof(SensorChartsPage));
         }
 
         private void TrendPanelMenuButton_Click(object sender, RoutedEventArgs e)
@@ -617,9 +616,9 @@ namespace Station.Views
             {
                 if (Application.Current is App app && app.m_window is MainWindow mainWindow)
                 {
-                    if (pageType == typeof(DataPage))
+                    if (pageType == typeof(SensorChartsPage))
                     {
-                        mainWindow.OpenPageInNewWindow<DataPage>(title);
+                        mainWindow.OpenPageInNewWindow<SensorChartsPage>(title);
                     }
                     else if (pageType == typeof(AlertsPage))
                     {

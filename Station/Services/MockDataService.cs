@@ -93,13 +93,15 @@ namespace Station.Services
         public string LineId { get; set; } = string.Empty;
         public string LineName { get; set; } = string.Empty;
         public bool IsOnline { get; set; } = true;
+        /// <summary>RTSP/HLS stream URL — null khi dùng mock</summary>
+        public string? StreamUrl { get; set; }
     }
 
     // ═══════════════════════════════════════════════════════════════════
     //  MockDataService  (Singleton)
     // ═══════════════════════════════════════════════════════════════════
 
-    public sealed class MockDataService
+    public sealed class MockDataService : IDataService
     {
         // ── Singleton ──────────────────────────────────────────────────
         private static readonly Lazy<MockDataService> _instance =
@@ -109,8 +111,8 @@ namespace Station.Services
         // ── Events ─────────────────────────────────────────────────────
         /// Fired every tick for every sensor with its new reading
         public event EventHandler<SensorTickEventArgs>? SensorTick;
-        /// Fired when an alert condition is detected
         public event EventHandler<AlertGeneratedEventArgs>? AlertGenerated;
+        public event EventHandler? TopologyLoaded;
 
         // ── Public state ───────────────────────────────────────────────
         public IReadOnlyList<SimulatedSensor> Sensors { get; }

@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
-using Backend.Hubs;
-using Backend.Mock;
-using Backend.Models;
+using Backend.Data;
+using Backend.Services;
+using Backend.Services.Caching;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Controllers;
 
@@ -10,11 +10,15 @@ namespace Backend.Controllers;
 [Route("api/[controller]")]
 public class SensorsController : ControllerBase
 {
-    private readonly IHubContext<SensorHub> _hub;
+    private readonly TunnelDbContext  _db;
+    private readonly SensorBroadcaster _broadcaster;
+    private readonly ISensorRepository _repo;
 
-    public SensorsController(IHubContext<SensorHub> hub)
+    public SensorsController(TunnelDbContext db, SensorBroadcaster broadcaster, ISensorRepository repo)
     {
-        _hub = hub;
+        _db          = db;
+        _broadcaster  = broadcaster;
+        _repo        = repo;
     }
 
     public class MeasurementRequest
@@ -24,109 +28,35 @@ public class SensorsController : ControllerBase
 
     // POST /api/sensors/{id}/measurements
     [HttpPost("{id}/measurements")]
-    public async Task<IActionResult> UpdateSensor(
-        string id, [FromBody] MeasurementRequest req)
+    public async Task<IActionResult> UpdateSensor(string id, [FromBody] MeasurementRequest req)
     {
-        // Tìm sensor trong tất cả nodes
-        Sensor? sensor = null;
-        Node? parentNode = null;
+        if (!double.IsFinite(req.Value))
+            return BadRequest("Value must be a finite number.");
 
-        foreach (var station in MockData.Stations)
-        {
-            foreach (var line in station.Lines)
-            {
-                foreach (var node in line.Nodes)
-                {
-                    sensor = node.Sensors.FirstOrDefault(s => s.Id == id);
-                    if (sensor != null)
-                    {
-                        parentNode = node;
-                        break;
-                    }
-                }
-                if (sensor != null) break;
-            }
-            if (sensor != null) break;
-        }
+        var exists = await _db.Sensors.AnyAsync(s => s.Id == id);
+        if (!exists) return NotFound("Sensor not found");
 
-        if (sensor == null) return NotFound("Sensor not found");
+        await _broadcaster.ProcessReadingAsync(id, req.Value);
 
-        // Cập nhật giá trị
-        sensor.CurrentValue = req.Value;
-        sensor.LastReading = DateTime.UtcNow;
-
-        // NOTE: Node status update removed - alerts are generated only on frontend
-        // This allows frontend to handle alert generation based on threshold crossings
-        // if (parentNode != null)
-        // {
-        //     UpdateNodeStatus(parentNode);
-        // }
-
-        // Gửi realtime cho client
-        await _hub.Clients.All.SendAsync("SensorUpdated", new
-        {
-            sensor.Id,
-            sensor.NodeId,
-            sensor.Type,
-            sensor.Name,
-            sensor.CurrentValue,
-            sensor.Unit,
-            sensor.LastReading,
-            NodeStatus = parentNode?.Status
-        });
-
-        return Ok(new { ok = true, sensor });
+        return Ok(new { ok = true, sensorId = id, value = req.Value });
     }
 
     // GET /api/sensors/{id}
     [HttpGet("{id}")]
-    public IActionResult GetSensor(string id)
+    public async Task<IActionResult> GetSensor(string id)
     {
-        foreach (var station in MockData.Stations)
-        {
-            foreach (var line in station.Lines)
-            {
-                foreach (var node in line.Nodes)
-                {
-                    var sensor = node.Sensors.FirstOrDefault(s => s.Id == id);
-                    if (sensor != null)
-                    {
-                        return Ok(sensor);
-                    }
-                }
-            }
-        }
-
-        return NotFound("Sensor not found");
+        var sensor = await _db.Sensors.FirstOrDefaultAsync(s => s.Id == id);
+        return sensor == null ? NotFound("Sensor not found") : Ok(sensor);
     }
 
-    private void UpdateNodeStatus(Node node)
+    // GET /api/sensors  (all sensors, optionally filtered by nodeId)
+    [HttpGet]
+    public async Task<IActionResult> GetSensors([FromQuery] string? nodeId)
     {
-        // Kiểm tra nếu có sensor critical
-        var hasCritical = node.Sensors.Any(s => 
-            s.CurrentValue.HasValue && 
-            s.CriticalThreshold.HasValue && 
-            s.CurrentValue.Value >= s.CriticalThreshold.Value);
+        var query = _db.Sensors.AsQueryable();
+        if (!string.IsNullOrEmpty(nodeId))
+            query = query.Where(s => s.NodeId == nodeId);
 
-        if (hasCritical)
-        {
-            node.Status = NodeStatus.Critical;
-            return;
-        }
-
-        // Kiểm tra nếu có sensor warning
-        var hasWarning = node.Sensors.Any(s => 
-            s.CurrentValue.HasValue && 
-            s.WarningThreshold.HasValue && 
-            s.CurrentValue.Value >= s.WarningThreshold.Value);
-
-        if (hasWarning)
-        {
-            node.Status = NodeStatus.Warning;
-            return;
-        }
-
-        // Bình thường
-        node.Status = NodeStatus.Online;
+        return Ok(await query.ToListAsync());
     }
 }
