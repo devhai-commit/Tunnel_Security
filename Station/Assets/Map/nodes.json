@@ -1,0 +1,752 @@
+﻿{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8346, 21.0368 ]
+      },
+      "properties": {
+        "id": "hub-01",
+        "name": "Trạm Trung Tâm Ba Đình",
+        "code": "HUB-BD",
+        "isHub": true,
+        "status": "Online",
+        "batteryLevel": 100,
+        "rssi": -50,
+        "sensorCount": 5,
+        "line": "Trạm điều khiển chính"
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8315, 21.0365 ]
+      },
+      "properties": {
+        "id": "dc-01",
+        "name": "Hố ga Đội Cấn 1",
+        "code": "DC-01",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 85,
+        "rssi": -65,
+        "sensorCount": 2,
+        "line": "Tuyến Đội Cấn",
+        "cameraId": "CAM-DC01"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8295, 21.0363 ]
+      },
+      "properties": {
+        "id": "dc-02",
+        "name": "Hố ga Đội Cấn 2",
+        "code": "DC-02",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 82,
+        "rssi": -68,
+        "sensorCount": 2,
+        "line": "Tuyến Đội Cấn"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8275, 21.0360 ]
+      },
+      "properties": {
+        "id": "dc-03",
+        "name": "Hố ga Đội Cấn 3",
+        "code": "DC-03",
+        "isHub": false,
+        "status": "Warning",
+        "batteryLevel": 45,
+        "rssi": -75,
+        "sensorCount": 3,
+        "line": "Tuyến Đội Cấn"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8255, 21.0357 ]
+      },
+      "properties": {
+        "id": "dc-04",
+        "name": "Hố ga Đội Cấn 4",
+        "code": "DC-04",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 90,
+        "rssi": -62,
+        "sensorCount": 2,
+        "line": "Tuyến Đội Cấn"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8235, 21.0355 ]
+      },
+      "properties": {
+        "id": "dc-05",
+        "name": "Hố ga Đội Cấn 5",
+        "code": "DC-05",
+        "isHub": false,
+        "status": "Critical",
+        "batteryLevel": 12,
+        "rssi": -85,
+        "sensorCount": 4,
+        "line": "Tuyến Đội Cấn",
+        "cameraId": "CAM-DC05"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8215, 21.0353 ]
+      },
+      "properties": {
+        "id": "dc-06",
+        "name": "Hố ga Đội Cấn 6",
+        "code": "DC-06",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 78,
+        "rssi": -70,
+        "sensorCount": 2,
+        "line": "Tuyến Đội Cấn"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8195, 21.0351 ]
+      },
+      "properties": {
+        "id": "dc-07",
+        "name": "Hố ga Đội Cấn 7",
+        "code": "DC-07",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 88,
+        "rssi": -60,
+        "sensorCount": 2,
+        "line": "Tuyến Đội Cấn"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8175, 21.0349 ]
+      },
+      "properties": {
+        "id": "dc-08",
+        "name": "Hố ga Đội Cấn 8",
+        "code": "DC-08",
+        "isHub": false,
+        "status": "Warning",
+        "batteryLevel": 35,
+        "rssi": -78,
+        "sensorCount": 3,
+        "line": "Tuyến Đội Cấn"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8155, 21.0347 ]
+      },
+      "properties": {
+        "id": "dc-09",
+        "name": "Hố ga Đội Cấn 9",
+        "code": "DC-09",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 92,
+        "rssi": -55,
+        "sensorCount": 2,
+        "line": "Tuyến Đội Cấn"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8135, 21.0345 ]
+      },
+      "properties": {
+        "id": "dc-10",
+        "name": "Hố ga Đội Cấn 10",
+        "code": "DC-10",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 95,
+        "rssi": -50,
+        "sensorCount": 2,
+        "line": "Tuyến Đội Cấn"
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8280, 21.0290 ]
+      },
+      "properties": {
+        "id": "km-01",
+        "name": "Hố ga Kim Mã 1",
+        "code": "KM-01",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 90,
+        "rssi": -60,
+        "sensorCount": 2,
+        "line": "Tuyến Kim Mã"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8260, 21.0292 ]
+      },
+      "properties": {
+        "id": "km-02",
+        "name": "Hố ga Kim Mã 2",
+        "code": "KM-02",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 85,
+        "rssi": -62,
+        "sensorCount": 2,
+        "line": "Tuyến Kim Mã"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8240, 21.0294 ]
+      },
+      "properties": {
+        "id": "km-03",
+        "name": "Hố ga Kim Mã 3",
+        "code": "KM-03",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 88,
+        "rssi": -61,
+        "sensorCount": 2,
+        "line": "Tuyến Kim Mã",
+        "cameraId": "CAM-KM03"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8220, 21.0296 ]
+      },
+      "properties": {
+        "id": "km-04",
+        "name": "Hố ga Kim Mã 4",
+        "code": "KM-04",
+        "isHub": false,
+        "status": "Warning",
+        "batteryLevel": 40,
+        "rssi": -77,
+        "sensorCount": 3,
+        "line": "Tuyến Kim Mã"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8200, 21.0298 ]
+      },
+      "properties": {
+        "id": "km-05",
+        "name": "Hố ga Kim Mã 5",
+        "code": "KM-05",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 70,
+        "rssi": -72,
+        "sensorCount": 2,
+        "line": "Tuyến Kim Mã"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8180, 21.0300 ]
+      },
+      "properties": {
+        "id": "km-06",
+        "name": "Hố ga Kim Mã 6",
+        "code": "KM-06",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 75,
+        "rssi": -69,
+        "sensorCount": 2,
+        "line": "Tuyến Kim Mã"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8160, 21.0302 ]
+      },
+      "properties": {
+        "id": "km-07",
+        "name": "Hố ga Kim Mã 7",
+        "code": "KM-07",
+        "isHub": false,
+        "status": "Critical",
+        "batteryLevel": 5,
+        "rssi": -90,
+        "sensorCount": 1,
+        "line": "Tuyến Kim Mã"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8140, 21.0304 ]
+      },
+      "properties": {
+        "id": "km-08",
+        "name": "Hố ga Kim Mã 8",
+        "code": "KM-08",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 99,
+        "rssi": -55,
+        "sensorCount": 2,
+        "line": "Tuyến Kim Mã"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8120, 21.0306 ]
+      },
+      "properties": {
+        "id": "km-09",
+        "name": "Hố ga Kim Mã 9",
+        "code": "KM-09",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 96,
+        "rssi": -58,
+        "sensorCount": 2,
+        "line": "Tuyến Kim Mã"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8100, 21.0308 ]
+      },
+      "properties": {
+        "id": "km-10",
+        "name": "Hố ga Kim Mã 10",
+        "code": "KM-10",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 94,
+        "rssi": -59,
+        "sensorCount": 2,
+        "line": "Tuyến Kim Mã"
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8340, 21.0410 ]
+      },
+      "properties": {
+        "id": "hht-01",
+        "name": "Hố ga H.Hoa Thám 1",
+        "code": "HHT-01",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 85,
+        "rssi": -65,
+        "sensorCount": 2,
+        "line": "Tuyến Hoàng Hoa Thám"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8320, 21.0412 ]
+      },
+      "properties": {
+        "id": "hht-02",
+        "name": "Hố ga H.Hoa Thám 2",
+        "code": "HHT-02",
+        "isHub": false,
+        "status": "Warning",
+        "batteryLevel": 42,
+        "rssi": -76,
+        "sensorCount": 2,
+        "line": "Tuyến Hoàng Hoa Thám"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8300, 21.0411 ]
+      },
+      "properties": {
+        "id": "hht-03",
+        "name": "Hố ga H.Hoa Thám 3",
+        "code": "HHT-03",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 88,
+        "rssi": -62,
+        "sensorCount": 2,
+        "line": "Tuyến Hoàng Hoa Thám"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8280, 21.0409 ]
+      },
+      "properties": {
+        "id": "hht-04",
+        "name": "Hố ga H.Hoa Thám 4",
+        "code": "HHT-04",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 90,
+        "rssi": -60,
+        "sensorCount": 2,
+        "line": "Tuyến Hoàng Hoa Thám",
+        "cameraId": "CAM-HHT04"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8260, 21.0407 ]
+      },
+      "properties": {
+        "id": "hht-05",
+        "name": "Hố ga H.Hoa Thám 5",
+        "code": "HHT-05",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 78,
+        "rssi": -70,
+        "sensorCount": 2,
+        "line": "Tuyến Hoàng Hoa Thám"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8240, 21.0405 ]
+      },
+      "properties": {
+        "id": "hht-06",
+        "name": "Hố ga H.Hoa Thám 6",
+        "code": "HHT-06",
+        "isHub": false,
+        "status": "Critical",
+        "batteryLevel": 18,
+        "rssi": -82,
+        "sensorCount": 3,
+        "line": "Tuyến Hoàng Hoa Thám"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8220, 21.0403 ]
+      },
+      "properties": {
+        "id": "hht-07",
+        "name": "Hố ga H.Hoa Thám 7",
+        "code": "HHT-07",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 92,
+        "rssi": -55,
+        "sensorCount": 2,
+        "line": "Tuyến Hoàng Hoa Thám"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8200, 21.0401 ]
+      },
+      "properties": {
+        "id": "hht-08",
+        "name": "Hố ga H.Hoa Thám 8",
+        "code": "HHT-08",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 85,
+        "rssi": -63,
+        "sensorCount": 2,
+        "line": "Tuyến Hoàng Hoa Thám"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8180, 21.0399 ]
+      },
+      "properties": {
+        "id": "hht-09",
+        "name": "Hố ga H.Hoa Thám 9",
+        "code": "HHT-09",
+        "isHub": false,
+        "status": "Warning",
+        "batteryLevel": 50,
+        "rssi": -75,
+        "sensorCount": 2,
+        "line": "Tuyến Hoàng Hoa Thám"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8160, 21.0397 ]
+      },
+      "properties": {
+        "id": "hht-10",
+        "name": "Hố ga H.Hoa Thám 10",
+        "code": "HHT-10",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 96,
+        "rssi": -50,
+        "sensorCount": 2,
+        "line": "Tuyến Hoàng Hoa Thám"
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8360, 21.0400 ]
+      },
+      "properties": {
+        "id": "pdp-01",
+        "name": "Hố ga P.Đình Phùng 1",
+        "code": "PDP-01",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 100,
+        "rssi": -45,
+        "sensorCount": 2,
+        "line": "Tuyến Phan Đình Phùng"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8375, 21.0398 ]
+      },
+      "properties": {
+        "id": "pdp-02",
+        "name": "Hố ga P.Đình Phùng 2",
+        "code": "PDP-02",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 98,
+        "rssi": -48,
+        "sensorCount": 2,
+        "line": "Tuyến Phan Đình Phùng"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8390, 21.0396 ]
+      },
+      "properties": {
+        "id": "pdp-03",
+        "name": "Hố ga P.Đình Phùng 3",
+        "code": "PDP-03",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 95,
+        "rssi": -50,
+        "sensorCount": 2,
+        "line": "Tuyến Phan Đình Phùng"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8405, 21.0394 ]
+      },
+      "properties": {
+        "id": "pdp-04",
+        "name": "Hố ga P.Đình Phùng 4",
+        "code": "PDP-04",
+        "isHub": false,
+        "status": "Warning",
+        "batteryLevel": 48,
+        "rssi": -72,
+        "sensorCount": 2,
+        "line": "Tuyến Phan Đình Phùng"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8420, 21.0392 ]
+      },
+      "properties": {
+        "id": "pdp-05",
+        "name": "Hố ga P.Đình Phùng 5",
+        "code": "PDP-05",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 88,
+        "rssi": -60,
+        "sensorCount": 2,
+        "line": "Tuyến Phan Đình Phùng",
+        "cameraId": "CAM-PDP05"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8435, 21.0390 ]
+      },
+      "properties": {
+        "id": "pdp-06",
+        "name": "Hố ga P.Đình Phùng 6",
+        "code": "PDP-06",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 85,
+        "rssi": -65,
+        "sensorCount": 2,
+        "line": "Tuyến Phan Đình Phùng"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8450, 21.0388 ]
+      },
+      "properties": {
+        "id": "pdp-07",
+        "name": "Hố ga P.Đình Phùng 7",
+        "code": "PDP-07",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 82,
+        "rssi": -68,
+        "sensorCount": 2,
+        "line": "Tuyến Phan Đình Phùng"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8465, 21.0386 ]
+      },
+      "properties": {
+        "id": "pdp-08",
+        "name": "Hố ga P.Đình Phùng 8",
+        "code": "PDP-08",
+        "isHub": false,
+        "status": "Critical",
+        "batteryLevel": 20,
+        "rssi": -80,
+        "sensorCount": 4,
+        "line": "Tuyến Phan Đình Phùng"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8480, 21.0384 ]
+      },
+      "properties": {
+        "id": "pdp-09",
+        "name": "Hố ga P.Đình Phùng 9",
+        "code": "PDP-09",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 90,
+        "rssi": -55,
+        "sensorCount": 2,
+        "line": "Tuyến Phan Đình Phùng"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 105.8495, 21.0382 ]
+      },
+      "properties": {
+        "id": "pdp-10",
+        "name": "Hố ga P.Đình Phùng 10",
+        "code": "PDP-10",
+        "isHub": false,
+        "status": "Online",
+        "batteryLevel": 92,
+        "rssi": -52,
+        "sensorCount": 2,
+        "line": "Tuyến Phan Đình Phùng"
+      }
+    }
+  ]
+}

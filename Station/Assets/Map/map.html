@@ -62,7 +62,7 @@
             border-left-color: #1e293b;
         }
 
-        /* --- LIGHT POPUP (Sẽ kích hoạt khi body có class 'light-theme') --- */
+        /* --- LIGHT POPUP --- */
         body.light-theme {
             background-color: #f8fafc;
         }
@@ -113,6 +113,18 @@
         let currentTheme = "Dark";
         let sensorsGeoJson = null;
 
+        // --- CẤU HÌNH CÁC TUYẾN CỐNG NỐI VỚI NHAU ---
+        const routeConfigs = [
+            // Tuyến Đội Cấn
+            { status: 'active', nodes: ['hub-01', 'dc-01', 'dc-02', 'dc-03', 'dc-04', 'dc-05', 'dc-06', 'dc-07', 'dc-08', 'dc-09', 'dc-10'] },
+            // Tuyến Kim Mã
+            { status: 'warning', nodes: ['hub-01', 'km-01', 'km-02', 'km-03', 'km-04', 'km-05', 'km-06', 'km-07', 'km-08', 'km-09', 'km-10'] },
+            // Tuyến Hoàng Hoa Thám
+            { status: 'active', nodes: ['hub-01', 'hht-01', 'hht-02', 'hht-03', 'hht-04', 'hht-05', 'hht-06', 'hht-07', 'hht-08', 'hht-09', 'hht-10'] },
+            // Tuyến Phan Đình Phùng
+            { status: 'critical', nodes: ['hub-01', 'pdp-01', 'pdp-02', 'pdp-03', 'pdp-04', 'pdp-05', 'pdp-06', 'pdp-07', 'pdp-08', 'pdp-09', 'pdp-10'] }
+        ];
+
         function sendMessage(obj) {
             try {
                 if (window.chrome && window.chrome.webview) {
@@ -130,7 +142,8 @@
                     initMap();
                 }
                 if (msg.type === "refresh-data" && mapInitialized) {
-                    loadSensors(); loadRoutes();
+                    loadSensors();
+                    loadRoutes();
                 }
             });
         }
@@ -142,14 +155,13 @@
             let protocol = new pmtiles.Protocol();
             maplibregl.addProtocol("pmtiles", protocol.tile);
 
-            // Khởi tạo bản đồ với file Dark JSON mặc định
             window.map = new maplibregl.Map({
                 container: 'map',
-                center: [105.7940, 21.0370],
-                zoom: 15,
+                center: [105.8346, 21.0368], // Tọa độ Trạm trung tâm ở Ba Đình
+                zoom: 14,                    // Zoom out ra một chút để thấy 4 tuyến rõ hơn
                 minZoom: 5,
                 maxZoom: 18,
-                style: 'style_dark.json' // <--- ĐỌC TỪ FILE JSON THAY VÌ CODE CỨNG
+                style: 'style_dark.json'
             });
 
             map.addControl(new maplibregl.NavigationControl(), 'top-left');
@@ -162,29 +174,41 @@
             });
         }
 
+        // --- LOAD DỮ LIỆU TỪ FILE nodes.json ---
         async function loadSensors() {
             try {
-                const geojson = {
+                const response = await fetch('nodes.json');
+                if (!response.ok) throw new Error("Không thể tải nodes.json");
+
+                sensorsGeoJson = await response.json();
+
+                if (map.getSource('sensors')) {
+                    map.getSource('sensors').setData(sensorsGeoJson);
+                } else {
+                    map.addSource('sensors', { type: 'geojson', data: sensorsGeoJson });
+                    setupSensorLayers();
+                    setupSensorInteractions();
+                    setupDraggableLogic();
+                }
+            } catch (e) {
+                console.error("Lỗi khi load dữ liệu cảm biến:", e);
+                // Dữ liệu fallback
+                sensorsGeoJson = {
                     "type": "FeatureCollection",
                     "features": [
                         { "type": "Feature", "geometry": { "type": "Point", "coordinates": [105.7940, 21.0370] }, "properties": { "id": "hub-01", "name": "Trạm Trung Tâm", "code": "HUB", "isHub": true, "status": "Online", "batteryLevel": 98, "rssi": -65, "sensorCount": 5, "line": "Trạm điều khiển chính" } },
-                        { "type": "Feature", "geometry": { "type": "Point", "coordinates": [105.7965, 21.0385] }, "properties": { "id": "node-01", "name": "Hố ga Hoàng Quốc Việt 1", "code": "HQV-01", "isHub": false, "status": "Online", "batteryLevel": 85, "rssi": -72, "sensorCount": 2, "cameraId": "CAM-001", "line": "Tuyến HQV" } },
-                        { "type": "Feature", "geometry": { "type": "Point", "coordinates": [105.7980, 21.0395] }, "properties": { "id": "node-02", "name": "Hố ga Hoàng Quốc Việt 2", "code": "HQV-02", "isHub": false, "status": "Warning", "batteryLevel": 60, "rssi": -80, "sensorCount": 3, "line": "Tuyến HQV" } },
-                        { "type": "Feature", "geometry": { "type": "Point", "coordinates": [105.7920, 21.0360] }, "properties": { "id": "node-03", "name": "Hố ga Nguyễn Phong Sắc", "code": "NPS-01", "isHub": false, "status": "Critical", "batteryLevel": 20, "rssi": -95, "sensorCount": 1, "line": "Tuyến NPS" } },
-                        { "type": "Feature", "geometry": { "type": "Point", "coordinates": [105.7910, 21.0350] }, "properties": { "id": "node-04", "name": "Hố ga Trần Đăng Ninh", "code": "TDN-01", "isHub": false, "status": "Offline", "batteryLevel": 0, "rssi": -110, "sensorCount": 0, "cameraId": "CAM-002", "line": "Tuyến TDN" } }
+                        { "type": "Feature", "geometry": { "type": "Point", "coordinates": [105.7965, 21.0385] }, "properties": { "id": "node-01", "name": "Hố ga dự phòng", "code": "DP-01", "isHub": false, "status": "Warning", "batteryLevel": 85, "rssi": -72, "sensorCount": 2, "cameraId": "CAM-001", "line": "Tuyến dự phòng" } }
                     ]
                 };
-
-                sensorsGeoJson = geojson;
-
-                if (map.getSource('sensors')) {
-                    map.getSource('sensors').setData(geojson);
-                } else {
-                    map.addSource('sensors', { type: 'geojson', data: geojson });
+                if (!map.getSource('sensors')) {
+                    map.addSource('sensors', { type: 'geojson', data: sensorsGeoJson });
                     setupSensorLayers();
                     setupSensorInteractions();
+                    setupDraggableLogic();
+                } else {
+                    map.getSource('sensors').setData(sensorsGeoJson);
                 }
-            } catch (e) { console.error("Error loading sensors:", e); }
+            }
         }
 
         function setupSensorLayers() {
@@ -195,27 +219,283 @@
             map.addLayer({ id: 'relay-label', type: 'symbol', source: 'sensors', filter: ['!=', ['get', 'isHub'], true], layout: { 'text-field': ['get', 'code'], 'text-font': ['Noto Sans Semibold'], 'text-size': 11, 'text-offset': [0, 1.8], 'text-anchor': 'top' }, paint: { 'text-color': '#cbd5e1', 'text-halo-color': '#0b1121', 'text-halo-width': 2 } });
         }
 
+        // --- HÀM TỰ ĐỘNG VẼ LẠI ĐƯỜNG NỐI ---
+        function updateRoutes() {
+            if (!sensorsGeoJson || !map.getSource('routes')) return;
+
+            const features = [];
+            routeConfigs.forEach(route => {
+                const coords = [];
+                // Quét từng ID trong tuyến, tìm tọa độ hiện tại của nó
+                route.nodes.forEach(nodeId => {
+                    const node = sensorsGeoJson.features.find(f => f.properties.id === nodeId);
+                    if (node) coords.push(node.geometry.coordinates);
+                });
+
+                // Nếu có từ 2 điểm trở lên thì mới vẽ đường
+                if (coords.length > 1) {
+                    features.push({
+                        "type": "Feature",
+                        "geometry": { "type": "LineString", "coordinates": coords },
+                        "properties": { "Status": route.status }
+                    });
+                }
+            });
+
+            const geojson = { "type": "FeatureCollection", "features": features };
+            map.getSource('routes').setData(geojson);
+        }
+
+        async function loadRoutes() {
+            try {
+                const emptyGeojson = { "type": "FeatureCollection", "features": [] };
+
+                if (!map.getSource('routes')) {
+                    map.addSource('routes', { type: 'geojson', data: emptyGeojson });
+                    map.addLayer({
+                        id: 'routes-line',
+                        type: 'line',
+                        source: 'routes',
+                        layout: { 'line-join': 'round', 'line-cap': 'round' },
+                        paint: { 'line-color': ['match', ['get', 'Status'], 'active', '#10B981', 'warning', '#f59e0b', 'critical', '#ef4444', '#94a3b8'], 'line-width': 4, 'line-opacity': 0.8 }
+                    });
+                }
+
+                updateRoutes();
+            } catch (e) { console.error("Error routes:", e); }
+        }
+
+        // --- HÀM TẠO HỘP THOẠI XÁC NHẬN TÙY CHỈNH (CUSTOM CONFIRM DIALOG) ---
+        function showCustomConfirm(message) {
+            return new Promise((resolve) => {
+                // Tạo lớp phủ nền tối (Overlay)
+                const overlay = document.createElement('div');
+                overlay.style.position = 'fixed';
+                overlay.style.top = '0';
+                overlay.style.left = '0';
+                overlay.style.width = '100%';
+                overlay.style.height = '100%';
+                overlay.style.backgroundColor = 'rgba(11, 17, 33, 0.7)'; // Màu nền mờ
+                overlay.style.display = 'flex';
+                overlay.style.justifyContent = 'center';
+                overlay.style.alignItems = 'center';
+                overlay.style.zIndex = '9999';
+
+                // Tạo khung hộp thoại (Dialog Box)
+                const dialog = document.createElement('div');
+                dialog.style.backgroundColor = '#1e293b'; // Màu nền hộp thoại
+                dialog.style.border = '1px solid #334155';
+                dialog.style.borderRadius = '8px';
+                dialog.style.padding = '24px';
+                dialog.style.boxShadow = '0 10px 25px rgba(0,0,0,0.5)';
+                dialog.style.color = '#f1f5f9';
+                dialog.style.fontFamily = 'system-ui, sans-serif';
+                dialog.style.minWidth = '320px';
+                dialog.style.textAlign = 'center';
+
+                // Thêm icon và nội dung
+                const msgEl = document.createElement('div');
+                msgEl.innerHTML = `<div style="font-size: 24px; margin-bottom: 10px;">📍</div>${message}`;
+                msgEl.style.marginBottom = '20px';
+                msgEl.style.fontSize = '14px';
+
+                // Khung chứa nút bấm
+                const btnContainer = document.createElement('div');
+                btnContainer.style.display = 'flex';
+                btnContainer.style.justifyContent = 'center';
+                btnContainer.style.gap = '12px';
+
+                // Nút Xác nhận
+                const btnOk = document.createElement('button');
+                btnOk.innerText = 'Lưu vị trí';
+                btnOk.style.padding = '8px 20px';
+                btnOk.style.backgroundColor = '#3B82F6';
+                btnOk.style.color = 'white';
+                btnOk.style.border = 'none';
+                btnOk.style.borderRadius = '4px';
+                btnOk.style.cursor = 'pointer';
+                btnOk.style.fontWeight = 'bold';
+
+                // Nút Hủy
+                const btnCancel = document.createElement('button');
+                btnCancel.innerText = 'Hủy bỏ';
+                btnCancel.style.padding = '8px 20px';
+                btnCancel.style.backgroundColor = '#475569';
+                btnCancel.style.color = 'white';
+                btnCancel.style.border = 'none';
+                btnCancel.style.borderRadius = '4px';
+                btnCancel.style.cursor = 'pointer';
+
+                // Hiệu ứng hover cho nút
+                btnOk.onmouseover = () => btnOk.style.backgroundColor = '#2563EB';
+                btnOk.onmouseout = () => btnOk.style.backgroundColor = '#3B82F6';
+                btnCancel.onmouseover = () => btnCancel.style.backgroundColor = '#334155';
+                btnCancel.onmouseout = () => btnCancel.style.backgroundColor = '#475569';
+
+                // Bắt sự kiện click
+                btnOk.onclick = () => {
+                    document.body.removeChild(overlay);
+                    resolve(true); // Trả về true khi đồng ý
+                };
+
+                btnCancel.onclick = () => {
+                    document.body.removeChild(overlay);
+                    resolve(false); // Trả về false khi hủy
+                };
+
+                // Lắp ráp các thành phần lại
+                btnContainer.appendChild(btnCancel);
+                btnContainer.appendChild(btnOk);
+                dialog.appendChild(msgEl);
+                dialog.appendChild(btnContainer);
+                overlay.appendChild(dialog);
+                document.body.appendChild(overlay);
+            });
+        }
+
+        // --- LOGIC KÉO THẢ (DRAG & DROP) ---
+        function setupDraggableLogic() {
+            let isDragging = false;
+            let draggedFeatureId = null;
+            let originalCoords = null;
+            const canvas = map.getCanvas();
+
+            map.on('mousedown', 'sensors-circle', (e) => {
+                const features = map.queryRenderedFeatures(e.point, { layers: ['sensors-circle'] });
+                if (features.length > 0) {
+                    e.preventDefault();
+                    isDragging = true;
+                    draggedFeatureId = features[0].properties.id;
+
+                    const feature = sensorsGeoJson.features.find(f => f.properties.id === draggedFeatureId);
+                    if (feature) {
+                        originalCoords = [...feature.geometry.coordinates];
+                    }
+
+                    canvas.style.cursor = 'grabbing';
+
+                    const popups = document.getElementsByClassName('maplibregl-popup');
+                    if (popups.length > 0) popups[0].remove();
+                }
+            });
+
+            map.on('mousemove', (e) => {
+                if (isDragging) {
+                    canvas.style.cursor = 'grabbing';
+
+                    const coords = e.lngLat;
+                    const feature = sensorsGeoJson.features.find(f => f.properties.id === draggedFeatureId);
+
+                    if (feature) {
+                        feature.geometry.coordinates = [coords.lng, coords.lat];
+                        map.getSource('sensors').setData(sensorsGeoJson);
+                        updateRoutes();
+                    }
+                }
+            });
+
+            // LƯU Ý: Đã thêm chữ "async" vào đây để dùng lệnh await chờ người dùng bấm nút
+            map.on('mouseup', async (e) => {
+                if (isDragging) {
+                    isDragging = false;
+                    canvas.style.cursor = '';
+
+                    const feature = sensorsGeoJson.features.find(f => f.properties.id === draggedFeatureId);
+
+                    if (feature) {
+                        const coords = e.lngLat;
+
+                        // GỌI HỘP THOẠI CUSTOM Ở ĐÂY VÀ CHỜ KẾT QUẢ
+                        const isConfirmed = await showCustomConfirm(`Bạn có muốn thay đổi vị trí của<br><b style="color:#60a5fa; font-size:16px;">${feature.properties.name}</b> ?`);
+
+                        if (isConfirmed) {
+                            sendMessage({
+                                type: "node-moved",
+                                nodeId: draggedFeatureId,
+                                lng: coords.lng,
+                                lat: coords.lat
+                            });
+                        } else {
+                            // Hủy -> Quay về chỗ cũ
+                            feature.geometry.coordinates = originalCoords;
+                            map.getSource('sensors').setData(sensorsGeoJson);
+                            updateRoutes();
+                        }
+                    }
+
+                    draggedFeatureId = null;
+                    originalCoords = null;
+                }
+            });
+        }
+
         function setupSensorInteractions() {
             const popupLayers = ['sensors-circle', 'station-circle'];
             map.on('click', popupLayers, async (e) => {
                 const p = e.features[0].properties;
-                const coords = e.features[0].geometry.coordinates.slice();
+
+                // Lấy tọa độ thực tế từ RAM (bộ nhớ) để tránh bị cache đồ họa
+                const memNode = sensorsGeoJson.features.find(f => f.properties.id === p.id);
+                const coords = memNode ? memNode.geometry.coordinates.slice() : e.features[0].geometry.coordinates.slice();
+
                 while (Math.abs(e.lngLat.lng - coords[0]) > 180) { coords[0] += e.lngLat.lng > coords[0] ? 360 : -360; }
+
                 const popupContent = document.createElement('div');
-                buildPopupHTML(popupContent, p);
-                new maplibregl.Popup({ closeOnClick: true, maxWidth: '380px' }).setLngLat(coords).setDOMContent(popupContent).addTo(map);
+                buildPopupHTML(popupContent, p, coords);
+
+                new maplibregl.Popup({ closeOnClick: true, maxWidth: '380px' })
+                    .setLngLat(coords)
+                    .setDOMContent(popupContent)
+                    .addTo(map);
+
                 loadSensorDetailsForPopup(p.id, p.isHub);
             });
+
             map.on('mouseenter', popupLayers, () => { map.getCanvas().style.cursor = 'pointer'; });
             map.on('mouseleave', popupLayers, () => { map.getCanvas().style.cursor = ''; });
         }
 
-        function buildPopupHTML(container, p) {
+        function buildPopupHTML(container, p, coords) {
             const statusColors = { 'Online': '#10B981', 'Warning': '#F59E0B', 'Critical': '#EF4444', 'Offline': '#6B7280' };
             const statusColor = statusColors[p.status] || '#94A3B8';
             const hubIcon = p.isHub ? '🏢 ' : '';
             const hubStyle = p.isHub ? 'color: #60a5fa; font-weight: bold;' : 'color: #94a3b8;';
-            container.innerHTML = `<div style="border-bottom: 1px solid #334155; padding-bottom: 8px; margin-bottom: 8px;"><div style="font-size: 15px; font-weight: bold; color: #f1f5f9;">${hubIcon}${p.name}</div><div style="font-size: 12px; ${hubStyle}">${p.code} • ${p.line || 'N/A'}</div></div><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px; margin-bottom: 10px;"><div><span style="color: #94a3b8;">Trạng thái:</span> <strong style="color: ${statusColor};">● ${p.status}</strong></div><div><span style="color: #94a3b8;">Pin:</span> <strong style="color: #f1f5f9;">${p.batteryLevel}%</strong></div><div><span style="color: #94a3b8;">RSSI:</span> <strong style="color: #f1f5f9;">${p.rssi} dBm</strong></div><div><span style="color: #94a3b8;">Sensors:</span> <strong style="color: #f1f5f9;">${p.sensorCount}</strong></div></div><div id="sensors-section-${p.id}" style="border-top: 1px solid #334155; padding-top: 8px; margin-top: 8px;"><div style="font-size: 13px; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">📊 Cảm biến <span id="sensors-loading-${p.id}" style="font-weight: normal; color: #64748b;">(đang tải...)</span></div><div id="sensors-list-${p.id}" style="max-height: 180px; overflow-y: auto;"></div></div><div style="margin-top: 12px; display: flex; gap: 8px;">${p.cameraId ? `<button onclick="window.onViewCamera('${p.cameraId}','${p.id}')" style="flex: 1; padding: 6px 10px; background-color: #10B981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">📹 Camera</button>` : ''}<button onclick="window.onManageDevice('${p.id}')" style="flex: 1; padding: 6px 10px; background-color: #3B82F6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">⚙️ Quản lý</button></div>`;
+
+            let html = `
+                    <div style="border-bottom: 1px solid #334155; padding-bottom: 8px; margin-bottom: 8px;">
+                        <div style="font-size: 15px; font-weight: bold; color: #f1f5f9;">${hubIcon}${p.name}</div>
+                        <div style="font-size: 12px; ${hubStyle}">${p.code} • ${p.line || 'N/A'}</div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px; margin-bottom: 10px;">
+                        <div><span style="color: #94a3b8;">Trạng thái:</span> <strong style="color: ${statusColor};">● ${p.status}</strong></div>
+                        <div><span style="color: #94a3b8;">Pin:</span> <strong style="color: #f1f5f9;">${p.batteryLevel}%</strong></div>
+                        <div><span style="color: #94a3b8;">RSSI:</span> <strong style="color: #f1f5f9;">${p.rssi} dBm</strong></div>
+                        <div><span style="color: #94a3b8;">Sensors:</span> <strong style="color: #f1f5f9;">${p.sensorCount}</strong></div>
+                    </div>
+                    <div id="sensors-section-${p.id}" style="border-top: 1px solid #334155; padding-top: 8px; margin-top: 8px;">
+                        <div style="font-size: 13px; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">
+                            📊 Cảm biến <span id="sensors-loading-${p.id}" style="font-weight: normal; color: #64748b;">(đang tải...)</span>
+                        </div>
+                        <div id="sensors-list-${p.id}" style="max-height: 180px; overflow-y: auto;"></div>
+                    </div>
+                    <div style="margin-top: 12px; display: flex; gap: 8px;">
+                        ${p.cameraId ? `<button onclick="window.onViewCamera('${p.cameraId}','${p.id}')" style="flex: 1; padding: 6px 10px; background-color: #10B981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">📹 Camera</button>` : ''}
+                        <button onclick="window.onManageDevice('${p.id}')" style="flex: 1; padding: 6px 10px; background-color: #3B82F6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">⚙️ Quản lý</button>
+                    </div>
+
+                    <div style="margin-top: 12px; padding-top: 8px; border-top: 1px dashed #334155;">
+                        <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Sửa tọa độ (Lng, Lat):</div>
+                        <div style="display: flex; gap: 4px;">
+                            <input type="number" step="0.00001" id="lng-${p.id}" value="${coords[0].toFixed(5)}" style="width: 40%; font-size: 11px; background: transparent; color: inherit; border: 1px solid #64748b; border-radius: 3px; padding: 2px 4px;">
+                            <input type="number" step="0.00001" id="lat-${p.id}" value="${coords[1].toFixed(5)}" style="width: 40%; font-size: 11px; background: transparent; color: inherit; border: 1px solid #64748b; border-radius: 3px; padding: 2px 4px;">
+                            <button onclick="window.moveNodeToCoords('${p.id}', document.getElementById('lng-${p.id}').value, document.getElementById('lat-${p.id}').value)"
+                                    style="background: #6366f1; color: white; border: none; border-radius: 3px; cursor: pointer; flex: 1; font-size: 11px;">
+                                Cập nhật
+                            </button>
+                        </div>
+                    </div>
+                `;
+            container.innerHTML = html;
         }
 
         async function loadSensorDetailsForPopup(nodeId, isHub) {
@@ -235,8 +515,11 @@
         }
 
         function renderSensorItem(s) {
-            const isWarning = s.currentValue >= s.warningThreshold; const isCritical = s.currentValue >= s.criticalThreshold; const sensorColor = isCritical ? '#ef4444' : (isWarning ? '#f59e0b' : '#10B981'); const sensorIcon = getSensorIcon(s.type);
-            return `<div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 8px; margin-bottom: 4px; background-color: #334155; border-radius: 4px; font-size: 12px;"><div style="display: flex; align-items: center; gap: 6px;"><span style="font-size: 14px;">${sensorIcon}</span><span style="color: #cbd5e1;">${s.name}</span></div><div style="display: flex; align-items: center; gap: 4px;"><span style="font-weight: 600; color: ${sensorColor};">${s.currentValue?.toFixed(1) || 'N/A'}</span><span style="color: #94a3b8;">${s.unit}</span></div></div>`;
+            const isWarning = s.currentValue >= s.warningThreshold;
+            const isCritical = s.currentValue >= s.criticalThreshold;
+            const sensorColor = isCritical ? '#ef4444' : (isWarning ? '#f59e0b' : '#10B981');
+            const sensorIcon = getSensorIcon(s.type);
+            return `<div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 8px; margin-bottom: 4px; background-color: rgba(51, 65, 85, 0.5); border-radius: 4px; font-size: 12px;"><div style="display: flex; align-items: center; gap: 6px;"><span style="font-size: 14px;">${sensorIcon}</span><span style="color: inherit;">${s.name}</span></div><div style="display: flex; align-items: center; gap: 4px;"><span style="font-weight: 600; color: ${sensorColor};">${s.currentValue?.toFixed(1) || 'N/A'}</span><span style="color: #94a3b8;">${s.unit}</span></div></div>`;
         }
 
         function getSensorIcon(type) {
@@ -244,26 +527,44 @@
             return icons[type] || '📊';
         }
 
-        async function loadRoutes() {
-            try {
-                const geojson = {
-                    "type": "FeatureCollection",
-                    "features": [
-                        { "type": "Feature", "geometry": { "type": "LineString", "coordinates": [[105.7940, 21.0370], [105.7965, 21.0385], [105.7980, 21.0395]] }, "properties": { "Status": "active" } },
-                        { "type": "Feature", "geometry": { "type": "LineString", "coordinates": [[105.7940, 21.0370], [105.7920, 21.0360], [105.7910, 21.0350]] }, "properties": { "Status": "critical" } }
-                    ]
-                };
-                if (map.getSource('routes')) { map.getSource('routes').setData(geojson); } else {
-                    map.addSource('routes', { type: 'geojson', data: geojson });
-                    map.addLayer({ id: 'routes-line', type: 'line', source: 'routes', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': ['match', ['get', 'Status'], 'active', '#10B981', 'warning', '#f59e0b', 'critical', '#ef4444', '#94a3b8'], 'line-width': 4, 'line-opacity': 0.8 } });
-                }
-            } catch (e) { console.error("Error routes:", e); }
-        }
-
         window.onViewCamera = function (cameraId, nodeId) { sendMessage({ type: "viewcamera", cameraId: cameraId, nodeId: nodeId }); };
         window.onManageDevice = function (nodeId) { sendMessage({ type: "managedevice", nodeId: nodeId }); };
 
-        // -------- HỖ TRỢ UPDATE NODE TỪ C# --------
+        // --- CẬP NHẬT TỌA ĐỘ BẰNG TAY TỪ POPUP ---
+        window.moveNodeToCoords = function (nodeId, newLng, newLat) {
+            if (!sensorsGeoJson) return;
+
+            const lng = parseFloat(newLng);
+            const lat = parseFloat(newLat);
+
+            if (isNaN(lng) || isNaN(lat)) {
+                alert("Vui lòng nhập tọa độ hợp lệ!");
+                return;
+            }
+
+            const feature = sensorsGeoJson.features.find(f => f.properties.id === nodeId);
+            if (feature) {
+                feature.geometry.coordinates = [lng, lat];
+                map.getSource('sensors').setData(sensorsGeoJson);
+
+                // Cập nhật đường nối
+                updateRoutes();
+
+                sendMessage({
+                    type: "node-moved",
+                    nodeId: nodeId,
+                    lng: lng,
+                    lat: lat
+                });
+
+                const popups = document.getElementsByClassName('maplibregl-popup');
+                if (popups.length > 0) popups[0].remove();
+
+                map.flyTo({ center: [lng, lat], zoom: 16 });
+                console.log(`Đã cập nhật tọa độ nút ${nodeId} thành: ${lng}, ${lat}`);
+            }
+        };
+
         window.updateNode = function (node) {
             try {
                 if (!sensorsGeoJson || !node || !node.id) return;
@@ -272,10 +573,8 @@
                 const idx = features.findIndex(f => f.properties && f.properties.id === node.id);
 
                 if (idx >= 0) {
-                    // Merge properties
                     Object.assign(features[idx].properties, node);
                 } else {
-                    console.log("updateNode: id not found in sensorsGeoJson", node.id);
                     return;
                 }
 
@@ -311,31 +610,24 @@
             }
         };
 
-        // -------- HỖ TRỢ THEME TỪ C# --------
         function setTheme(theme) {
             currentTheme = theme || "Dark";
 
-            // 1. Đổi class CSS của body để đổi màu nền và màu Popup
             if (currentTheme === "Light") {
                 document.body.classList.add('light-theme');
             } else {
                 document.body.classList.remove('light-theme');
             }
 
-            // 2. Cập nhật lại bản đồ nền
             if (window.map) {
                 const styleFile = currentTheme === "Light" ? 'style_light.json' : 'style_dark.json';
-
                 window.map.setStyle(styleFile);
 
-                // QUAN TRỌNG: Khi đổi Style, MapLibre sẽ xóa mất các layer ống cống và hố ga.
-                // Chúng ta phải đợi Style load xong rồi vẽ lại chúng.
                 window.map.once('style.load', () => {
                     loadSensors();
                     loadRoutes();
                 });
             }
-
             console.log("Theme changed to:", currentTheme);
         }
 
