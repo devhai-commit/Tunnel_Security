@@ -2,6 +2,14 @@
 
 #region Enums
 
+public enum JoinRequestStatus
+{
+    Pending,
+    Accepted,
+    Rejected,
+    Expired
+}
+
 public enum NodeStatus
 {
     Online,

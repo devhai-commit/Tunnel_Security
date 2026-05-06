@@ -9,9 +9,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
-// ── SQLite (relational topology) ──────────────────────────────────────────────
+// ── SQL Server (relational topology) ──────────────────────────────────────────
 builder.Services.AddDbContext<TunnelDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("Default")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
 // ── TimescaleDB / PostgreSQL (time-series hypertables) ────────────────────────
 // Enabled by TimeSeries:Enabled flag. App starts fine without TimescaleDB running;
@@ -115,7 +115,7 @@ app.MapGet("/", () => new
 {
     message = "Tunnel Security Backend API",
     version = "2.0.0",
-    databases = new { relational = "SQLite", timeSeries = "TimescaleDB/PostgreSQL" },
+    databases = new { relational = "SQL Server", timeSeries = "TimescaleDB/PostgreSQL" },
     endpoints = new { swagger = "/swagger", sensors = "/api/sensors",
                       readings = "/api/readings", stations = "/api/stations",
                       signalR = "/hubs/sensors" }

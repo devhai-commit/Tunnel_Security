@@ -5,6 +5,7 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml.Media;
 using Station.Models;
 using Station.Services;
@@ -22,8 +23,9 @@ namespace Station.ViewModels
 
     public partial class DevicesViewModel : ObservableObject
     {
-        // Mock data service for real-time updates
+        // Active data service (mock or RealDataService backed by Backend API / SQL Server)
         private readonly IDataService _mock = DataServiceLocator.Current;
+        private readonly DispatcherQueue? _dispatcher = DispatcherQueue.GetForCurrentThread();
 
         // Stores user-added nodes so they survive filter changes
         private readonly Dictionary<string, NodeItemViewModel> _userAddedNodes = new();
@@ -132,12 +134,34 @@ namespace Station.ViewModels
 
         public DevicesViewModel()
         {
-            LoadMockData();
+            ReloadFromDataService();
+
+            // Realtime sensor updates (every 1 second)
+            _mock.SensorTick += OnSensorTick;
+
+            // RealDataService loads topology asynchronously from Backend API → SQL Server.
+            // Re-pull collections once that finishes (and on later refreshes), otherwise
+            // the page stays empty when the VM was constructed before the API responded.
+            _mock.TopologyLoaded += OnTopologyLoaded;
+        }
+
+        private void OnTopologyLoaded(object? sender, EventArgs e)
+        {
+            if (_dispatcher != null && !_dispatcher.HasThreadAccess)
+                _dispatcher.TryEnqueue(ReloadFromDataService);
+            else
+                ReloadFromDataService();
+        }
+
+        private void ReloadFromDataService()
+        {
+            AllDevices.Clear();
+            LineFilters.Clear();
+            StatusFilters.Clear();
+
+            LoadFromDataService();
             ApplyFilters();
             UpdateStatistics();
-
-            // Subscribe to MockDataService for realtime updates (every 1 second)
-            _mock.SensorTick += OnSensorTick;
         }
 
         private void OnSensorTick(object? sender, SensorTickEventArgs e)
@@ -212,7 +236,7 @@ namespace Station.ViewModels
             }
         }
 
-        private void LoadMockData()
+        private void LoadFromDataService()
         {
             StatusFilters.Add("Tất cả trạng thái");
             StatusFilters.Add("Hoạt động");
@@ -224,8 +248,6 @@ namespace Station.ViewModels
             var mock = Station.Services.DataServiceLocator.Current;
             foreach (var line in mock.Lines)
                 LineFilters.Add(line.LineName);
-
-            AllDevices.Clear();
 
             // Add cameras
             foreach (var cam in mock.Cameras)

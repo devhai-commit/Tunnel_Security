@@ -23,7 +23,7 @@
 		<Content Include="Assets\Map\**\*">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
-		<None Remove="Views\DataPage.xaml" />
+		<!-- <None Remove="Views\DataPage.xaml" /> -->
 		<Content Include="Assets\SecurityMap.html">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
