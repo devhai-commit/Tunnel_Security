@@ -1,0 +1,91 @@
+{
+  "version": 8,
+  "name": "Vietnam-Dark-OpenMapTiles",
+  "sources": {
+    "vietnam-vector": {
+      "type": "vector",
+      "tiles": [
+        "https://app.local/tiles/{z}/{x}/{y}.pbf"
+      ],
+      "maxzoom": 14
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": { "background-color": "#0b1121" }
+    },
+    {
+      "id": "water",
+      "type": "fill",
+      "source": "vietnam-vector",
+      "source-layer": "water",
+      "paint": { "fill-color": "#1e293b" }
+    },
+    {
+      "id": "waterway",
+      "type": "line",
+      "source": "vietnam-vector",
+      "source-layer": "waterway",
+      "paint": {
+        "line-color": "#1e293b",
+        "line-width": 1
+      }
+    },
+    {
+      "id": "landuse",
+      "type": "fill",
+      "source": "vietnam-vector",
+      "source-layer": "landcover",
+      "paint": { "fill-color": "#0d1528" }
+    },
+    {
+      "id": "building",
+      "type": "fill",
+      "source": "vietnam-vector",
+      "source-layer": "building",
+      "paint": {
+        "fill-color": "#15203b",
+        "fill-outline-color": "#1e2d4a"
+      }
+    },
+    {
+      "id": "roads",
+      "type": "line",
+      "source": "vietnam-vector",
+      "source-layer": "transportation",
+      "paint": {
+        "line-color": "#334155",
+        "line-width": [
+          "interpolate",
+          [ "linear" ],
+          [ "zoom" ],
+          10,
+          0.5,
+          15,
+          2
+        ]
+      }
+    },
+    {
+      "id": "road-highway",
+      "type": "line",
+      "source": "vietnam-vector",
+      "source-layer": "transportation",
+      "filter": [ "==", "class", "motorway" ],
+      "paint": {
+        "line-color": "#475569",
+        "line-width": [
+          "interpolate",
+          [ "linear" ],
+          [ "zoom" ],
+          10,
+          1,
+          15,
+          3
+        ]
+      }
+    }
+  ]
+}
