@@ -19,6 +19,7 @@ using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
 using Station.Config;
+using Windows.Storage.Streams;
 
 namespace Station.Views
 {
@@ -195,53 +196,30 @@ namespace Station.Views
             }
         }
 
-        private async void InitializeSecurityMap()
-        {
-            try
-            {
-                await SecurityMapWebView.EnsureCoreWebView2Async();
+		private async void InitializeSecurityMap()
+		{
+			try
+			{
+				await SecurityMapWebView.EnsureCoreWebView2Async();
 
-                // Enable settings for WebView2
-                SecurityMapWebView.CoreWebView2.Settings.AreDevToolsEnabled = true;
-                SecurityMapWebView.CoreWebView2.Settings.IsWebMessageEnabled = true;
+				// CHỈ CẦN DUY NHẤT 2 DÒNG NÀY ĐỂ MỞ ĐƯỜNG CHO JS ĐỌC FILE
+				var assetsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets");
+				SecurityMapWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+					"app.local", assetsPath, CoreWebView2HostResourceAccessKind.Allow);
 
-                // Nhận message từ JS (mapready / viewcamera / managedevice)
-                SecurityMapWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
+				// Các dòng còn lại giữ nguyên
+				SecurityMapWebView.CoreWebView2.Navigate("https://app.local/Map/map.html");
 
-                // Khi HTML load xông sẽ bắn NavigationCompleted
-                SecurityMapWebView.NavigationCompleted += SecurityMapWebView_NavigationCompleted;
+				SecurityMapWebView.NavigationCompleted += SecurityMapWebView_NavigationCompleted;
+				SecurityMapWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"Lỗi Init Map: {ex.Message}");
+			}
+		}
 
-                // Đọc file HTML (Mapbox)
-                var htmlPath = Path.Combine(
-                    AppDomain.CurrentDomain.BaseDirectory,
-                    "Assets",
-                    "Map",
-                    "map.html");
-
-                if (!File.Exists(htmlPath))
-                {
-                    Debug.WriteLine($"Security map HTML not found at: {htmlPath}");
-                    return;
-                }
-
-                // Use SetVirtualHostNameToFolderMapping to allow external resources (Mapbox CDN)
-                var assetsFolderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets");
-                SecurityMapWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
-                    "app.local",
-                    assetsFolderPath,
-                    Microsoft.Web.WebView2.Core.CoreWebView2HostResourceAccessKind.Allow);
-
-                // Navigate using virtual host to avoid ERR_CONNECTION_RESET with CDN resources
-                SecurityMapWebView.CoreWebView2.Navigate("https://app.local/Map/map.html");
-                Debug.WriteLine($"Loading map from virtual host: https://app.local/Map/map.html");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error initializing security map: {ex.Message}");
-            }
-        }
-
-        private async void SecurityMapWebView_NavigationCompleted(
+		private async void SecurityMapWebView_NavigationCompleted(
             WebView2 sender,
             CoreWebView2NavigationCompletedEventArgs args)
         {
@@ -303,63 +281,40 @@ namespace Station.Views
             }
         }
 
-        private void CoreWebView2_WebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
-        {
-            try
-            {
-                var message = args.TryGetWebMessageAsString();
-                Debug.WriteLine($"Received message from map: {message}");
+		private void CoreWebView2_WebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
+		{
+			try
+			{
+				var message = args.TryGetWebMessageAsString();
+				if (string.IsNullOrEmpty(message)) return;
 
-                if (string.IsNullOrEmpty(message))
-                {
-                    Debug.WriteLine("Empty message received");
-                    return;
-                }
+				var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+				var data = JsonSerializer.Deserialize<SecurityMapMessage>(message, options);
 
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true,
-                    AllowTrailingCommas = true
-                };
+				if (data == null) return;
 
-                var data = JsonSerializer.Deserialize<SecurityMapMessage>(message, options);
+				switch (data.Type?.ToLower())
+				{
+					case "mapready":
+						Debug.WriteLine("Security map is ready");
+						break;
+					case "viewcamera":
+						HandleViewCamera(data.CameraId, data.NodeId);
+						break;
+					case "managedevice":
+						HandleManageDevice(data.NodeId);
+						break;
 
-                if (data == null)
-                {
-                    Debug.WriteLine("Failed to deserialize message");
-                    return;
-                }
-
-                Debug.WriteLine($"Message type: {data.Type}, NodeId: {data.NodeId}, CameraId: {data.CameraId}");
-
-                switch (data.Type?.ToLower())
-                {
-                    case "mapready":
-                        Debug.WriteLine("Security map is ready");
-                        // Nếu cần, có thể gửi lại dữ liệu nodes ở đây
-                        break;
-
-                    case "viewcamera":
-                        HandleViewCamera(data.CameraId, data.NodeId);
-                        break;
-
-                    case "managedevice":
-                        HandleManageDevice(data.NodeId);
-                        break;
-
-                    default:
-                        Debug.WriteLine($"Unknown message type: {data.Type}");
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error handling web message: {ex.Message}");
-                Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-            }
-        }
-
-        private async void HandleViewCamera(string? cameraId, string? nodeId)
+					// --- THÊM TRƯỜNG HỢP NÀY ĐỂ LƯU FILE ---
+					case "node-moved":
+						SaveNodePosition(data.NodeId, data.Lng, data.Lat);
+						break;
+						// --------------------------------------
+				}
+			}
+			catch (Exception ex) { Debug.WriteLine($"Error: {ex.Message}"); }
+		}
+		private async void HandleViewCamera(string? cameraId, string? nodeId)
         {
             if (string.IsNullOrEmpty(cameraId))
                 return;
@@ -660,21 +615,99 @@ namespace Station.Views
             }
         }
 
-        private class SecurityMapMessage
-        {
-            [JsonPropertyName("type")]
-            public string? Type { get; set; }
+		private void SaveNodePosition(string nodeId, double lng, double lat)
+		{
+			try
+			{
+				string filePath = "";
 
-            [JsonPropertyName("cameraId")]
-            public string? CameraId { get; set; }
+#if DEBUG
+				// 1. Lấy vị trí Bản Photo đang chạy (Thường nằm tít trong bin/x64/Debug/...)
+				DirectoryInfo? currentDir = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
 
-            [JsonPropertyName("nodeId")]
-            public string? NodeId { get; set; }
-        }
+				// 2. Tự động leo ngược lên trên cho đến khi tìm thấy thư mục gốc chứa "Assets"
+				while (currentDir != null)
+				{
+					// Kiểm tra xem ở đây có thư mục "Assets/Map" chưa?
+					string checkPath = Path.Combine(currentDir.FullName, "Assets", "Map", "nodes.json");
 
-        #region Camera Rotation Methods
+					// Nếu tìm thấy file nodes.json ở đây, nghĩa là đã về tới nhà (Bản Gốc)
+					if (File.Exists(checkPath))
+					{
+						filePath = checkPath;
+						break; // Dừng việc leo ngược lại
+					}
 
-        private void InitializeCameraRotation()
+					// Nếu chưa thấy, lùi lên một cấp thư mục (Back)
+					currentDir = currentDir.Parent;
+				}
+
+				// Nếu leo hết cỡ vẫn không thấy (hiếm khi xảy ra), dùng tạm Bản Photo
+				if (string.IsNullOrEmpty(filePath))
+				{
+					filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Map", "nodes.json");
+				}
+#else
+        // Khi đóng gói đem cài cho khách hàng (Release) thì dùng đường dẫn cài đặt
+        filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Map", "nodes.json");
+#endif
+
+				// 3. Tiến hành ghi đè tọa độ mới vào file đã tìm được
+				if (!File.Exists(filePath)) return;
+
+				string jsonContent = File.ReadAllText(filePath);
+				using var doc = JsonDocument.Parse(jsonContent);
+				var root = doc.RootElement.Clone();
+
+				var features = root.GetProperty("features").EnumerateArray().Select(f => {
+					var props = f.GetProperty("properties");
+					if (props.GetProperty("id").GetString() == nodeId)
+					{
+						// Thay thế tọa độ cũ bằng tọa độ mới (lng, lat)
+						return new
+						{
+							type = "Feature",
+							geometry = new { type = "Point", coordinates = new[] { lng, lat } },
+							properties = f.GetProperty("properties")
+						};
+					}
+					return (object)f;
+				}).ToList();
+
+				var updatedData = new { type = "FeatureCollection", features = features };
+
+				// Ghi lại vào file với định dạng đẹp (xuống dòng, lùi lề)
+				string updatedJson = JsonSerializer.Serialize(updatedData, new JsonSerializerOptions { WriteIndented = true });
+				File.WriteAllText(filePath, updatedJson);
+
+				Debug.WriteLine($"✅ Đã lưu CẬP NHẬT vào: {filePath}");
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"❌ Lỗi: {ex.Message}");
+			}
+		}
+		private class SecurityMapMessage
+		{
+			[JsonPropertyName("type")]
+			public string? Type { get; set; }
+
+			[JsonPropertyName("cameraId")]
+			public string? CameraId { get; set; }
+
+			[JsonPropertyName("nodeId")]
+			public string? NodeId { get; set; }
+
+			// Thêm 2 dòng này
+			[JsonPropertyName("lng")]
+			public double Lng { get; set; }
+
+			[JsonPropertyName("lat")]
+			public double Lat { get; set; }
+		}
+		#region Camera Rotation Methods
+
+		private void InitializeCameraRotation()
         {
             // Timer for camera rotation
             _cameraRotationTimer = new DispatcherTimer
@@ -942,4 +975,6 @@ namespace Station.Views
             }
         }
     }
+
+
 }
