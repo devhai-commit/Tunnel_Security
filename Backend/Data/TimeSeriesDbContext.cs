@@ -21,14 +21,15 @@ public class TimeSeriesDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // ── sensor_readings ──────────────────────────────────────────────────
+        // TimescaleDB requires all unique constraints to include the partition
+        // column (time), so we use a composite PK (id, time).
         modelBuilder.Entity<SensorReadingTs>(e =>
         {
-            e.HasKey(x => x.Id);
+            e.HasKey(x => new { x.Id, x.Time });
             e.Property(x => x.Id).UseIdentityByDefaultColumn();
             e.Property(x => x.Time).HasColumnType("timestamp with time zone").IsRequired();
             e.Property(x => x.Level).HasConversion<string>();
 
-            // Index for the most common query: sensor + time range
             e.HasIndex(x => new { x.SensorId, x.Time });
             e.HasIndex(x => new { x.NodeId,   x.Time });
         });
@@ -36,7 +37,7 @@ public class TimeSeriesDbContext : DbContext
         // ── sensor_frames_raw ────────────────────────────────────────────────
         modelBuilder.Entity<SensorFrameRaw>(e =>
         {
-            e.HasKey(x => x.Id);
+            e.HasKey(x => new { x.Id, x.Time });
             e.Property(x => x.Id).UseIdentityByDefaultColumn();
             e.Property(x => x.Time).HasColumnType("timestamp with time zone").IsRequired();
             e.Property(x => x.RawHex).HasMaxLength(29);
@@ -45,7 +46,7 @@ public class TimeSeriesDbContext : DbContext
         // ── node_heartbeats ──────────────────────────────────────────────────
         modelBuilder.Entity<NodeHeartbeatTs>(e =>
         {
-            e.HasKey(x => x.Id);
+            e.HasKey(x => new { x.Id, x.Time });
             e.Property(x => x.Id).UseIdentityByDefaultColumn();
             e.Property(x => x.Time).HasColumnType("timestamp with time zone").IsRequired();
             e.Property(x => x.Status).HasConversion<string>();
@@ -56,7 +57,7 @@ public class TimeSeriesDbContext : DbContext
         // ── camera_events ─────────────────────────────────────────────────────
         modelBuilder.Entity<CameraEventTs>(e =>
         {
-            e.HasKey(x => x.Id);
+            e.HasKey(x => new { x.Id, x.Time });
             e.Property(x => x.Id).UseIdentityByDefaultColumn();
             e.Property(x => x.Time).HasColumnType("timestamp with time zone").IsRequired();
             e.Property(x => x.EventType).HasConversion<string>();

@@ -22,21 +22,21 @@ this.InitializeComponent();
  if (string.IsNullOrWhiteSpace(NodeNameTextBox.Text))
             {
         args.Cancel = true;
-             ShowError("Vui lòng nh?p tên node");
+             ShowError("Vui lï¿½ng nh?p tï¿½n node");
         return;
          }
 
           if (LineComboBox.SelectedItem == null)
      {
      args.Cancel = true;
-     ShowError("Vui lòng ch?n tuy?n");
+     ShowError("Vui lï¿½ng ch?n tuy?n");
           return;
       }
 
         if (string.IsNullOrWhiteSpace(LocationTextBox.Text))
             {
    args.Cancel = true;
-          ShowError("Vui lòng nh?p v? trí");
+          ShowError("Vui lï¿½ng nh?p v? trï¿½");
  return;
     }
 
@@ -57,13 +57,13 @@ this.InitializeComponent();
    // Add 7 sensors with user-defined IDs
       var random = new Random();
 
- // 1. Radar phát hi?n ng??i
+ // 1. Radar phï¿½t hi?n ng??i
         newNode.Sensors.Add(new SensorItemViewModel
    {
        SensorId = string.IsNullOrWhiteSpace(RadarIdTextBox.Text) ? $"RAD-{newNode.NodeName}-001" : RadarIdTextBox.Text.Trim(),
-       SensorName = "Radar phát hi?n ng??i",
+       SensorName = "Radar phï¿½t hi?n ng??i",
      SensorType = "Radar Detection",
-   CurrentValue = "Không phát hi?n",
+   CurrentValue = "Khï¿½ng phï¿½t hi?n",
          Unit = "",
      LastUpdateText = "V?a xong",
      SensorStatus = RadarStatusComboBox.SelectedIndex == 0 ? DeviceStatus.Online : DeviceStatus.Disabled,
@@ -95,7 +95,7 @@ Location = newNode.Location
               SensorId = string.IsNullOrWhiteSpace(PirIdTextBox.Text) ? $"PIR-{newNode.NodeName}-001" : PirIdTextBox.Text.Trim(),
       SensorName = "C?m bi?n h?ng ngo?i",
            SensorType = "PIR Motion Sensor",
-           CurrentValue = "Không chuy?n ??ng",
+           CurrentValue = "Khï¿½ng chuy?n ??ng",
   Unit = "",
         LastUpdateText = "V?a xong",
   SensorStatus = PirStatusComboBox.SelectedIndex == 0 ? DeviceStatus.Online : DeviceStatus.Disabled,
@@ -111,7 +111,7 @@ Location = newNode.Location
         SensorId = string.IsNullOrWhiteSpace(TempHumidIdTextBox.Text) ? $"THM-{newNode.NodeName}-001" : TempHumidIdTextBox.Text.Trim(),
               SensorName = "C?m bi?n nhi?t ?? & ?? ?m",
                SensorType = "Temperature & Humidity Sensor",
-    CurrentValue = $"{20 + random.Next(15)}.{random.Next(10)}°C / {40 + random.Next(40)}%",
+    CurrentValue = $"{20 + random.Next(15)}.{random.Next(10)}ï¿½C / {40 + random.Next(40)}%",
         Unit = "",
             LastUpdateText = "V?a xong",
          SensorStatus = TempHumidStatusComboBox.SelectedIndex == 0 ? DeviceStatus.Online : DeviceStatus.Disabled,
@@ -121,11 +121,11 @@ Location = newNode.Location
            Location = newNode.Location
           });
 
-    // 5. C?m bi?n ánh sáng
+    // 5. C?m bi?n ï¿½nh sï¿½ng
   newNode.Sensors.Add(new SensorItemViewModel
    {
     SensorId = string.IsNullOrWhiteSpace(LightIdTextBox.Text) ? $"LUX-{newNode.NodeName}-001" : LightIdTextBox.Text.Trim(),
-            SensorName = "C?m bi?n ánh sáng",
+            SensorName = "C?m bi?n ï¿½nh sï¿½ng",
         SensorType = "Light Sensor",
         CurrentValue = $"{100 + random.Next(400)}",
         Unit = "lux",
@@ -160,7 +160,7 @@ LastUpdateText = "V?a xong",
   SensorName = "C?m bi?n gia t?c",
      SensorType = "Accelerometer Sensor",
             CurrentValue = $"{random.Next(1, 10)}.{random.Next(10)}",
-   Unit = "m/s²",
+   Unit = "m/sï¿½",
          LastUpdateText = "V?a xong",
     SensorStatus = AccelerometerStatusComboBox.SelectedIndex == 0 ? DeviceStatus.Online : DeviceStatus.Disabled,
               TypeIcon = "\uEDA4",
@@ -169,16 +169,15 @@ LastUpdateText = "V?a xong",
       Location = newNode.Location
        });
 
-                // Add node to filtered list
-      _viewModel.FilteredNodes.Add(newNode);
+                // Register node â€“ updates stats and respects active filters
+                _viewModel.RegisterNewNode(newNode);
 
-             // Show success message
-     System.Diagnostics.Debug.WriteLine($"Node '{newNode.NodeName}' with 7 sensors added successfully!");
+                System.Diagnostics.Debug.WriteLine($"Node '{newNode.NodeName}' with 7 sensors added successfully!");
             }
  catch (Exception ex)
             {
         args.Cancel = true;
-      ShowError($"L?i khi thêm node: {ex.Message}");
+      ShowError($"L?i khi thï¿½m node: {ex.Message}");
        System.Diagnostics.Debug.WriteLine($"Error adding node: {ex.Message}");
             }
         }

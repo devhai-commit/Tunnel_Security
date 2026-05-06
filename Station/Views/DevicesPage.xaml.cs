@@ -90,6 +90,35 @@ namespace Station.Views
             }
         }
 
+        private async void EditButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is NodeItemViewModel node)
+            {
+                var dialog = new Station.Dialogs.EditNodeDialog(node, ViewModel);
+                dialog.XamlRoot = this.XamlRoot;
+                await dialog.ShowAsync();
+            }
+        }
+
+        private async void DeleteButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is NodeItemViewModel node)
+            {
+                var confirm = new ContentDialog
+                {
+                    Title = "Xóa thiết bị",
+                    Content = $"Xác nhận xóa node \"{node.NodeName}\"?\nTất cả {node.Sensors.Count} cảm biến sẽ bị xóa khỏi danh sách.",
+                    PrimaryButtonText = "Xóa",
+                    CloseButtonText = "Hủy",
+                    DefaultButton = ContentDialogButton.Close,
+                    XamlRoot = this.XamlRoot,
+                    RequestedTheme = Microsoft.UI.Xaml.ElementTheme.Dark
+                };
+                if (await confirm.ShowAsync() == ContentDialogResult.Primary)
+                    ViewModel.DeleteNode(node);
+            }
+        }
+
         private async void RestartButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is NodeItemViewModel node)

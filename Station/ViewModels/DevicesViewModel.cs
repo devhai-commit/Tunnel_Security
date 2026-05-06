@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -23,6 +24,9 @@ namespace Station.ViewModels
     {
         // Mock data service for real-time updates
         private readonly IDataService _mock = DataServiceLocator.Current;
+
+        // Stores user-added nodes so they survive filter changes
+        private readonly Dictionary<string, NodeItemViewModel> _userAddedNodes = new();
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(IsSidebarSummaryVisible))]
@@ -418,14 +422,90 @@ namespace Station.ViewModels
                 FilteredNodes.Add(nodeVm);
             }
 
+            // Re-inject user-added nodes that pass current filters
+            foreach (KeyValuePair<string, NodeItemViewModel> entry in _userAddedNodes)
+            {
+                if (!FilteredNodes.Any(n => n.Location == entry.Key) && NodePassesCurrentFilters(entry.Value))
+                    FilteredNodes.Add(entry.Value);
+            }
+
             UpdateStatistics();
         }
 
         private void UpdateStatistics()
         {
-            OnlineDevices = AllDevices.Count(d => d.Status == DeviceStatus.Online);
-            OfflineDevices = AllDevices.Count(d => d.Status == DeviceStatus.Offline);
-            FaultDevices = AllDevices.Count(d => d.Status == DeviceStatus.Fault);
+            int uOnline  = _userAddedNodes.Values.Sum(n => n.Sensors.Count(s => s.SensorStatus == DeviceStatus.Online));
+            int uOffline = _userAddedNodes.Values.Sum(n => n.Sensors.Count(s => s.SensorStatus == DeviceStatus.Offline));
+            int uFault   = _userAddedNodes.Values.Sum(n => n.Sensors.Count(s => s.SensorStatus == DeviceStatus.Fault));
+            int uTotal   = _userAddedNodes.Values.Sum(n => n.Sensors.Count);
+
+            TotalDevices   = AllDevices.Count + uTotal;
+            OnlineDevices  = AllDevices.Count(d => d.Status == DeviceStatus.Online)  + uOnline;
+            OfflineDevices = AllDevices.Count(d => d.Status == DeviceStatus.Offline) + uOffline;
+            FaultDevices   = AllDevices.Count(d => d.Status == DeviceStatus.Fault)   + uFault;
+        }
+
+        // ─── Public CRUD helpers called by dialogs ────────────────────────
+
+        public void RegisterNewNode(NodeItemViewModel node)
+        {
+            _userAddedNodes[node.Location] = node;
+            if (NodePassesCurrentFilters(node))
+                FilteredNodes.Add(node);
+            UpdateStatistics();
+        }
+
+        public void DeleteNode(NodeItemViewModel node)
+        {
+            _userAddedNodes.Remove(node.Location);
+            FilteredNodes.Remove(node);
+            UpdateStatistics();
+        }
+
+        public void UpdateNode(NodeItemViewModel node, string newName, string newLineName, string newLocation)
+        {
+            var oldLocation = node.Location;
+            if (_userAddedNodes.Remove(oldLocation))
+                _userAddedNodes[newLocation] = node;
+
+            node.NodeName = newName;
+            node.LineName = newLineName;
+            node.Location = newLocation;
+            foreach (var s in node.Sensors)
+            {
+                s.NodeName = newName;
+                s.LineName = newLineName;
+                s.Location = newLocation;
+            }
+        }
+
+        private bool NodePassesCurrentFilters(NodeItemViewModel node)
+        {
+            if (!string.IsNullOrEmpty(SelectedLine) && SelectedLine != "Tất cả tuyến")
+                if (node.LineName != SelectedLine) return false;
+
+            if (!string.IsNullOrEmpty(SelectedStatus) && SelectedStatus != "Tất cả trạng thái")
+            {
+                bool passes = SelectedStatus switch
+                {
+                    "Hoạt động"   => node.Status == DeviceStatus.Online,
+                    "Ngoại tuyến" => node.Status == DeviceStatus.Offline,
+                    "Lỗi"         => node.Status == DeviceStatus.Fault,
+                    "Tắt"         => node.Status == DeviceStatus.Disabled,
+                    _             => true
+                };
+                if (!passes) return false;
+            }
+
+            if (!string.IsNullOrEmpty(SearchText))
+            {
+                var sl = SearchText.ToLower();
+                if (!node.NodeName.ToLower().Contains(sl) &&
+                    !node.Location.ToLower().Contains(sl) &&
+                    !node.LineName.ToLower().Contains(sl))
+                    return false;
+            }
+            return true;
         }
 
         [RelayCommand]

@@ -245,11 +245,25 @@
                                                           Foreground="{StaticResource DkTextDimBrush}"/>
                                             </Button>
                                             <Button Style="{StaticResource DkIconButtonStyle}"
+                                                    ToolTipService.ToolTip="Chỉnh sửa"
+                                                    Tag="{Binding}"
+                                                    Click="EditButton_Click">
+                                                <FontIcon Glyph="&#xE70F;" FontSize="14"
+                                                          Foreground="{StaticResource DkTextDimBrush}"/>
+                                            </Button>
+                                            <Button Style="{StaticResource DkIconButtonStyle}"
                                                     ToolTipService.ToolTip="Khởi động lại"
                                                     Tag="{Binding}"
                                                     Click="RestartButton_Click">
                                                 <FontIcon Glyph="&#xE72C;" FontSize="14"
                                                           Foreground="{StaticResource DkTextDimBrush}"/>
+                                            </Button>
+                                            <Button Style="{StaticResource DkIconButtonStyle}"
+                                                    ToolTipService.ToolTip="Xóa thiết bị"
+                                                    Tag="{Binding}"
+                                                    Click="DeleteButton_Click">
+                                                <FontIcon Glyph="&#xE74D;" FontSize="14"
+                                                          Foreground="#EF4444"/>
                                             </Button>
                                         </StackPanel>
                                     </Grid>

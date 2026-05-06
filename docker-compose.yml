@@ -1,0 +1,22 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: tunnel_timescaledb
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: postgres
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+      - ./docker/timescaledb-init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  timescale_data:
