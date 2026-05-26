@@ -152,6 +152,23 @@
   <div class="overflow-hidden flex items-center" style="height:20px;flex-direction:row-reverse" id="bitStream"></div>
 </div>
 
+<!-- ═══ JOIN SIMULATOR ════════════════════════════════════════════════════ -->
+<div class="flex-shrink-0 bg-slate-950 border-t border-slate-700" id="joinPanel" style="max-height:180px;overflow:hidden;transition:max-height .25s">
+  <div class="flex items-center justify-between px-3 py-1.5 border-b border-slate-800">
+    <div class="flex items-center gap-2">
+      <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Device Join Simulator</span>
+      <span id="joinBadge" class="hidden text-xs font-bold bg-amber-600 text-white rounded px-1.5"></span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button type="button" class="btn" style="background:#1e3a5f;color:#93c5fd;font-size:.65rem;padding:3px 8px" onclick="addJoinDevice()">+ Thêm thiết bị</button>
+      <button type="button" class="text-xs text-slate-600 hover:text-slate-400" onclick="toggleJoinPanel()">▲ Thu gọn</button>
+    </div>
+  </div>
+  <div id="joinDeviceList" class="flex gap-2 px-3 py-2 overflow-x-auto" style="min-height:120px;align-items:flex-start;flex-wrap:nowrap">
+    <div id="joinEmpty" class="text-xs text-slate-600 pt-4">Nhấn "+ Thêm thiết bị" để tạo thiết bị ảo gửi JOIN_REQUEST</div>
+  </div>
+</div>
+
 <!-- ═══ LOG ═══════════════════════════════════════════════════════════════ -->
 <div class="flex-shrink-0 bg-slate-900 border-t border-slate-700 flex flex-col" style="height:110px">
   <div class="flex items-center justify-between px-3 py-1 border-b border-slate-800 flex-shrink-0">
@@ -899,7 +916,6 @@ window.addEventListener('beforeunload', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Sync inp-host to reflect JS variable (already initialized from localStorage at top)
   document.getElementById('inp-host').value = backendHost;
 
   const savedMode = localStorage.getItem('sim-mode');
@@ -914,6 +930,194 @@ document.addEventListener('DOMContentLoaded', () => {
   addLog('HTTP mode: POST /api/sensors/{nodeId}-{SENSOR}/measurements', 'inf', null);
   addLog('→ Click "Fetch" or "Defaults" to load nodes', 'inf', null);
 });
+
+// ═══════════════════════════════════════════════════════════════
+//  JOIN REQUEST SIMULATOR
+// ═══════════════════════════════════════════════════════════════
+
+let joinDevices = [];
+let joinPanelOpen = true;
+
+function toggleJoinPanel() {
+  joinPanelOpen = !joinPanelOpen;
+  const panel = document.getElementById('joinPanel');
+  panel.style.maxHeight = joinPanelOpen ? '180px' : '36px';
+  panel.querySelector('button:last-child').textContent = joinPanelOpen ? '▲ Thu gọn' : '▼ Mở rộng';
+}
+
+function randHex(n) {
+  return Array.from({length: n}, () => Math.floor(Math.random()*256).toString(16).padStart(2,'0').toUpperCase()).join(':');
+}
+function randU32() { return Math.floor(Math.random() * 0xFFFFFFFF); }
+
+function addJoinDevice() {
+  const id = Date.now();
+  const mac = randHex(6);
+  const hwId = randU32();
+  const fw = `${1 + (Math.random()*3|0)}.${Math.random()*9|0}.${Math.random()*9|0}`;
+  const dev = { id, mac, hwId, fw, ws: null, status: 'idle' };
+  joinDevices.push(dev);
+  renderJoinDevices();
+}
+
+function removeJoinDevice(id) {
+  const dev = joinDevices.find(d => d.id === id);
+  if (dev?.ws) { try { dev.ws.close(); } catch(_){} }
+  joinDevices = joinDevices.filter(d => d.id !== id);
+  renderJoinDevices();
+}
+
+function renderJoinDevices() {
+  const list = document.getElementById('joinDeviceList');
+  const empty = document.getElementById('joinEmpty');
+  if (joinDevices.length === 0) { list.innerHTML = ''; list.appendChild(empty); return; }
+  if (list.contains(empty)) list.removeChild(empty);
+
+  // Remove cards for deleted devices
+  [...list.querySelectorAll('.jd-card')].forEach(card => {
+    if (!joinDevices.find(d => d.id == card.dataset.id)) card.remove();
+  });
+
+  joinDevices.forEach(dev => {
+    let card = list.querySelector(`.jd-card[data-id="${dev.id}"]`);
+    if (!card) {
+      card = document.createElement('div');
+      card.className = 'jd-card flex-shrink-0';
+      card.dataset.id = dev.id;
+      card.style.cssText = 'background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:8px 10px;min-width:190px;max-width:190px;font-size:.68rem;';
+      list.appendChild(card);
+    }
+    const statusColor = { idle:'#475569', pending:'#f59e0b', accepted:'#22c55e', rejected:'#ef4444', error:'#f97316' }[dev.status] || '#475569';
+    const statusText  = { idle:'Chờ gửi', pending:'Đang chờ...', accepted:'✓ Chấp nhận', rejected:'✗ Từ chối', error:'Lỗi kết nối' }[dev.status] || dev.status;
+    const canSend = dev.status === 'idle' || dev.status === 'error';
+
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <span style="font-weight:700;color:#94a3b8;font-size:.6rem">THIẾT BỊ ẢO</span>
+        <button onclick="removeJoinDevice(${dev.id})" style="background:none;border:none;cursor:pointer;color:#475569;font-size:.7rem;padding:0;line-height:1">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:1px 6px;margin-bottom:6px">
+        <span style="color:#475569">MAC</span><span style="color:#e2e8f0;font-family:monospace">${dev.mac}</span>
+        <span style="color:#475569">HW_ID</span><span style="color:#93c5fd">0x${dev.hwId.toString(16).toUpperCase().padStart(8,'0')}</span>
+        <span style="color:#475569">FW</span><span style="color:#a78bfa">${dev.fw}</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+        <span style="color:${statusColor};font-weight:700">${statusText}</span>
+        ${dev.assignedNodeId !== undefined ? `<span style="color:#22c55e;font-size:.6rem">Node #${dev.assignedNodeId}</span>` : ''}
+      </div>
+      <button onclick="sendJoinRequest(${dev.id})" ${canSend?'':'disabled'}
+        style="width:100%;padding:4px;border-radius:4px;border:none;cursor:${canSend?'pointer':'default'};
+               background:${canSend?'#1d4ed8':'#1e293b'};color:${canSend?'#fff':'#475569'};font-size:.68rem;font-weight:700">
+        ${canSend ? '📡 Gửi JOIN_REQUEST' : '⏳ Đang chờ'}
+      </button>
+    `;
+  });
+
+  // Update badge
+  const pending = joinDevices.filter(d => d.status === 'pending').length;
+  const badge = document.getElementById('joinBadge');
+  if (pending > 0) { badge.textContent = `${pending} chờ`; badge.classList.remove('hidden'); }
+  else badge.classList.add('hidden');
+}
+
+// CRC-16/CCITT-FALSE: seed=0xFFFF, poly=0x1021
+function crc16Ccitt(bytes) {
+  let crc = 0xFFFF;
+  for (const b of bytes) {
+    crc ^= (b << 8);
+    for (let j = 0; j < 8; j++)
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+  }
+  return crc;
+}
+
+function buildJoinRequestFrame(mac, hwId, fw) {
+  const buf = new Uint8Array(20);
+  const view = new DataView(buf.buffer);
+
+  buf[0]  = 0xAA;   // START
+  buf[1]  = 0x20;   // TYPE = JOIN_REQUEST
+
+  // MAC (6 bytes)
+  mac.split(':').forEach((h, i) => { buf[2 + i] = parseInt(h, 16); });
+
+  // HW_ID (uint32 LE)
+  view.setUint32(8, hwId, true);
+
+  // Firmware version
+  const [maj, min, pat] = fw.split('.').map(Number);
+  buf[12] = maj || 0;
+  buf[13] = min || 0;
+  buf[14] = pat || 0;
+  buf[15] = 0x00; // RESERVED
+
+  // CRC over bytes [0..15]
+  const crc = crc16Ccitt(buf.slice(0, 16));
+  view.setUint16(16, crc, true);
+
+  buf[18] = 0x00;   // RESERVED
+  buf[19] = 0xBB;   // STOP
+
+  return buf;
+}
+
+function parseJoinResponseFrame(data) {
+  const buf = new Uint8Array(data);
+  if (buf.length < 8 || buf[0] !== 0xAA || buf[1] !== 0x21 || buf[7] !== 0xBB) return null;
+  return { accepted: buf[2] === 0x01, nodeId: buf[3] };
+}
+
+function sendJoinRequest(devId) {
+  const dev = joinDevices.find(d => d.id === devId);
+  if (!dev) return;
+
+  dev.status = 'pending';
+  renderJoinDevices();
+
+  const url = `ws://${backendHost}/ws/join`;
+  addLog(`[JOIN] ${dev.mac} → Kết nối ${url}`, 'inf', null);
+
+  const ws = new WebSocket(url);
+  ws.binaryType = 'arraybuffer';
+  dev.ws = ws;
+
+  ws.onopen = () => {
+    const frame = buildJoinRequestFrame(dev.mac, dev.hwId, dev.fw);
+    ws.send(frame.buffer);
+    const hex = Array.from(frame).map(b => b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
+    addLog(`[JOIN] ${dev.mac} → JOIN_REQUEST gửi [${hex}]`, 'ok', null);
+  };
+
+  ws.onmessage = (evt) => {
+    const resp = parseJoinResponseFrame(evt.data);
+    if (!resp) { addLog(`[JOIN] ${dev.mac} ← Frame không hợp lệ`, 'err', null); return; }
+
+    if (resp.accepted) {
+      dev.status = 'accepted';
+      dev.assignedNodeId = resp.nodeId;
+      addLog(`[JOIN] ${dev.mac} ← CHẤP NHẬN — NodeByteId=${resp.nodeId}`, 'ok', null);
+    } else {
+      dev.status = 'rejected';
+      addLog(`[JOIN] ${dev.mac} ← TỪ CHỐI`, 'err', null);
+    }
+    renderJoinDevices();
+    ws.close();
+  };
+
+  ws.onerror = () => {
+    dev.status = 'error';
+    addLog(`[JOIN] ${dev.mac} — Lỗi kết nối WebSocket`, 'err', null);
+    renderJoinDevices();
+  };
+
+  ws.onclose = () => {
+    dev.ws = null;
+    if (dev.status === 'pending') {
+      dev.status = 'error';
+      renderJoinDevices();
+    }
+  };
+}
 </script>
 </body>
 </html>

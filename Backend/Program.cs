@@ -2,6 +2,7 @@ using Backend.Data;
 using Backend.Hubs;
 using Backend.Services;
 using Backend.Services.Caching;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -41,6 +42,18 @@ builder.Services.AddSingleton<VideoClipService>();
 // AddHostedService uses the same instance — avoids the double-instantiation trap.
 builder.Services.AddSingleton<SensorBroadcastQueue>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<SensorBroadcastQueue>());
+
+// DeviceJoinRegistry: singleton — shared between WS handler and REST controller
+builder.Services.AddSingleton<DeviceJoinRegistry>();
+
+// VideoSourceRegistry: maps cameraId → video file path for MJPEG simulation
+builder.Services.AddSingleton<VideoSourceRegistry>();
+
+// CameraFrameBuffer: holds latest pushed frame per camera (used by simulator push mode)
+builder.Services.AddSingleton<CameraFrameBuffer>();
+
+// Periodic clip recorder: saves 10-second clips every 5 minutes for active cameras
+builder.Services.AddHostedService<PeriodicClipService>();
 
 // Device ingestion (disabled by default; enable via appsettings)
 builder.Services.AddHostedService<MqttIngestionService>();
@@ -110,6 +123,19 @@ app.Map("/ws/device", async context =>
     await DeviceSimulatorWsHandler.HandleAsync(socket, nodeId, broadcaster, logger, context.RequestAborted);
 });
 
+// ── Device join request WebSocket endpoint ────────────────────────────────────
+app.Map("/ws/join", async context =>
+{
+    if (!context.WebSockets.IsWebSocketRequest) { context.Response.StatusCode = 400; return; }
+    var socket   = await context.WebSockets.AcceptWebSocketAsync();
+    var registry = context.RequestServices.GetRequiredService<DeviceJoinRegistry>();
+    var hub      = context.RequestServices.GetRequiredService<IHubContext<SensorHub>>();
+    var logger   = context.RequestServices.GetRequiredService<ILogger<Program>>();
+    using var scope = context.RequestServices.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<TunnelDbContext>();
+    await DeviceJoinWsHandler.HandleAsync(socket, registry, db, hub, logger, context.RequestAborted);
+});
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.MapGet("/", () => new
 {
@@ -118,7 +144,9 @@ app.MapGet("/", () => new
     databases = new { relational = "SQL Server", timeSeries = "TimescaleDB/PostgreSQL" },
     endpoints = new { swagger = "/swagger", sensors = "/api/sensors",
                       readings = "/api/readings", stations = "/api/stations",
-                      signalR = "/hubs/sensors" }
+                      signalR = "/hubs/sensors",
+                      joinRequests = "/api/device-joins",
+                      joinWs = "/ws/join" }
 });
 
 app.MapControllers();

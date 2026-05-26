@@ -30,6 +30,9 @@ public class TunnelDbContext : DbContext
     // ── Users ─────────────────────────────────────────────────────────────────
     public DbSet<User> Users => Set<User>();
 
+    // ── Device Join Requests ──────────────────────────────────────────────────
+    public DbSet<DevicePendingJoin> DevicePendingJoins => Set<DevicePendingJoin>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Station → Lines (1:N)
@@ -97,6 +100,14 @@ public class TunnelDbContext : DbContext
         {
             e.HasKey(x => x.Id);
             e.HasIndex(x => x.Username).IsUnique();
+        });
+
+        // DevicePendingJoin
+        modelBuilder.Entity<DevicePendingJoin>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.Status);
+            e.HasIndex(x => x.MacAddress);
         });
     }
 }

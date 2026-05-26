@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Timers;
 using Station.Models;
 
@@ -113,10 +114,12 @@ namespace Station.Services
         public event EventHandler<SensorTickEventArgs>? SensorTick;
         public event EventHandler<AlertGeneratedEventArgs>? AlertGenerated;
         public event EventHandler? TopologyLoaded;
+        public event EventHandler<JoinRequestNotification>? NewJoinRequest;
 
         // ── Public state ───────────────────────────────────────────────
         public IReadOnlyList<SimulatedSensor> Sensors { get; }
         public IReadOnlyList<SimulatedCamera> Cameras { get; }
+        public IReadOnlyList<TunnelNode> Nodes { get; }
         public IReadOnlyList<TunnelLine> Lines { get; }
         public ObservableCollection<Alert> ActiveAlerts { get; } = new();
         public ObservableCollection<Alert> AlertHistory { get; } = new();
@@ -139,6 +142,7 @@ namespace Station.Services
         {
             Sensors = BuildSensors();
             Cameras = BuildCameras();
+            Nodes = BuildNodes();
             Lines = BuildLines();
 
             // Sensor tick: every 1s — updates readings & fires SensorTick
@@ -164,6 +168,15 @@ namespace Station.Services
             _sensorTimer.Stop();
             _alertTimer.Stop();
         }
+
+        public Task<bool> ApproveJoinRequestAsync(int requestId, byte nodeByteId)
+            => Task.FromResult(false);
+
+        public Task<bool> RejectJoinRequestAsync(int requestId, string? reason = null)
+            => Task.FromResult(false);
+
+        public Task<IReadOnlyList<JoinRequestNotification>> GetPendingJoinRequestsAsync()
+            => Task.FromResult<IReadOnlyList<JoinRequestNotification>>(Array.Empty<JoinRequestNotification>());
 
         // ══════════════════════════════════════════════════════════════
         //  Sensor tick — random walk all sensor values
@@ -452,6 +465,13 @@ namespace Station.Services
                     }).ToList()
                 };
             }).ToList();
+        }
+
+        private IReadOnlyList<TunnelNode> BuildNodes()
+        {
+            return BuildLines()
+                .SelectMany(line => line.Nodes)
+                .ToList();
         }
 
         // ══════════════════════════════════════════════════════════════

@@ -11,14 +11,49 @@ namespace Station.Views
     {
         public DevicesViewModel ViewModel { get; }
 
-        private Border? _activeFilterBorder;
-
         public DevicesPage()
         {
             this.InitializeComponent();
             ViewModel = new DevicesViewModel();
             this.DataContext = ViewModel;
-            _activeFilterBorder = FilterAllBorder;
+            SetActiveTab(isJoinRequestsTab: false);
+        }
+
+        private void DevicesTabBtn_Click(object sender, RoutedEventArgs e)
+            => SetActiveTab(isJoinRequestsTab: false);
+
+        private void JoinRequestsTabBtn_Click(object sender, RoutedEventArgs e)
+            => SetActiveTab(isJoinRequestsTab: true);
+
+        private void SetActiveTab(bool isJoinRequestsTab)
+        {
+            var activeBg = (SolidColorBrush)Application.Current.Resources["DkBlueBrush"];
+            var mutedFg  = (SolidColorBrush)Application.Current.Resources["DkTextSecondaryBrush"];
+            var whiteFg  = new SolidColorBrush(Microsoft.UI.Colors.White);
+            var transparent = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+
+            if (isJoinRequestsTab)
+            {
+                JoinRequestsTabBtn.Background = activeBg;
+                JoinRequestsTabBtn.Foreground = whiteFg;
+                DevicesTabBtn.Background = transparent;
+                DevicesTabBtn.Foreground = mutedFg;
+
+                DeviceFilterPanel.Visibility = Visibility.Collapsed;
+                DeviceTabContent.Visibility = Visibility.Collapsed;
+                JoinTabContent.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                DevicesTabBtn.Background = activeBg;
+                DevicesTabBtn.Foreground = whiteFg;
+                JoinRequestsTabBtn.Background = transparent;
+                JoinRequestsTabBtn.Foreground = mutedFg;
+
+                DeviceFilterPanel.Visibility = Visibility.Visible;
+                DeviceTabContent.Visibility = Visibility.Visible;
+                JoinTabContent.Visibility = Visibility.Collapsed;
+            }
         }
 
         private async void AddDeviceButton_Click(object sender, RoutedEventArgs e)
@@ -42,32 +77,47 @@ namespace Station.Views
             }
         }
 
-        private void StatusFilter_Tapped(object sender, TappedRoutedEventArgs e)
+        private void StatusFilter_Tapped(object sender, RoutedEventArgs e)
         {
-            if (sender is not Border clicked) return;
+            if (sender is not Button clicked) return;
 
-            ViewModel.SelectedStatus = clicked.Tag?.ToString() ?? "Tất cả trạng thái";
+            string status = clicked.Tag?.ToString() ?? "Tất cả";
+            
+            // Update all buttons' styles based on which one was clicked
+            UpdateStatusButtonStyles(clicked);
 
-            if (_activeFilterBorder != null)
-                ApplyFilterPillStyle(_activeFilterBorder, active: false);
-
-            ApplyFilterPillStyle(clicked, active: true);
-            _activeFilterBorder = clicked;
+            // Apply filter
+            if (status == "Tất cả")
+                ViewModel.SelectedStatus = "Tất cả trạng thái";
+            else if (status == "Hoạt động")
+                ViewModel.SelectedStatus = "Hoạt động";
+            else if (status == "Ngoại tuyến")
+                ViewModel.SelectedStatus = "Ngoại tuyến";
         }
 
-        private void ApplyFilterPillStyle(Border border, bool active)
+        private void UpdateStatusButtonStyles(Button activeBtn)
         {
-            border.Style = (Style)Application.Current.Resources[
-                active ? "FilterPillActiveStyle" : "FilterPillStyle"];
-
-            var textBrush = (SolidColorBrush)Application.Current.Resources[
-                active ? "DkBlueBrush" : "DkTextSecondaryBrush"];
-
-            if (border.Child is StackPanel sp)
+            var allBtns = new[] { StatusAllBtn, StatusOnlineBtn, StatusOfflineBtn };
+            
+            foreach (var btn in allBtns)
             {
-                foreach (var child in sp.Children)
-                    if (child is TextBlock tb) tb.Foreground = textBrush;
+                if (btn == activeBtn)
+                {
+                    btn.Background = (SolidColorBrush)Application.Current.Resources["DkBlueBrush"];
+                    btn.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
+                }
+                else
+                {
+                    btn.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+                    btn.Foreground = (SolidColorBrush)Application.Current.Resources["DkTextSecondaryBrush"];
+                }
             }
+        }
+
+        private void TypeFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Filter implementation based on ComboBox selection
+            // This would update the ViewModel's device type filter
         }
 
         private async void DeviceCard_Tapped(object sender, TappedRoutedEventArgs e)
@@ -80,13 +130,30 @@ namespace Station.Views
             }
         }
 
-        private async void ConfigButton_Click(object sender, RoutedEventArgs e)
+        private async void ViewDetails_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is NodeItemViewModel node)
             {
                 var dialog = new Station.Dialogs.NodeDetailDialog(node);
                 dialog.XamlRoot = this.XamlRoot;
                 await dialog.ShowAsync();
+            }
+        }
+
+        private void TableRow_PointerEntered(object sender, PointerRoutedEventArgs e)
+        {
+            if (sender is Border b)
+            {
+                // Use a slightly darker surface for hover effect
+                b.Background = (SolidColorBrush)Application.Current.Resources["DkBorderSubtleBrush"];
+            }
+        }
+
+        private void TableRow_PointerExited(object sender, PointerRoutedEventArgs e)
+        {
+            if (sender is Border b)
+            {
+                b.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
             }
         }
 
@@ -116,44 +183,6 @@ namespace Station.Views
                 };
                 if (await confirm.ShowAsync() == ContentDialogResult.Primary)
                     ViewModel.DeleteNode(node);
-            }
-        }
-
-        private async void RestartButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button btn && btn.Tag is NodeItemViewModel node)
-            {
-                var confirm = new ContentDialog
-                {
-                    Title = "Khởi động lại thiết bị",
-                    Content = $"Xác nhận khởi động lại nút \"{node.NodeName}\"?\nThiết bị sẽ ngắt kết nối trong vài giây.",
-                    PrimaryButtonText = "Khởi động lại",
-                    CloseButtonText = "Hủy",
-                    DefaultButton = ContentDialogButton.Close,
-                    XamlRoot = this.XamlRoot,
-                    RequestedTheme = Microsoft.UI.Xaml.ElementTheme.Dark
-                };
-                var result = await confirm.ShowAsync();
-                if (result == ContentDialogResult.Primary)
-                    System.Diagnostics.Debug.WriteLine($"[DevicesPage] Restart: {node.NodeName}");
-            }
-        }
-
-        private void DeviceCard_PointerEntered(object sender, PointerRoutedEventArgs e)
-        {
-            if (sender is Border b)
-            {
-                b.BorderBrush = (SolidColorBrush)Application.Current.Resources["DkBlueBorderBrush"];
-                b.BorderThickness = new Thickness(1.5);
-            }
-        }
-
-        private void DeviceCard_PointerExited(object sender, PointerRoutedEventArgs e)
-        {
-            if (sender is Border b)
-            {
-                b.BorderBrush = (SolidColorBrush)Application.Current.Resources["DkBorderBrush"];
-                b.BorderThickness = new Thickness(1);
             }
         }
     }

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Station.Controls.CameraVideoControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!--
+        Renders one camera slot.
+        Modes (priority order):
+          1. LocalVideoPath set  → HTML5 <video> via SetVirtualHostNameToFolderMapping
+          2. StreamUrl set       → MJPEG <img> pointing at /api/cameras/{id}/stream
+          3. Offline / no URL   → static dark "Mất tín hiệu" page
+    -->
+    <Grid Background="Black">
+        <WebView2 x:Name="VideoView" DefaultBackgroundColor="Transparent"/>
+    </Grid>
+</UserControl>

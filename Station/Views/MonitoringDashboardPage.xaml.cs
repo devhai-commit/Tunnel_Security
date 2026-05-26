@@ -55,6 +55,9 @@ namespace Station.Views
         private Station.Models.Alert? _latestAlert = null;
         private bool _alertDialogOpen = false;
 
+        // Join request notification badge
+        private int _pendingJoinRequestCount = 0;
+
         public MonitoringDashboardPage()
         {
             InitializeComponent();
@@ -71,6 +74,9 @@ namespace Station.Views
 
             // Subscribe to alert events for flash + badge
             MockDataService.Instance.AlertGenerated += OnAlertGeneratedForUI;
+
+            // Subscribe to device join requests for badge
+            Station.Services.DataServiceLocator.Current.NewJoinRequest += OnJoinRequestForUI;
 
             // Initialize WebView2 + Mapbox HTML
             InitializeSecurityMap();
@@ -945,6 +951,39 @@ namespace Station.Views
         }
 
         private void AlertBadge_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+        {
+            this.ProtectedCursor = Microsoft.UI.Input.InputSystemCursor.Create(
+                Microsoft.UI.Input.InputSystemCursorShape.Arrow);
+        }
+
+        #endregion
+
+        #region Join Request Notification Badge
+
+        private void OnJoinRequestForUI(object? sender, Station.Services.JoinRequestNotification req)
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                _pendingJoinRequestCount++;
+                JoinBadgeCountText.Text = _pendingJoinRequestCount.ToString();
+                JoinRequestBadge.Visibility = Visibility.Visible;
+            });
+        }
+
+        private void JoinRequestBadge_Click(object sender, RoutedEventArgs e)
+        {
+            _pendingJoinRequestCount = 0;
+            JoinRequestBadge.Visibility = Visibility.Collapsed;
+            OpenModuleWindow("Thiết bị", typeof(DevicesPage));
+        }
+
+        private void JoinBadge_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+        {
+            this.ProtectedCursor = Microsoft.UI.Input.InputSystemCursor.Create(
+                Microsoft.UI.Input.InputSystemCursorShape.Hand);
+        }
+
+        private void JoinBadge_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
         {
             this.ProtectedCursor = Microsoft.UI.Input.InputSystemCursor.Create(
                 Microsoft.UI.Input.InputSystemCursorShape.Arrow);

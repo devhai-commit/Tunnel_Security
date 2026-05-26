@@ -17,14 +17,30 @@ public class DataSeeder
 
     public async Task SeedAsync()
     {
-        // Chỉ seed khi chưa có dữ liệu
-        if (await _db.Stations.AnyAsync())
+        // Chỉ skip khi topology đã có đủ dữ liệu. Một CSDL có Station nhưng thiếu
+        // Lines/Nodes vẫn cần được seed lại để Station đọc được danh sách thiết bị.
+        var hasStations = await _db.Stations.AnyAsync();
+        var hasLines = await _db.Lines.AnyAsync();
+        var hasNodes = await _db.Nodes.AnyAsync();
+
+        if (hasStations && hasLines && hasNodes)
         {
             _logger.LogInformation("Database already seeded — skipping");
             return;
         }
 
-        _logger.LogInformation("Seeding database from MockData...");
+        if (hasStations || hasLines || hasNodes)
+        {
+            _logger.LogWarning(
+                "Existing topology is incomplete. Clearing current topology before reseeding. Stations={Stations}, Lines={Lines}, Nodes={Nodes}",
+                hasStations, hasLines, hasNodes);
+
+            await ClearTopologyAsync();
+        }
+
+        _logger.LogInformation(
+            "Seeding database from MockData... Existing state: Stations={Stations}, Lines={Lines}, Nodes={Nodes}",
+            hasStations, hasLines, hasNodes);
 
         var stations = MockData.GetStations();
 
@@ -53,5 +69,18 @@ public class DataSeeder
         await _db.SaveChangesAsync();
         _logger.LogInformation("Database seeded: {StationCount} stations, {CameraCount} cameras",
             stations.Count, await _db.Cameras.CountAsync());
+    }
+
+    private async Task ClearTopologyAsync()
+    {
+        await _db.AlertNotes.ExecuteDeleteAsync();
+        await _db.Alerts.ExecuteDeleteAsync();
+        await _db.CameraSnapshots.ExecuteDeleteAsync();
+        await _db.VideoClips.ExecuteDeleteAsync();
+        await _db.Cameras.ExecuteDeleteAsync();
+        await _db.Sensors.ExecuteDeleteAsync();
+        await _db.Nodes.ExecuteDeleteAsync();
+        await _db.Lines.ExecuteDeleteAsync();
+        await _db.Stations.ExecuteDeleteAsync();
     }
 }

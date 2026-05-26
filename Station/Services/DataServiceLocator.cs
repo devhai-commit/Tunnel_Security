@@ -18,7 +18,10 @@ public static class DataServiceLocator
     {
         if (_instance != null) return _instance;
 
-        var source = Environment.GetEnvironmentVariable("DATA_SOURCE")?.ToLower() ?? "mock";
+        // Default to the real API data service for development so the Station
+        // connects to the running backend by default. Override with
+        // DATA_SOURCE=mock if you explicitly want the mock service.
+        var source = Environment.GetEnvironmentVariable("DATA_SOURCE")?.ToLower() ?? "api";
 
         _instance = source == "api"
             ? new RealDataService()

@@ -182,9 +182,40 @@ public class Sensor
     public bool IsEnabled { get; set; } = true;
     public int SamplingRate { get; set; } = 1; // Hz
     public double? SamplingRateHz { get; set; } // precise rate nếu cần
-    
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
+}
+
+#endregion
+
+#region Device Join Request
+
+/// <summary>
+/// Yêu cầu gia nhập mạng từ thiết bị phần cứng chưa được cấp phép.
+/// Thiết bị gửi JOIN_REQUEST qua WebSocket, Server lưu vào DB và chờ phê duyệt.
+/// </summary>
+public class DevicePendingJoin
+{
+    public int Id { get; set; }
+
+    /// <summary>Địa chỉ MAC của thiết bị, dạng "AA:BB:CC:DD:EE:FF"</summary>
+    public string MacAddress { get; set; } = string.Empty;
+
+    /// <summary>Hardware ID (uint32) nhận từ frame JOIN_REQUEST</summary>
+    public uint HardwareId { get; set; }
+
+    /// <summary>Phiên bản firmware, dạng "major.minor.patch"</summary>
+    public string FirmwareVersion { get; set; } = string.Empty;
+
+    public JoinRequestStatus Status { get; set; } = JoinRequestStatus.Pending;
+
+    /// <summary>NodeByteId (1–10) được gán khi phê duyệt</summary>
+    public byte? AssignedNodeByteId { get; set; }
+
+    public DateTimeOffset RequestedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? RespondedAt { get; set; }
+    public string? RejectionReason { get; set; }
 }
 
 #endregion

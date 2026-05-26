@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Net.Http;
+using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.UI.Dispatching;
@@ -21,6 +23,7 @@ public class RealDataService : IDataService, IAsyncDisposable
     private readonly ApiSensorClient _signalRClient;
     private readonly HttpClient _httpClient;
     private readonly DispatcherQueue? _dispatcherQueue;
+    private readonly List<TunnelNode> _nodes = new();
     private readonly Dictionary<string, SimulatedSensor> _sensorMap = new();
     private readonly Dictionary<string, SimulatedCamera> _cameraMap = new();
     private readonly object _dynamicLock = new();
@@ -28,10 +31,12 @@ public class RealDataService : IDataService, IAsyncDisposable
 
     private List<SimulatedSensor> _sensors = new();
     private List<SimulatedCamera> _cameras = new();
+    private List<TunnelNode> _nodesSnapshot = new();
     private List<TunnelLine> _lines = new();
 
     public IReadOnlyList<SimulatedSensor> Sensors => _sensors;
     public IReadOnlyList<SimulatedCamera> Cameras => _cameras;
+    public IReadOnlyList<TunnelNode> Nodes => _nodesSnapshot;
     public IReadOnlyList<TunnelLine> Lines => _lines;
     public ObservableCollection<Alert> ActiveAlerts { get; } = new();
     public ObservableCollection<Alert> AlertHistory { get; } = new();
@@ -39,6 +44,7 @@ public class RealDataService : IDataService, IAsyncDisposable
     public event EventHandler<SensorTickEventArgs>? SensorTick;
     public event EventHandler<AlertGeneratedEventArgs>? AlertGenerated;
     public event EventHandler? TopologyLoaded;
+    public event EventHandler<JoinRequestNotification>? NewJoinRequest;
 
     public RealDataService()
     {
@@ -61,10 +67,11 @@ public class RealDataService : IDataService, IAsyncDisposable
 
     private async Task InitializeAsync()
     {
-        // Topology load is best-effort — failure should not prevent SignalR from connecting.
+        // Topology load is best-effort, but we retry because the backend/DB may still be
+        // starting when Station launches.
         try
         {
-            await LoadTopologyAsync();
+            await LoadTopologyWithRetryAsync();
         }
         catch (Exception ex)
         {
@@ -85,6 +92,36 @@ public class RealDataService : IDataService, IAsyncDisposable
         }
     }
 
+    private async Task LoadTopologyWithRetryAsync()
+    {
+        const int maxAttempts = 5;
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                await LoadTopologyAsync();
+                return;
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[RealDataService] Station '{_stationId}' not found. Waiting for valid seed data.");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                if (attempt == maxAttempts)
+                    throw;
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[RealDataService] Topology load attempt {attempt}/{maxAttempts} failed: {ex.Message}");
+
+                await Task.Delay(TimeSpan.FromSeconds(attempt * 2));
+            }
+        }
+    }
+
     private async Task LoadTopologyAsync()
     {
         var json = await _httpClient.GetStringAsync($"/api/stations/{_stationId}");
@@ -93,14 +130,19 @@ public class RealDataService : IDataService, IAsyncDisposable
 
         var sensors = new List<SimulatedSensor>();
         var cameras = new List<SimulatedCamera>();
+        var nodes = new List<TunnelNode>();
         var lines = new List<TunnelLine>();
 
         if (root.TryGetProperty("lines", out var linesEl))
         {
             foreach (var lineEl in linesEl.EnumerateArray())
             {
-                var lineId = lineEl.GetProperty("id").GetString() ?? "";
-                var lineName = lineEl.GetProperty("name").GetString() ?? "";
+                var lineId = lineEl.TryGetProperty("id", out var lineIdEl)
+                    ? GetStringValue(lineIdEl)
+                    : string.Empty;
+                var lineName = lineEl.TryGetProperty("name", out var lineNameEl)
+                    ? GetStringValue(lineNameEl, lineId)
+                    : lineId;
 
                 var tunnelNodes = new List<TunnelNode>();
 
@@ -108,9 +150,15 @@ public class RealDataService : IDataService, IAsyncDisposable
                 {
                     foreach (var nodeEl in nodesEl.EnumerateArray())
                     {
-                        var nodeId = nodeEl.GetProperty("id").GetString() ?? "";
-                        var nodeName = nodeEl.GetProperty("name").GetString() ?? "";
-                        var cameraId = nodeEl.TryGetProperty("cameraId", out var camEl) ? camEl.GetString() : null;
+                        var nodeId = nodeEl.TryGetProperty("id", out var nodeIdEl)
+                            ? GetStringValue(nodeIdEl)
+                            : string.Empty;
+                        var nodeName = nodeEl.TryGetProperty("name", out var nodeNameEl)
+                            ? GetStringValue(nodeNameEl, nodeId)
+                            : nodeId;
+                        var cameraId = nodeEl.TryGetProperty("cameraId", out var camEl)
+                            ? GetStringValue(camEl)
+                            : string.Empty;
 
                         // Map sensors
                         if (nodeEl.TryGetProperty("sensors", out var sensorsEl))
@@ -123,8 +171,16 @@ public class RealDataService : IDataService, IAsyncDisposable
                             }
                         }
 
+                        nodes.Add(new TunnelNode
+                        {
+                            NodeId = nodeId,
+                            NodeName = nodeName,
+                            LineId = lineId,
+                            LineName = lineName
+                        });
+
                         // Map camera
-                        if (cameraId != null)
+                        if (!string.IsNullOrWhiteSpace(cameraId))
                         {
                             var cam = new SimulatedCamera
                             {
@@ -135,8 +191,7 @@ public class RealDataService : IDataService, IAsyncDisposable
                                 NodeName = nodeName,
                                 LineId = lineId,
                                 LineName = lineName,
-                                IsOnline = false,
-                                // HLS proxy endpoint — backend chuyển RTSP sang HLS
+                                IsOnline = true,
                                 StreamUrl = $"{_apiBaseUrl}/api/cameras/{cameraId}/stream"
                             };
                             cameras.Add(cam);
@@ -151,18 +206,193 @@ public class RealDataService : IDataService, IAsyncDisposable
             }
         }
 
+        var nodesLoadedFromDb = await TryLoadNodesFromNodesEndpointAsync(nodes, lines);
+        if (nodesLoadedFromDb)
+        {
+            var nodeIndex = nodes.ToDictionary(n => n.NodeId, StringComparer.OrdinalIgnoreCase);
+            foreach (var s in sensors)
+            {
+                if (nodeIndex.TryGetValue(s.NodeId, out var node))
+                {
+                    s.NodeName = node.NodeName;
+                    s.LineId = node.LineId;
+                    s.LineName = node.LineName;
+                    s.Location = node.NodeName;
+                }
+            }
+
+            foreach (var cam in cameras)
+            {
+                if (nodeIndex.TryGetValue(cam.NodeId, out var node))
+                {
+                    cam.NodeName = node.NodeName;
+                    cam.LineId = node.LineId;
+                    cam.LineName = node.LineName;
+                    cam.Location = node.NodeName;
+                }
+            }
+        }
+
         _sensors = sensors;
         _cameras = cameras;
+        _nodesSnapshot = nodes;
         _lines = lines;
 
         System.Diagnostics.Debug.WriteLine(
-            $"[RealDataService] Loaded {sensors.Count} sensors, {cameras.Count} cameras from API");
+            $"[RealDataService] Loaded {nodes.Count} nodes, {sensors.Count} sensors, {cameras.Count} cameras from API");
+    }
+
+    private async Task<bool> TryLoadNodesFromNodesEndpointAsync(List<TunnelNode> nodes, List<TunnelLine> lines)
+    {
+        try
+        {
+            var json = await _httpClient.GetStringAsync($"/api/stations/{_stationId}/nodes");
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (!TryGetPropertyIgnoreCase(root, "features", out var featuresEl) ||
+                featuresEl.ValueKind != JsonValueKind.Array)
+            {
+                return false;
+            }
+
+            var loadedNodes = new List<TunnelNode>();
+            var lineMap = new Dictionary<string, TunnelLine>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var feature in featuresEl.EnumerateArray())
+            {
+                if (!TryGetPropertyIgnoreCase(feature, "properties", out var props))
+                {
+                    continue;
+                }
+
+                var nodeId = GetStringProperty(props, "id");
+                if (string.IsNullOrWhiteSpace(nodeId))
+                {
+                    continue;
+                }
+
+                var nodeName = GetStringProperty(props, "name");
+                if (string.IsNullOrWhiteSpace(nodeName))
+                {
+                    nodeName = nodeId;
+                }
+
+                var lineId = GetStringProperty(props, "lineId");
+                var lineName = GetStringProperty(props, "line");
+                if (string.IsNullOrWhiteSpace(lineName))
+                {
+                    lineName = lineId;
+                }
+
+                loadedNodes.Add(new TunnelNode
+                {
+                    NodeId = nodeId,
+                    NodeName = nodeName,
+                    LineId = lineId,
+                    LineName = lineName
+                });
+
+                if (!lineMap.TryGetValue(lineId, out var tunnelLine))
+                {
+                    tunnelLine = new TunnelLine
+                    {
+                        LineId = lineId,
+                        LineName = lineName,
+                        Nodes = new List<TunnelNode>()
+                    };
+                    lineMap[lineId] = tunnelLine;
+                }
+
+                if (!tunnelLine.Nodes.Any(n => n.NodeId == nodeId))
+                {
+                    tunnelLine.Nodes.Add(new TunnelNode
+                    {
+                        NodeId = nodeId,
+                        NodeName = nodeName,
+                        LineId = lineId,
+                        LineName = lineName
+                    });
+                }
+            }
+
+            if (loadedNodes.Count == 0)
+            {
+                return false;
+            }
+
+            nodes.Clear();
+            nodes.AddRange(loadedNodes);
+
+            lines.Clear();
+            lines.AddRange(lineMap.Values);
+
+            return true;
+        }
+        catch (HttpRequestException ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[RealDataService] Nodes endpoint failed: {ex.Message}");
+            return false;
+        }
+        catch (TaskCanceledException ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[RealDataService] Nodes endpoint timeout: {ex.Message}");
+            return false;
+        }
+        catch (JsonException ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[RealDataService] Nodes endpoint JSON error: {ex.Message}");
+            return false;
+        }
+    }
+
+    private static bool TryGetPropertyIgnoreCase(JsonElement element, string name, out JsonElement value)
+    {
+        if (element.TryGetProperty(name, out value))
+        {
+            return true;
+        }
+
+        foreach (var prop in element.EnumerateObject())
+        {
+            if (string.Equals(prop.Name, name, StringComparison.OrdinalIgnoreCase))
+            {
+                value = prop.Value;
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static string GetStringProperty(JsonElement element, string name)
+    {
+        if (!TryGetPropertyIgnoreCase(element, name, out var value))
+        {
+            return string.Empty;
+        }
+
+        return GetStringValue(value);
+    }
+
+    private static string GetStringValue(JsonElement element, string fallback = "")
+    {
+        return element.ValueKind switch
+        {
+            JsonValueKind.String => element.GetString() ?? fallback,
+            JsonValueKind.Number => element.ToString(),
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            JsonValueKind.Null or JsonValueKind.Undefined => fallback,
+            _ => element.ToString()
+        };
     }
 
     private async Task ConnectSignalRAsync()
     {
-        _signalRClient.SensorUpdated += OnSensorUpdated;
+        _signalRClient.SensorUpdated     += OnSensorUpdated;
         _signalRClient.ConnectionChanged += OnConnectionChanged;
+        _signalRClient.NewJoinRequest    += OnNewJoinRequest;
 
         try
         {
@@ -173,6 +403,23 @@ public class RealDataService : IDataService, IAsyncDisposable
             System.Diagnostics.Debug.WriteLine($"[RealDataService] SignalR connect failed: {ex.Message}");
         }
     }
+
+    private void OnNewJoinRequest(object? sender, JoinRequestNotification req)
+    {
+        if (_dispatcherQueue != null)
+            _dispatcherQueue.TryEnqueue(() => NewJoinRequest?.Invoke(this, req));
+        else
+            NewJoinRequest?.Invoke(this, req);
+    }
+
+    public Task<bool> ApproveJoinRequestAsync(int requestId, byte nodeByteId)
+        => _signalRClient.ApproveJoinRequestAsync(requestId, nodeByteId);
+
+    public Task<bool> RejectJoinRequestAsync(int requestId, string? reason = null)
+        => _signalRClient.RejectJoinRequestAsync(requestId, reason);
+
+    public Task<IReadOnlyList<JoinRequestNotification>> GetPendingJoinRequestsAsync()
+        => _signalRClient.GetPendingJoinRequestsAsync();
 
     private void OnSensorUpdated(object? sender, ApiSensorUpdate update)
     {
@@ -328,15 +575,15 @@ public class RealDataService : IDataService, IAsyncDisposable
     private static SimulatedSensor MapSensor(
         JsonElement el, string nodeId, string nodeName, string lineId, string lineName)
     {
-        var id = el.GetProperty("id").GetString() ?? "";
-        var name = el.TryGetProperty("name", out var n) ? n.GetString() ?? "" : id;
-        var unit = el.TryGetProperty("unit", out var u) ? u.GetString() ?? "" : "";
+        var id = el.TryGetProperty("id", out var idEl) ? GetStringValue(idEl) : string.Empty;
+        var name = el.TryGetProperty("name", out var n) ? GetStringValue(n, id) : id;
+        var unit = el.TryGetProperty("unit", out var u) ? GetStringValue(u) : string.Empty;
         var warn = el.TryGetProperty("warningThreshold", out var w) ? w.GetDouble() : 30.0;
         var crit = el.TryGetProperty("criticalThreshold", out var c) ? c.GetDouble() : 50.0;
-        var curr = el.TryGetProperty("currentValue", out var cv) && !cv.ValueKind.Equals(JsonValueKind.Null)
+        var curr = el.TryGetProperty("currentValue", out var cv) && cv.ValueKind != JsonValueKind.Null
             ? cv.GetDouble() : warn * 0.5;
 
-        var typeStr = el.TryGetProperty("type", out var t) ? t.GetString() ?? "" : "";
+        var typeStr = el.TryGetProperty("type", out var t) ? GetStringValue(t) : string.Empty;
         var category = typeStr.ToLower() switch
         {
             "temperature"  => AlertCategory.Temperature,

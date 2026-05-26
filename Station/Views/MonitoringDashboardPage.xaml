@@ -1382,5 +1382,47 @@
         </StackPanel>
     </Button>
 
+    <!-- Floating join-request notification badge (appears below alert badge) -->
+    <Button x:Name="JoinRequestBadge"
+            Click="JoinRequestBadge_Click"
+            PointerEntered="JoinBadge_PointerEntered"
+            PointerExited="JoinBadge_PointerExited"
+            Visibility="Collapsed"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Margin="0,72,24,0"
+            Background="#78350F"
+            BorderBrush="#F59E0B"
+            BorderThickness="1.5"
+            CornerRadius="12"
+            Padding="14,9"
+            ToolTipService.ToolTip="Có thiết bị yêu cầu gia nhập hệ thống. Nhấn để xem chi tiết.">
+        <Button.Resources>
+            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#92400E"/>
+            <SolidColorBrush x:Key="ButtonBackgroundPressed"     Color="#451A03"/>
+            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#F59E0B"/>
+            <SolidColorBrush x:Key="ButtonBorderBrushPressed"     Color="#FDE68A"/>
+        </Button.Resources>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <!-- Pulsing dot -->
+            <Ellipse Width="8" Height="8" Fill="#FDE68A" VerticalAlignment="Center"/>
+            <!-- Device icon -->
+            <FontIcon Glyph="&#xE968;" FontSize="16" Foreground="#FEF3C7"/>
+            <!-- Count badge -->
+            <Border x:Name="JoinBadgeCountBorder"
+                    Background="#F59E0B" CornerRadius="10"
+                    Padding="7,2" MinWidth="22"
+                    HorizontalAlignment="Center">
+                <TextBlock x:Name="JoinBadgeCountText"
+                           Text="1" FontSize="11" FontWeight="Bold"
+                           Foreground="White" HorizontalAlignment="Center"/>
+            </Border>
+            <!-- Label -->
+            <TextBlock Text="THIẾT BỊ MỚI" FontSize="12" FontWeight="Bold"
+                       Foreground="#FEF3C7" VerticalAlignment="Center"
+                       CharacterSpacing="60"/>
+        </StackPanel>
+    </Button>
+
     </Grid><!-- outer container -->
 </Page>

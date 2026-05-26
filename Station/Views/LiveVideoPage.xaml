@@ -6,6 +6,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:viewmodels="using:Station.ViewModels"
     xmlns:converters="using:Station.Converters"
+    xmlns:controls="using:Station.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
@@ -330,30 +331,11 @@
                                             </Grid>
 
                                             <!-- Video area -->
-                                            <Grid Grid.Row="1" Background="Black">
-                                                <Canvas>
-                                                    <Rectangle Width="2000" Height="2000"
-                                                               Canvas.Left="-500" Canvas.Top="-500"
-                                                               RenderTransformOrigin="0.5,0.5" Opacity="0.3">
-                                                        <Rectangle.Fill>
-                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1" SpreadMethod="Repeat">
-                                                                <GradientStop Color="#0F0F0F" Offset="0"/>
-                                                                <GradientStop Color="#0F0F0F" Offset="0.48"/>
-                                                                <GradientStop Color="#2A2A2A" Offset="0.5"/>
-                                                                <GradientStop Color="#2A2A2A" Offset="0.98"/>
-                                                            </LinearGradientBrush>
-                                                        </Rectangle.Fill>
-                                                        <Rectangle.RenderTransform>
-                                                            <RotateTransform Angle="45"/>
-                                                        </Rectangle.RenderTransform>
-                                                    </Rectangle>
-                                                </Canvas>
-                                                <!-- Offline state -->
-                                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6"
-                                                            Visibility="{x:Bind IsOnline, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
-                                                    <FontIcon Glyph="&#xE7BA;" FontSize="28" Foreground="#525252"/>
-                                                    <TextBlock Text="Mất tín hiệu" FontSize="11" Foreground="#737373"/>
-                                                </StackPanel>
+                                            <Grid Grid.Row="1">
+                                                <controls:CameraVideoControl
+                                                    StreamUrl="{x:Bind StreamUrl, Mode=OneWay}"
+                                                    IsOnline="{x:Bind IsOnline, Mode=OneWay}"
+                                                    IsStreamEnabled="{x:Bind IsStreamEnabled, Mode=OneWay}"/>
                                                 <!-- Online overlays -->
                                                 <StackPanel VerticalAlignment="Top" HorizontalAlignment="Right" Margin="6"
                                                             Orientation="Horizontal" Spacing="4"
@@ -398,8 +380,38 @@
                                                             <Run Text=" FPS"/>
                                                         </TextBlock>
                                                     </Border>
+                                                    <!-- Local video chip: visible when a video file is loaded -->
+                                                    <Border Background="#1E1B4B" CornerRadius="4" Padding="4,2"
+                                                            BorderBrush="#4F46E5" BorderThickness="1"
+                                                            Visibility="{x:Bind HasLocalVideo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                                            <FontIcon Glyph="&#xE8B2;" FontSize="9" Foreground="#818CF8"/>
+                                                            <TextBlock Text="{x:Bind LocalVideoFileName, Mode=OneWay}" FontSize="10"
+                                                                       Foreground="#A5B4FC" MaxWidth="80"
+                                                                       TextTrimming="CharacterEllipsis"/>
+                                                            <Button Style="{StaticResource IconButtonStyle}" Width="14" Height="14" Padding="1"
+                                                                    Click="ClearVideo_Click"
+                                                                    ToolTipService.ToolTip="Xóa video">
+                                                                <FontIcon Glyph="&#xE711;" FontSize="8" Foreground="#A5B4FC"/>
+                                                            </Button>
+                                                        </StackPanel>
+                                                    </Border>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                                    <!-- Toggle stream on/off -->
+                                                    <Button Style="{StaticResource IconButtonStyle}" Width="26" Height="26" Padding="4"
+                                                            Command="{Binding ElementName=PageRoot, Path=ViewModel.ToggleStreamCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            ToolTipService.ToolTip="{x:Bind StreamToggleTooltip, Mode=OneWay}">
+                                                        <FontIcon Glyph="{x:Bind StreamToggleIcon, Mode=OneWay}"
+                                                                  Foreground="{x:Bind StreamToggleColor, Mode=OneWay}"
+                                                                  FontSize="12"/>
+                                                    </Button>
+                                                    <Button Style="{StaticResource IconButtonStyle}" Width="26" Height="26" Padding="4"
+                                                            Click="ChooseVideo_Click"
+                                                            ToolTipService.ToolTip="Chọn video cục bộ">
+                                                        <FontIcon Glyph="&#xE8A5;" FontSize="12"/>
+                                                    </Button>
                                                     <Button Style="{StaticResource IconButtonStyle}" Width="26" Height="26" Padding="4"
                                                             Command="{Binding ElementName=PageRoot, Path=ViewModel.ToggleRecordingCommand}"
                                                             CommandParameter="{Binding}" ToolTipService.ToolTip="Ghi hình">

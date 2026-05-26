@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI;
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Station.Models;
 using Station.Services;
@@ -23,8 +25,7 @@ namespace Station.ViewModels
 
     public partial class DevicesViewModel : ObservableObject
     {
-        // Active data service (mock or RealDataService backed by Backend API / SQL Server)
-        private readonly IDataService _mock = DataServiceLocator.Current;
+        private readonly IDataService _dataService = DataServiceLocator.Current;
         private readonly DispatcherQueue? _dispatcher = DispatcherQueue.GetForCurrentThread();
 
         // Stores user-added nodes so they survive filter changes
@@ -103,6 +104,30 @@ namespace Station.ViewModels
         public ObservableCollection<string> StatusFilters { get; } = new();
         public ObservableCollection<string> LineFilters { get; } = new();
 
+        // Pending join requests from hardware devices
+        public ObservableCollection<JoinRequestItemViewModel> PendingJoinRequests { get; } = new();
+
+        private int _pendingJoinCount;
+        public int PendingJoinCount
+        {
+            get => _pendingJoinCount;
+            set
+            {
+                SetProperty(ref _pendingJoinCount, value);
+                OnPropertyChanged(nameof(HasPendingJoins));
+                OnPropertyChanged(nameof(PendingJoinSectionVisibility));
+                OnPropertyChanged(nameof(PendingJoinFooterText));
+            }
+        }
+        public bool HasPendingJoins => PendingJoinCount > 0;
+        public Visibility PendingJoinSectionVisibility => PendingJoinCount > 0 ? Visibility.Visible : Visibility.Collapsed;
+        public string PendingJoinFooterText => $"Hiển thị {Math.Min(PendingJoinCount, 12)} trên {PendingJoinCount} yêu cầu đang chờ";
+
+        private DateTimeOffset _pendingJoinLastUpdatedAt;
+        public string PendingJoinLastUpdatedText =>
+            _pendingJoinLastUpdatedAt == default ? "--:--:--" : _pendingJoinLastUpdatedAt.ToLocalTime().ToString("HH:mm:ss");
+        public string PendingJoinLastUpdatedDisplay => $"Cập nhật: {PendingJoinLastUpdatedText}";
+
         // Statistics
         private int _totalDevices;
         public int TotalDevices
@@ -134,16 +159,104 @@ namespace Station.ViewModels
 
         public DevicesViewModel()
         {
+            _dataService.SensorTick     += OnSensorTick;
+            _dataService.TopologyLoaded += OnTopologyLoaded;
+            _dataService.NewJoinRequest += OnNewJoinRequest;
+
+            // Load once after subscriptions are in place so we don't miss an early
+            // TopologyLoaded event from the background data service.
             ReloadFromDataService();
-
-            // Realtime sensor updates (every 1 second)
-            _mock.SensorTick += OnSensorTick;
-
-            // RealDataService loads topology asynchronously from Backend API → SQL Server.
-            // Re-pull collections once that finishes (and on later refreshes), otherwise
-            // the page stays empty when the VM was constructed before the API responded.
-            _mock.TopologyLoaded += OnTopologyLoaded;
+            _ = LoadPendingJoinRequestsAsync();
         }
+
+        private void OnNewJoinRequest(object? sender, Station.Services.JoinRequestNotification req)
+        {
+            void AddRequest() => UpsertPendingJoin(req);
+
+            if (_dispatcher != null && !_dispatcher.HasThreadAccess)
+                _dispatcher.TryEnqueue(AddRequest);
+            else
+                AddRequest();
+        }
+
+        private async Task LoadPendingJoinRequestsAsync()
+        {
+            try
+            {
+                var pending = await _dataService.GetPendingJoinRequestsAsync();
+                void Apply()
+                {
+                    PendingJoinRequests.Clear();
+                    foreach (var req in pending
+                                 .OrderBy(r => ParseRequestedAtOrMin(r.RequestedAt)))
+                    {
+                        UpsertPendingJoin(req, updateTimestamp: false);
+                    }
+                    PendingJoinCount = PendingJoinRequests.Count;
+                    TouchPendingJoinUpdatedTime();
+                }
+
+                if (_dispatcher != null && !_dispatcher.HasThreadAccess)
+                    _dispatcher.TryEnqueue(Apply);
+                else
+                    Apply();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DevicesVM] LoadPendingJoinRequests failed: {ex.Message}");
+            }
+        }
+
+        private static DateTimeOffset ParseRequestedAtOrMin(string value)
+        {
+            return DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var dt)
+                ? dt
+                : DateTimeOffset.MinValue;
+        }
+
+        private void UpsertPendingJoin(JoinRequestNotification req, bool updateTimestamp = true)
+        {
+            var existing = PendingJoinRequests.FirstOrDefault(r => r.Id == req.Id);
+            if (existing != null)
+                PendingJoinRequests.Remove(existing);
+
+            PendingJoinRequests.Insert(0, new JoinRequestItemViewModel
+            {
+                Id              = req.Id,
+                MacAddress      = req.MacAddress,
+                HardwareId      = req.HardwareId,
+                FirmwareVersion = req.FirmwareVersion,
+                RequestedAt     = req.RequestedAt,
+                NodeByteIdInput = ((req.Id % 250) + 1).ToString(),
+                ViewModel       = this
+            });
+
+            PendingJoinCount = PendingJoinRequests.Count;
+            if (updateTimestamp)
+                TouchPendingJoinUpdatedTime();
+        }
+
+        private void TouchPendingJoinUpdatedTime()
+        {
+            _pendingJoinLastUpdatedAt = DateTimeOffset.Now;
+            OnPropertyChanged(nameof(PendingJoinLastUpdatedText));
+            OnPropertyChanged(nameof(PendingJoinLastUpdatedDisplay));
+        }
+
+        internal void RemovePendingJoin(int requestId)
+        {
+            var item = PendingJoinRequests.FirstOrDefault(r => r.Id == requestId);
+            if (item == null) return;
+            PendingJoinRequests.Remove(item);
+            PendingJoinCount = PendingJoinRequests.Count;
+            TouchPendingJoinUpdatedTime();
+        }
+
+        internal async Task<bool> ApproveJoinAsync(int requestId, byte nodeByteId)
+            => await _dataService.ApproveJoinRequestAsync(requestId, nodeByteId);
+
+        internal async Task<bool> RejectJoinAsync(int requestId)
+            => await _dataService.RejectJoinRequestAsync(requestId);
 
         private void OnTopologyLoaded(object? sender, EventArgs e)
         {
@@ -169,8 +282,8 @@ namespace Station.ViewModels
             // Update device value in real-time
             try
             {
-                // Find sensor in MockDataService to get updated value
-                var sensor = _mock.Sensors.FirstOrDefault(s => s.SensorId == e.Sensor.SensorId);
+                // Find sensor in current data service to get updated value
+                var sensor = _dataService.Sensors.FirstOrDefault(s => s.SensorId == e.Sensor.SensorId);
                 if (sensor == null) return;
 
                 // Find matching device in our list
@@ -245,12 +358,11 @@ namespace Station.ViewModels
             StatusFilters.Add("Tắt");
 
             LineFilters.Add("Tất cả tuyến");
-            var mock = Station.Services.DataServiceLocator.Current;
-            foreach (var line in mock.Lines)
+            foreach (var line in _dataService.Lines)
                 LineFilters.Add(line.LineName);
 
             // Add cameras
-            foreach (var cam in mock.Cameras)
+            foreach (var cam in _dataService.Cameras)
             {
                 AllDevices.Add(new DeviceItemViewModel
                 {
@@ -269,7 +381,7 @@ namespace Station.ViewModels
             }
 
             // Add sensors
-            foreach (var s in mock.Sensors)
+            foreach (var s in _dataService.Sensors)
             {
                 AllDevices.Add(new DeviceItemViewModel
                 {
@@ -369,76 +481,65 @@ namespace Station.ViewModels
                 FilteredDevices.Add(device);
             }
 
-            // Group by nodes (location-based grouping)
-            var mock = Station.Services.DataServiceLocator.Current;
-
-            var nodeGroups = filtered.GroupBy(d =>
+            foreach (var node in _dataService.Nodes)
             {
-                var parts = d.Location.Split('/');
-                return parts.Length >= 2
-                    ? $"{parts[0].Trim()} / {parts[1].Trim()}"
-                    : d.Location;
-            });
+                var nodeDevices = _dataService.Sensors.Where(s => s.NodeId == node.NodeId).ToList();
+                var nodeCam = _dataService.Cameras.FirstOrDefault(c => c.NodeId == node.NodeId);
 
-            foreach (var group in nodeGroups)
-            {
-                var items    = group.ToList();
-                var first    = items.First();
-                var locParts = first.Location.Split('/');
-                string lineName = locParts.Length >= 1 ? locParts[0].Trim() : "?";
-                string nodeName = locParts.Length >= 2 ? locParts[1].Trim() : "?";
+                var status = DeviceStatus.Online;
+                if ((nodeCam != null && !nodeCam.IsOnline) || nodeDevices.Any(d => !d.IsOnline))
+                {
+                    status = DeviceStatus.Offline;
+                }
 
-                var line = mock.Lines.FirstOrDefault(l => l.LineName == lineName);
-                var node = line?.Nodes.FirstOrDefault(n => n.NodeName == nodeName);
+                if (nodeDevices.Any(d => d.CurrentLevel == SensorAlertLevel.Critical))
+                    status = DeviceStatus.Fault;
+                else if (status == DeviceStatus.Online && nodeDevices.Any(d => d.CurrentLevel == SensorAlertLevel.Warning))
+                    status = DeviceStatus.Fault;
 
                 var nodeVm = new NodeItemViewModel
                 {
-                    NodeName = nodeName,
-                    LineName = lineName,
-                    Location = $"{lineName} / {nodeName}",
-                    Status   = items.Any(d => d.Status == DeviceStatus.Fault)   ? DeviceStatus.Fault   :
-                               items.Any(d => d.Status == DeviceStatus.Offline) ? DeviceStatus.Offline :
-                               DeviceStatus.Online
+                    NodeId   = node.NodeId,
+                    NodeName = node.NodeName,
+                    LineName = node.LineName,
+                    Location = $"{node.LineName} / {node.NodeName}",
+                    Status   = status
                 };
 
-                if (node != null)
+                if (nodeCam != null)
                 {
-                    var nodeSensors = mock.Sensors.Where(s => s.NodeId == node.NodeId).ToList();
-                    var nodeCam     = mock.Cameras.FirstOrDefault(c => c.NodeId == node.NodeId);
-
-                    if (nodeCam != null)
-                        nodeVm.Sensors.Add(new SensorItemViewModel
-                        {
-                            SensorId       = nodeCam.CameraId,
-                            SensorName     = nodeCam.CameraName,
-                            SensorType     = "Camera",
-                            CurrentValue   = nodeCam.IsOnline ? "Online" : "Offline",
-                            Unit           = string.Empty,
-                            LastUpdateText = "Vừa xong",
-                            SensorStatus   = nodeCam.IsOnline ? DeviceStatus.Online : DeviceStatus.Offline,
-                            TypeIcon       = "\uE714",
-                            LineName       = lineName,
-                            NodeName       = nodeName,
-                            Location       = $"{lineName} / {nodeName}"
-                        });
-
-                    foreach (var s in nodeSensors)
+                    nodeVm.Sensors.Add(new SensorItemViewModel
                     {
-                        nodeVm.Sensors.Add(new SensorItemViewModel
-                        {
-                            SensorId       = s.SensorId,
-                            SensorName     = s.SensorName,
-                            SensorType     = s.Category.ToString(),
-                            CurrentValue   = FormatSensorValue(s),
-                            Unit           = s.Unit,
-                            LastUpdateText = "Vừa xong",
-                            SensorStatus   = s.IsOnline ? DeviceStatus.Online : DeviceStatus.Offline,
-                            TypeIcon       = CategoryIcon(s.Category),
-                            LineName       = lineName,
-                            NodeName       = nodeName,
-                            Location       = $"{lineName} / {nodeName}"
-                        });
-                    }
+                        SensorId       = nodeCam.CameraId,
+                        SensorName     = nodeCam.CameraName,
+                        SensorType     = "Camera",
+                        CurrentValue   = nodeCam.IsOnline ? "Online" : "Offline",
+                        Unit           = string.Empty,
+                        LastUpdateText = "Vừa xong",
+                        SensorStatus   = nodeCam.IsOnline ? DeviceStatus.Online : DeviceStatus.Offline,
+                        TypeIcon       = "\uE714",
+                        LineName       = node.LineName,
+                        NodeName       = node.NodeName,
+                        Location       = $"{node.LineName} / {node.NodeName}"
+                    });
+                }
+
+                foreach (var s in nodeDevices)
+                {
+                    nodeVm.Sensors.Add(new SensorItemViewModel
+                    {
+                        SensorId       = s.SensorId,
+                        SensorName     = s.SensorName,
+                        SensorType     = s.Category.ToString(),
+                        CurrentValue   = FormatSensorValue(s),
+                        Unit           = s.Unit,
+                        LastUpdateText = "Vừa xong",
+                        SensorStatus   = s.IsOnline ? DeviceStatus.Online : DeviceStatus.Offline,
+                        TypeIcon       = CategoryIcon(s.Category),
+                        LineName       = node.LineName,
+                        NodeName       = node.NodeName,
+                        Location       = $"{node.LineName} / {node.NodeName}"
+                    });
                 }
 
                 FilteredNodes.Add(nodeVm);
@@ -801,6 +902,9 @@ namespace Station.ViewModels
     public partial class NodeItemViewModel : ObservableObject
     {
         [ObservableProperty]
+        private string _nodeId = string.Empty;
+
+        [ObservableProperty]
         private string _nodeName = string.Empty;
 
         [ObservableProperty]
@@ -854,6 +958,69 @@ namespace Station.ViewModels
         }
 
         public string SensorCountText => $"{Sensors.Count} cảm biến";
+    }
+
+    /// <summary>ViewModel cho một yêu cầu gia nhập chờ phê duyệt.</summary>
+    public partial class JoinRequestItemViewModel : ObservableObject
+    {
+        public int    Id              { get; set; }
+        public string MacAddress      { get; set; } = string.Empty;
+        public uint   HardwareId      { get; set; }
+        public string FirmwareVersion { get; set; } = string.Empty;
+        public string RequestedAt     { get; set; } = string.Empty;
+
+        [ObservableProperty]
+        private bool _isProcessing;
+
+        partial void OnIsProcessingChanged(bool value)
+        {
+            OnPropertyChanged(nameof(IsNotProcessing));
+        }
+
+        [ObservableProperty]
+        private string _statusText = "Chờ phê duyệt";
+
+        [ObservableProperty]
+        private string _nodeByteIdInput = "1";
+
+        internal DevicesViewModel? ViewModel { get; set; }
+
+        public string HardwareIdHex => $"0x{HardwareId:X8}";
+        public string DeviceName => $"NODE-{(HardwareId & 0xFFF):X3}";
+        public string DeviceType => "Thiết bị cảm biến";
+        public string FirmwareDisplay => string.IsNullOrWhiteSpace(FirmwareVersion) ? "-" : $"v{FirmwareVersion}";
+        public string IpAddressDisplay => "-";
+        public string MacAddressDisplay => MacAddress;
+        public bool IsNotProcessing => !IsProcessing;
+
+        [RelayCommand]
+        private async Task Approve()
+        {
+            if (ViewModel == null || IsProcessing) return;
+            if (!byte.TryParse(NodeByteIdInput, out byte nodeByteId)) nodeByteId = 1;
+            IsProcessing = true;
+            StatusText   = "Đang xử lý...";
+
+            bool ok = await ViewModel.ApproveJoinAsync(Id, nodeByteId);
+            StatusText   = ok ? "Đã chấp nhận" : "Lỗi";
+            IsProcessing = false;
+
+            if (ok) ViewModel.RemovePendingJoin(Id);
+        }
+
+        [RelayCommand]
+        private async Task Reject()
+        {
+            if (ViewModel == null || IsProcessing) return;
+            IsProcessing = true;
+            StatusText   = "Đang xử lý...";
+
+            bool ok = await ViewModel.RejectJoinAsync(Id);
+            StatusText   = ok ? "Đã từ chối" : "Lỗi";
+            IsProcessing = false;
+
+            if (ok) ViewModel.RemovePendingJoin(Id);
+        }
     }
 
     public partial class SensorItemViewModel : ObservableObject

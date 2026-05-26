@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.IO;
 using System.Linq;
 using System.Collections.ObjectModel;
 using System.Timers;
@@ -64,7 +65,7 @@ namespace Station.ViewModels
         private int _activeAlertCount = 0;
 
         [ObservableProperty]
-        private bool _alertBannerHighlight = true; // toggled for blink overlay
+        private bool _alertBannerHighlight = true;
 
         // Event for requesting dialog display (raised to View)
         public event Action<CameraStreamViewModel>? AlertDialogRequested;
@@ -75,20 +76,18 @@ namespace Station.ViewModels
             LoadCameraStreams();
             ChangeLayout(CameraGridLayout.TwoByTwo);
 
-            // Blink timer: 600ms toggle
+            // Blink timer: 600ms toggle for alert border animation
             _blinkTimer = new Timer(600);
             _blinkTimer.Elapsed += OnBlinkTick;
             _blinkTimer.AutoReset = true;
             _blinkTimer.Start();
 
-            // Subscribe to MockDataService camera alert events
             _mockData.AlertGenerated += OnMockAlertGenerated;
             _mockData.Start();
         }
 
         private void OnMockAlertGenerated(object? sender, AlertGeneratedEventArgs e)
         {
-            // Only handle camera-triggered alerts here; sensor alerts go to AlertsViewModel
             if (e.TriggeredByCameraId == null) return;
 
             _dispatcherQueue.TryEnqueue(() =>
@@ -96,16 +95,10 @@ namespace Station.ViewModels
                 var cam = CameraStreams.FirstOrDefault(c => c.CameraId == e.TriggeredByCameraId);
                 if (cam == null || !cam.IsOnline) return;
 
-                // Find matching SimulatedCamera for location info
                 var simCam = _mockData.Cameras.FirstOrDefault(c => c.CameraId == e.TriggeredByCameraId);
                 string location = simCam?.Location ?? cam.CameraName;
 
-                cam.TriggerAlert(
-                    e.Alert.Title,
-                    e.Alert.Description,
-                    e.Alert.Severity,
-                    location);
-
+                cam.TriggerAlert(e.Alert.Title, e.Alert.Description, e.Alert.Severity, location);
                 RefreshAlertStats();
             });
         }
@@ -132,11 +125,11 @@ namespace Station.ViewModels
         {
             CameraStreams.Clear();
 
+            var apiBaseUrl = Environment.GetEnvironmentVariable("BACKEND_BASE_URL") ?? "http://localhost:5280";
             int camIdx = 0;
             foreach (var simCam in _mockData.Cameras)
             {
                 int idx = ++camIdx;
-                var apiBaseUrl = Environment.GetEnvironmentVariable("BACKEND_BASE_URL") ?? "http://localhost:5280";
                 CameraStreams.Add(new CameraStreamViewModel
                 {
                     CameraId = simCam.CameraId,
@@ -158,7 +151,7 @@ namespace Station.ViewModels
 
         public void UpdateActiveCameras()
         {
-            ActiveCameras = CameraStreams.Count(c => c.IsSelected && c.IsOnline);
+            ActiveCameras = CameraStreams.Count(c => c.IsSelected && c.IsOnline && c.IsStreamEnabled);
         }
 
         [RelayCommand]
@@ -190,32 +183,27 @@ namespace Station.ViewModels
             {
                 case 1:
                     CurrentLayout = CameraGridLayout.Single;
-                    GridColumns = 1;
-                    GridRows = 1;
+                    GridColumns = 1; GridRows = 1;
                     SelectedLayoutText = "1×1 (1 camera)";
                     break;
                 case 4:
                     CurrentLayout = CameraGridLayout.TwoByTwo;
-                    GridColumns = 2;
-                    GridRows = 2;
+                    GridColumns = 2; GridRows = 2;
                     SelectedLayoutText = "2×2 (4 cameras)";
                     break;
                 case 9:
                     CurrentLayout = CameraGridLayout.ThreeByThree;
-                    GridColumns = 3;
-                    GridRows = 3;
+                    GridColumns = 3; GridRows = 3;
                     SelectedLayoutText = "3×3 (9 cameras)";
                     break;
                 case 16:
                     CurrentLayout = CameraGridLayout.FourByFour;
-                    GridColumns = 4;
-                    GridRows = 4;
+                    GridColumns = 4; GridRows = 4;
                     SelectedLayoutText = "4×4 (16 cameras)";
                     break;
                 default:
                     CurrentLayout = CameraGridLayout.TwoByTwo;
-                    GridColumns = 2;
-                    GridRows = 2;
+                    GridColumns = 2; GridRows = 2;
                     SelectedLayoutText = "2×2 (4 cameras)";
                     break;
             }
@@ -246,10 +234,15 @@ namespace Station.ViewModels
         }
 
         [RelayCommand]
-        private void ShowCameraSettings(CameraStreamViewModel? camera)
+        private void ToggleStream(CameraStreamViewModel? camera)
         {
             if (camera == null) return;
+            camera.IsStreamEnabled = !camera.IsStreamEnabled;
+            UpdateActiveCameras();
         }
+
+        [RelayCommand]
+        private void ShowCameraSettings(CameraStreamViewModel? camera) { }
     }
 
     public partial class CameraStreamViewModel : ObservableObject
@@ -284,6 +277,28 @@ namespace Station.ViewModels
         [ObservableProperty]
         private double _bitrate;
 
+        // Stream enabled/disabled toggle — when false, no frames are requested from backend.
+        [ObservableProperty]
+        private bool _isStreamEnabled = true;
+
+        partial void OnIsStreamEnabledChanged(bool value)
+        {
+            OnPropertyChanged(nameof(StreamToggleIcon));
+            OnPropertyChanged(nameof(StreamToggleTooltip));
+            OnPropertyChanged(nameof(StreamToggleColor));
+        }
+
+        public string StreamToggleIcon => _isStreamEnabled ? "" : "";
+        public string StreamToggleTooltip => _isStreamEnabled ? "Tạm dừng nhận stream" : "Bật nhận stream";
+        public SolidColorBrush StreamToggleColor => _isStreamEnabled
+            ? new SolidColorBrush(Colors.Gray)
+            : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 251, 191, 36));
+
+        // Path to a local video file — set by FileOpenPicker in code-behind.
+        // When non-null, CameraVideoControl plays the file instead of the MJPEG stream.
+        [ObservableProperty]
+        private string? _localVideoPath;
+
         // Alert state
         [ObservableProperty]
         private bool _hasAlert = false;
@@ -313,37 +328,49 @@ namespace Station.ViewModels
             set => SetProperty(ref _isSelected, value);
         }
 
+        // Computed display helpers
+
         public string StatusText => _isOnline ? "Online" : "Offline";
 
         public SolidColorBrush StatusColor => _isOnline
             ? new SolidColorBrush(Colors.Green)
             : new SolidColorBrush(Colors.Gray);
 
-        public string RecordingIcon => _isRecording ? "\uE722" : "\uE714";
+        public string RecordingIcon  => _isRecording ? "" : "";
 
         public SolidColorBrush RecordingColor => _isRecording
             ? new SolidColorBrush(Colors.Red)
             : new SolidColorBrush(Colors.Gray);
 
-        public string IrStatusDisplay => $"IR: {_irStatus}";
-        public string HdrStatusDisplay => $"HDR: {_hdrStatus}";
-        public string ResolutionDisplay => $"Resolution: {_resolution}";
         public string BitrateDisplay => $"{_bitrate:F1} Mbps";
+
+        /// Short filename shown in the footer chip when a local video is loaded.
+        public string LocalVideoFileName =>
+            string.IsNullOrEmpty(_localVideoPath) ? string.Empty : Path.GetFileName(_localVideoPath);
+
+        /// True when a local video file is loaded — used to toggle the footer chip visibility.
+        public bool HasLocalVideo => !string.IsNullOrEmpty(_localVideoPath);
+
+        partial void OnLocalVideoPathChanged(string? value)
+        {
+            OnPropertyChanged(nameof(LocalVideoFileName));
+            OnPropertyChanged(nameof(HasLocalVideo));
+        }
 
         public string AlertSeverityText => _alertSeverityLevel switch
         {
             AlertSeverity.Critical => "KHẨN CẤP",
-            AlertSeverity.High => "NGUY HIỂM",
-            AlertSeverity.Medium => "TRUNG BÌNH",
-            _ => "THẤP"
+            AlertSeverity.High     => "NGUY HIỂM",
+            AlertSeverity.Medium   => "TRUNG BÌNH",
+            _                      => "THẤP"
         };
 
         public SolidColorBrush AlertSeverityBrush => _alertSeverityLevel switch
         {
             AlertSeverity.Critical => new SolidColorBrush(Windows.UI.Color.FromArgb(255, 239, 68, 68)),
-            AlertSeverity.High => new SolidColorBrush(Windows.UI.Color.FromArgb(255, 249, 115, 22)),
-            AlertSeverity.Medium => new SolidColorBrush(Windows.UI.Color.FromArgb(255, 234, 179, 8)),
-            _ => new SolidColorBrush(Windows.UI.Color.FromArgb(255, 34, 197, 94))
+            AlertSeverity.High     => new SolidColorBrush(Windows.UI.Color.FromArgb(255, 249, 115, 22)),
+            AlertSeverity.Medium   => new SolidColorBrush(Windows.UI.Color.FromArgb(255, 234, 179, 8)),
+            _                      => new SolidColorBrush(Windows.UI.Color.FromArgb(255, 34, 197, 94))
         };
 
         public string AlertTimeDisplay => _alertTime.ToString("HH:mm:ss dd/MM/yyyy");
@@ -358,7 +385,6 @@ namespace Station.ViewModels
             AlertBorderOpacity = 1.0;
             HasAlert = true;
 
-            // Notify computed properties
             OnPropertyChanged(nameof(AlertSeverityText));
             OnPropertyChanged(nameof(AlertSeverityBrush));
             OnPropertyChanged(nameof(AlertTimeDisplay));
