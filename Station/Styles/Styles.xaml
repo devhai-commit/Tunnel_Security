@@ -76,11 +76,18 @@
         <Setter Property="Foreground" Value="White"/>
         <Setter Property="FontSize" Value="{StaticResource FontSizeNormal}"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Padding" Value="20,12"/>
+        <Setter Property="Padding" Value="20,0"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource BorderLightBrush}"/>
+        <Setter Property="BorderThickness" Value="{StaticResource BorderThicknessNormal}"/>
         <Setter Property="CornerRadius" Value="{StaticResource CornerRadiusMedium}"/>
         <Setter Property="MinWidth" Value="120"/>
-        <Setter Property="MinHeight" Value="40"/>
+        <Setter Property="Height" Value="44"/>
+        <Setter Property="MinHeight" Value="44"/>
+        <Setter Property="MaxHeight" Value="44"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -94,19 +101,9 @@
                                     </VisualState.Setters>
                                 </VisualState>
                                 <VisualState x:Name="Pressed">
-                                    <Storyboard>
-                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootBorder" Storyboard.TargetProperty="Background">
-                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource ButtonPrimaryPressedBrush}"/>
-                                        </ObjectAnimationUsingKeyFrames>
-                                        <DoubleAnimation Storyboard.TargetName="ScaleTransform"
-                                                         Storyboard.TargetProperty="ScaleX"
-                                                         To="0.98"
-                                                         Duration="0:0:0.1"/>
-                                        <DoubleAnimation Storyboard.TargetName="ScaleTransform"
-                                                         Storyboard.TargetProperty="ScaleY"
-                                                         To="0.98"
-                                                         Duration="0:0:0.1"/>
-                                    </Storyboard>
+                                    <VisualState.Setters>
+                                        <Setter Target="RootBorder.Background" Value="{ThemeResource ButtonPrimaryPressedBrush}"/>
+                                    </VisualState.Setters>
                                 </VisualState>
                                 <VisualState x:Name="Disabled">
                                     <VisualState.Setters>
@@ -116,13 +113,14 @@
                             </VisualStateGroup>
                         </VisualStateManager.VisualStateGroups>
                         <Border x:Name="RootBorder"
+                                Height="{TemplateBinding Height}"
+                                MinHeight="{TemplateBinding MinHeight}"
+                                MaxHeight="{TemplateBinding MaxHeight}"
                                 Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="{TemplateBinding CornerRadius}"
-                                Padding="{TemplateBinding Padding}"
-                                RenderTransformOrigin="0.5,0.5">
-                            <Border.RenderTransform>
-                                <ScaleTransform x:Name="ScaleTransform" ScaleX="1" ScaleY="1"/>
-                            </Border.RenderTransform>
+                                Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"/>
                         </Border>
@@ -142,10 +140,15 @@
         <Setter Property="BorderBrush" Value="{ThemeResource BorderPrimaryBrush}"/>
         <Setter Property="BorderThickness" Value="{StaticResource BorderThicknessNormal}"/>
         <Setter Property="FontSize" Value="{StaticResource FontSizeNormal}"/>
-        <Setter Property="Padding" Value="20,12"/>
+        <Setter Property="Padding" Value="20,0"/>
         <Setter Property="CornerRadius" Value="{StaticResource CornerRadiusMedium}"/>
         <Setter Property="MinWidth" Value="120"/>
-        <Setter Property="MinHeight" Value="40"/>
+        <Setter Property="Height" Value="44"/>
+        <Setter Property="MinHeight" Value="44"/>
+        <Setter Property="MaxHeight" Value="44"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
     </Style>
 
     <!-- ====================================
@@ -1082,17 +1085,28 @@
     <Style x:Key="AccentButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="{ThemeResource AccentBrush}"/>
         <Setter Property="Foreground" Value="White"/>
-        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource BorderLightBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Padding" Value="16,10"/>
+        <Setter Property="Padding" Value="16,0"/>
         <Setter Property="CornerRadius" Value="8"/>
-        <Setter Property="MinHeight" Value="36"/>
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="MinHeight" Value="40"/>
+        <Setter Property="MaxHeight" Value="40"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="RootBorder"
+                            Height="{TemplateBinding Height}"
+                            MinHeight="{TemplateBinding MinHeight}"
+                            MaxHeight="{TemplateBinding MaxHeight}"
                             Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{TemplateBinding CornerRadius}"
                             Padding="{TemplateBinding Padding}">
                         <VisualStateManager.VisualStateGroups>

@@ -3,13 +3,14 @@ namespace TunnelSecurity.Auth.DTOs
     public class RegisterRequest
     {
         public string Username { get; set; } = null!;
-        public string Email { get; set; } = null!;
+        public string FullName { get; set; } = string.Empty;
         public string Password { get; set; } = null!;
     }
 
     public class LoginRequest
     {
-        public string UsernameOrEmail { get; set; } = null!;
+        public string Username { get; set; } = string.Empty;
+        public string? UsernameOrEmail { get; set; }
         public string Password { get; set; } = null!;
     }
 

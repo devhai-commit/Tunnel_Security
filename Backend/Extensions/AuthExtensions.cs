@@ -7,8 +7,8 @@ using System.Text;
 using Microsoft.AspNetCore.Identity;
 using TunnelSecurity.Data.Auth;
 using TunnelSecurity.Data.Auth.Models;
-using TunnelSecurity.Data.Auth.Services; // keep only the Data.Auth service types
 using TunnelSecurity.Auth;
+using TunnelSecurity.Data.Auth.Services;
 
 namespace TunnelSecurity.Backend.Extensions
 {
@@ -18,10 +18,14 @@ namespace TunnelSecurity.Backend.Extensions
         {
             // DB
             services.AddDbContext<AuthDbContext>(options =>
-                options.UseNpgsql(configuration.GetConnectionString("AuthDb")));
+                options.UseSqlServer(
+                    configuration.GetConnectionString("DefaultConnection")
+                    ?? configuration.GetConnectionString("AuthDb")
+                    ?? throw new InvalidOperationException("Connection string is not configured.")));
 
             // jwt settings
             services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
+            services.Configure<LoginSecuritySettings>(configuration.GetSection("LoginSecurity"));
 
             var jwt = configuration.GetSection("Jwt").Get<JwtSettings>() ?? new JwtSettings();
 
@@ -37,7 +41,6 @@ namespace TunnelSecurity.Backend.Extensions
             // password hasher - use application User model
             services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
 
-            // register the concrete AuthService (IAuthService from TunnelSecurity.Data.Auth.Services)
             services.AddScoped<TunnelSecurity.Data.Auth.Services.IAuthService, TunnelSecurity.Data.Auth.Services.AuthService>();
 
             // authentication

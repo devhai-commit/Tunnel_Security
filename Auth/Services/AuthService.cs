@@ -35,14 +35,14 @@ namespace TunnelSecurity.Auth.Services
 
         public async Task RegisterAsync(RegisterRequest request, CancellationToken ct = default)
         {
-            if (await _db.Users.AnyAsync(u => u.Username == request.Username || u.Email == request.Email, ct))
-                throw new InvalidOperationException("Username or email already exists.");
+            if (await _db.Users.AnyAsync(u => u.Username == request.Username, ct))
+                throw new InvalidOperationException("Username already exists.");
 
             var user = new User
             {
                 Username = request.Username,
-                Email = request.Email,
-                EmailVerified = false,
+                FullName = request.Username,
+                IsActive = true,
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
@@ -56,15 +56,22 @@ namespace TunnelSecurity.Auth.Services
         public async Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken ct = default)
         {
             var user = await _db.Users
-                .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
-                .FirstOrDefaultAsync(u => u.Username == request.UsernameOrEmail || u.Email == request.UsernameOrEmail, ct);
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Username == request.UsernameOrEmail, ct);
 
             if (user == null)
                 throw new UnauthorizedAccessException("Invalid credentials.");
 
+            if (!user.IsActive)
+                throw new UnauthorizedAccessException("Tài khoản đã bị khóa.");
+
             var verify = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash ?? string.Empty, request.Password);
             if (verify == PasswordVerificationResult.Failed)
                 throw new UnauthorizedAccessException("Invalid credentials.");
+
+            user.LastLoginAt = DateTimeOffset.UtcNow;
+            user.UpdatedAt = DateTimeOffset.UtcNow;
+            await _db.SaveChangesAsync(ct);
 
             return await CreateTokensForUserAsync(user, ct);
         }
@@ -132,19 +139,30 @@ namespace TunnelSecurity.Auth.Services
 
         private async Task<LoginResponse> CreateAccessTokenOnlyAsync(User user, CancellationToken ct = default)
         {
-            var roles = await _db.UserRoles
-                .Where(ur => ur.UserId == user.Id)
-                .Select(ur => ur.Role.Name)
-                .ToListAsync(ct);
+            var roleName = user.Role?.Name;
+            if (roleName == null && user.RoleId.HasValue)
+            {
+                roleName = await _db.Roles
+                    .Where(r => r.Id == user.RoleId.Value)
+                    .Select(r => r.Name)
+                    .FirstOrDefaultAsync(ct);
+            }
 
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email)
+                new Claim(JwtRegisteredClaimNames.UniqueName, user.Username ?? string.Empty)
             };
 
-            claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
+            if (!string.IsNullOrWhiteSpace(user.FullName))
+            {
+                claims.Add(new Claim("full_name", user.FullName));
+            }
+
+            if (!string.IsNullOrWhiteSpace(roleName))
+            {
+                claims.Add(new Claim(ClaimTypes.Role, roleName));
+            }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Secret));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

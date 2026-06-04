@@ -9,8 +9,8 @@ public class AuthDbContextFactory : IDesignTimeDbContextFactory<AuthDbContext>
     {
         var optionsBuilder = new DbContextOptionsBuilder<AuthDbContext>();
 
-        optionsBuilder.UseNpgsql(
-            "Host=localhost;Port=5432;Database=TunnelSecurity;Username=postgres;Password=123456"
+        optionsBuilder.UseSqlServer(
+            "Server=.\\SQLEXPRESS;Database=TunnelSecurity;Trusted_Connection=True;Encrypt=False;TrustServerCertificate=True;MultipleActiveResultSets=True"
         );
 
         return new AuthDbContext(optionsBuilder.Options);
