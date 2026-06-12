@@ -4,13 +4,14 @@ namespace Backend.Models.TimeSeries;
 
 public enum CameraEventType
 {
-    MotionDetected,
-    PersonDetected,
-    VehicleDetected,
+    Motion,
+    Object,
+    Face,
+    LicensePlate,
     Intrusion,
-    FireDetected,
-    SmokeDetected,
-    Anomaly
+    Loitering,
+    Crossing,
+    Abandoned
 }
 
 /// <summary>
@@ -31,7 +32,7 @@ public class CameraEventTs
     public string CameraId { get; set; } = default!;
 
     [Column("node_id")]
-    public string? NodeId { get; set; }
+    public string NodeId { get; set; } = default!;
 
     [Column("event_type")]
     public CameraEventType EventType { get; set; }
@@ -51,11 +52,11 @@ public class CameraEventTs
     [Column("generated_alert")]
     public bool GeneratedAlert { get; set; }
 
-    /// <summary>Bounding box in normalised coordinates (0–1)</summary>
-    [Column("bbox_x")] public float? BboxX { get; set; }
-    [Column("bbox_y")] public float? BboxY { get; set; }
-    [Column("bbox_w")] public float? BboxW { get; set; }
-    [Column("bbox_h")] public float? BboxH { get; set; }
+    /// <summary>Bounding box in pixels (SMALLINT in DB)</summary>
+    [Column("bbox_x")] public short? BboxX { get; set; }
+    [Column("bbox_y")] public short? BboxY { get; set; }
+    [Column("bbox_w")] public short? BboxW { get; set; }
+    [Column("bbox_h")] public short? BboxH { get; set; }
 
     /// <summary>Relative path to the snapshot image for this event</summary>
     [Column("image_path")]

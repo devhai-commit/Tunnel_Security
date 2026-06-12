@@ -31,6 +31,9 @@ public class SensorFrameRaw
     [Column("raw_hex")]
     public string RawHex { get; set; } = default!;
 
+    [Column("value_bytes")]
+    public byte[]? ValueBytes { get; set; }
+
     [Column("crc8_valid")]
     public bool Crc8Valid { get; set; }
 

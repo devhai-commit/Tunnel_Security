@@ -20,7 +20,7 @@ public class NodeHeartbeatTs
 
     /// <summary>Wire-protocol byte ID (1–10)</summary>
     [Column("node_byte_id")]
-    public byte? NodeByteId { get; set; }
+    public short NodeByteId { get; set; }
 
     [Column("status")]
     public NodeStatus Status { get; set; }

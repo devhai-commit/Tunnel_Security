@@ -511,11 +511,13 @@ public class RealDataService : IDataService, IAsyncDisposable
     {
         var category = update.Type.ToLowerInvariant() switch
         {
-            "temperature" => AlertCategory.Temperature,
-            "humidity"    => AlertCategory.Humidity,
-            "radar"       => AlertCategory.Radar,
-            "vibration"   => AlertCategory.Accelerometer,
-            _             => AlertCategory.Other
+            "temperature" or "3" => AlertCategory.Temperature,
+            "humidity"    or "4" => AlertCategory.Humidity,
+            "light"              => AlertCategory.Light,
+            "radar"       or "0" => AlertCategory.Radar,
+            "vibration"   or "1" => AlertCategory.Accelerometer,
+            "motion"      or "8" => AlertCategory.Infrared,
+            _                    => AlertCategory.Other
         };
 
         var nodeId   = string.IsNullOrEmpty(update.NodeId) ? ExtractNodeFromSensorId(update.Id) : update.NodeId;
@@ -565,11 +567,12 @@ public class RealDataService : IDataService, IAsyncDisposable
     private static (double warn, double crit, double absMax) DefaultThresholds(AlertCategory category) =>
         category switch
         {
-            AlertCategory.Temperature  => (35.0, 50.0,  80.0),
-            AlertCategory.Humidity     => (80.0, 95.0, 100.0),
-            AlertCategory.Radar        => (5.0,  1.0,   10.0),
-            AlertCategory.Accelerometer => (3.0, 8.0,   15.0),
-            _                          => (50.0, 90.0, 100.0)
+            AlertCategory.Temperature  => (35.0,   50.0,   80.0),
+            AlertCategory.Humidity     => (80.0,   95.0,  100.0),
+            AlertCategory.Light        => (800.0, 1500.0, 2000.0),
+            AlertCategory.Radar        => (5.0,    1.0,   10.0),
+            AlertCategory.Accelerometer => (3.0,   8.0,   15.0),
+            _                          => (50.0,  90.0,  100.0)
         };
 
     private static SimulatedSensor MapSensor(
@@ -584,15 +587,18 @@ public class RealDataService : IDataService, IAsyncDisposable
             ? cv.GetDouble() : warn * 0.5;
 
         var typeStr = el.TryGetProperty("type", out var t) ? GetStringValue(t) : string.Empty;
+        // Backend serializes SensorType enum as integer (0=Radar,1=Vibration,2=SmokeFire,
+        // 3=Temperature,4=Humidity,5=Gas,6=Pressure,7=WaterLevel,8=Motion).
+        // Also accept enum name strings for forward-compat with JsonStringEnumConverter.
         var category = typeStr.ToLower() switch
         {
-            "temperature"  => AlertCategory.Temperature,
-            "humidity"     => AlertCategory.Humidity,
-            "radar"        => AlertCategory.Radar,
-            "smokeFire" or "smokefire" or "gas" => AlertCategory.Other,
-            "vibration"    => AlertCategory.Accelerometer,
-            "motion"       => AlertCategory.Infrared,
-            "pressure" or "waterlevel" => AlertCategory.Other,
+            "temperature"  or "3" => AlertCategory.Temperature,
+            "humidity"     or "4" => AlertCategory.Humidity,
+            "radar"        or "0" => AlertCategory.Radar,
+            "vibration"    or "1" => AlertCategory.Accelerometer,
+            "motion"       or "8" => AlertCategory.Infrared,
+            "smokefire" or "gas"  or "2" or "5" => AlertCategory.Other,
+            "pressure" or "waterlevel" or "6" or "7" => AlertCategory.Other,
             _              => AlertCategory.Other
         };
 

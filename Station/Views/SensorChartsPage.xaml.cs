@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using LiveChartsCore;
@@ -19,10 +20,14 @@ public sealed partial class SensorChartsPage : Page
 {
     private readonly IDataService _dataService = DataServiceLocator.Current;
     private readonly Dictionary<string, SensorChartState> _sensorStates = new();
+    private readonly Dictionary<string, ObservableCollection<double>> _chartHistories = new();
     private readonly HashSet<string> _enabledTypes = new()
     {
         "temperature", "humidity", "light", "infrared", "vibration"
     };
+
+    private DispatcherTimer? _renderTimer;
+    private const int RenderIntervalMs = 200;
 
     private int _columns = 2;
     private int _historyLength = 60;
@@ -43,6 +48,11 @@ public sealed partial class SensorChartsPage : Page
         _isLoaded = true;
         _dataService.TopologyLoaded += OnTopologyLoaded;
         _dataService.SensorTick += OnSensorTick;
+
+        _renderTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(RenderIntervalMs) };
+        _renderTimer.Tick += OnRenderTick;
+        _renderTimer.Start();
+
         BuildCharts();
     }
 
@@ -50,6 +60,9 @@ public sealed partial class SensorChartsPage : Page
     {
         _dataService.TopologyLoaded -= OnTopologyLoaded;
         _dataService.SensorTick -= OnSensorTick;
+
+        _renderTimer?.Stop();
+        _renderTimer = null;
     }
 
     private void OnTopologyLoaded(object? sender, EventArgs e)
@@ -59,11 +72,31 @@ public sealed partial class SensorChartsPage : Page
 
     private void OnSensorTick(object? sender, SensorTickEventArgs e)
     {
-        DispatcherQueue.TryEnqueue(() =>
+        if (DispatcherQueue.HasThreadAccess)
         {
             try { ProcessSensorTick(e); }
             catch (Exception ex) { Debug.WriteLine($"[SensorChartsPage] Tick error: {ex.Message}"); }
-        });
+        }
+        else
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                try { ProcessSensorTick(e); }
+                catch (Exception ex) { Debug.WriteLine($"[SensorChartsPage] Tick error: {ex.Message}"); }
+            });
+        }
+    }
+
+    // ─────────── Render loop ───────────
+
+    private void OnRenderTick(object? sender, object e)
+    {
+        foreach (var state in _sensorStates.Values)
+        {
+            state.ChartValues.Add(state.LastValue);
+            if (state.ChartValues.Count > _historyLength)
+                state.ChartValues.RemoveAt(0);
+        }
     }
 
     // ─────────── Real-time update ───────────
@@ -75,11 +108,7 @@ public sealed partial class SensorChartsPage : Page
 
         if (!_sensorStates.TryGetValue(e.Sensor.SensorId, out var state)) return;
 
-        state.History.Add(e.NewValue);
-        if (state.History.Count > _historyLength)
-            state.History.RemoveAt(0);
-
-        state.SetValues(state.History.ToArray());
+        state.LastValue = e.NewValue;
         state.ValueText.Text = $"{e.NewValue:F1}";
 
         var (dotColor, statusLabel) = e.Sensor.CurrentLevel switch
@@ -108,6 +137,11 @@ public sealed partial class SensorChartsPage : Page
             .OrderBy(s => s.LineId)
             .ThenBy(s => s.NodeId)
             .ToList();
+
+        // Prune histories for sensors no longer in scope
+        var activeIds = sensors.Select(s => s.SensorId).ToHashSet();
+        foreach (var id in _chartHistories.Keys.Where(k => !activeIds.Contains(k)).ToList())
+            _chartHistories.Remove(id);
 
         if (sensors.Count == 0)
         {
@@ -159,39 +193,39 @@ public sealed partial class SensorChartsPage : Page
         var chartColor = ChartColor(type);
         var accentColor = AccentColor(type);
 
-        var history = new List<double>(
-            Enumerable.Repeat(initialValue, Math.Min(10, _historyLength)));
+        // Reuse existing history so data survives topology rebuilds
+        if (!_chartHistories.TryGetValue(sensorId, out var chartValues))
+        {
+            chartValues = new ObservableCollection<double>(
+                Enumerable.Repeat(initialValue, Math.Min(10, _historyLength)));
+            _chartHistories[sensorId] = chartValues;
+        }
 
-        Action<double[]> setValues;
         ISeries series;
 
         if (type == "vibration")
         {
             var fillColor = new SKColor(chartColor.Red, chartColor.Green, chartColor.Blue, 180);
-            var col = new ColumnSeries<double>
+            series = new ColumnSeries<double>
             {
-                Values = history.ToArray(),
+                Values = chartValues,
                 Fill = new SolidColorPaint(fillColor),
                 Stroke = new SolidColorPaint(SKColors.Transparent),
                 MaxBarWidth = 4,
                 IgnoresBarPosition = true
             };
-            series = col;
-            setValues = vals => col.Values = vals;
         }
         else
         {
             var fillColor = new SKColor(chartColor.Red, chartColor.Green, chartColor.Blue, 20);
-            var line = new LineSeries<double>
+            series = new LineSeries<double>
             {
-                Values = history.ToArray(),
+                Values = chartValues,
                 Fill = new SolidColorPaint(fillColor),
                 Stroke = new SolidColorPaint(chartColor) { StrokeThickness = 1.5f },
                 GeometrySize = 0,
                 LineSmoothness = 0.5
             };
-            series = line;
-            setValues = vals => line.Values = vals;
         }
 
         var axisLabelPaint = new SolidColorPaint(new SKColor(61, 96, 112));
@@ -201,6 +235,8 @@ public sealed partial class SensorChartsPage : Page
         {
             Height = 150,
             Series = new[] { series },
+            AnimationsSpeed = TimeSpan.Zero,
+            EasingFunction = null,
             XAxes = new[] { new Axis { LabelsPaint = null, SeparatorsPaint = gridPaint, TextSize = 0 } },
             YAxes = new[]
             {
@@ -245,11 +281,11 @@ public sealed partial class SensorChartsPage : Page
         return new SensorChartState
         {
             Card = card,
-            History = history,
-            SetValues = setValues,
+            ChartValues = chartValues,
             ValueText = valueTb,
             StatusDot = statusDot,
-            StatusText = statusTb
+            StatusText = statusTb,
+            LastValue = initialValue
         };
     }
 
@@ -467,9 +503,8 @@ public sealed partial class SensorChartsPage : Page
 
         foreach (var state in _sensorStates.Values)
         {
-            while (state.History.Count > _historyLength)
-                state.History.RemoveAt(0);
-            state.SetValues(state.History.ToArray());
+            while (state.ChartValues.Count > _historyLength)
+                state.ChartValues.RemoveAt(0);
         }
     }
 
@@ -479,8 +514,7 @@ public sealed partial class SensorChartsPage : Page
         TotalUpdatesText.Text = "0";
         foreach (var state in _sensorStates.Values)
         {
-            state.History.Clear();
-            state.SetValues(Array.Empty<double>());
+            state.ChartValues.Clear();
         }
     }
 
@@ -489,10 +523,10 @@ public sealed partial class SensorChartsPage : Page
     private sealed class SensorChartState
     {
         public required Border Card { get; init; }
-        public required List<double> History { get; init; }
-        public required Action<double[]> SetValues { get; init; }
+        public required ObservableCollection<double> ChartValues { get; init; }
         public required TextBlock ValueText { get; init; }
         public required Border StatusDot { get; init; }
         public required TextBlock StatusText { get; init; }
+        public double LastValue { get; set; }
     }
 }

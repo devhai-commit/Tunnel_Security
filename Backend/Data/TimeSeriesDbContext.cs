@@ -20,6 +20,10 @@ public class TimeSeriesDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasPostgresEnum<ReadingLevel>("reading_level");
+        modelBuilder.HasPostgresEnum<NodeStatus>("node_status");
+        modelBuilder.HasPostgresEnum<CameraEventType>("cam_event_type");
+
         // ── sensor_readings ──────────────────────────────────────────────────
         // TimescaleDB requires all unique constraints to include the partition
         // column (time), so we use a composite PK (id, time).
@@ -28,7 +32,6 @@ public class TimeSeriesDbContext : DbContext
             e.HasKey(x => new { x.Id, x.Time });
             e.Property(x => x.Id).UseIdentityByDefaultColumn();
             e.Property(x => x.Time).HasColumnType("timestamp with time zone").IsRequired();
-            e.Property(x => x.Level).HasConversion<string>();
 
             e.HasIndex(x => new { x.SensorId, x.Time });
             e.HasIndex(x => new { x.NodeId,   x.Time });
@@ -49,8 +52,6 @@ public class TimeSeriesDbContext : DbContext
             e.HasKey(x => new { x.Id, x.Time });
             e.Property(x => x.Id).UseIdentityByDefaultColumn();
             e.Property(x => x.Time).HasColumnType("timestamp with time zone").IsRequired();
-            e.Property(x => x.Status).HasConversion<string>();
-
             e.HasIndex(x => new { x.NodeId, x.Time });
         });
 
@@ -60,8 +61,6 @@ public class TimeSeriesDbContext : DbContext
             e.HasKey(x => new { x.Id, x.Time });
             e.Property(x => x.Id).UseIdentityByDefaultColumn();
             e.Property(x => x.Time).HasColumnType("timestamp with time zone").IsRequired();
-            e.Property(x => x.EventType).HasConversion<string>();
-
             e.HasIndex(x => new { x.CameraId, x.Time });
         });
     }

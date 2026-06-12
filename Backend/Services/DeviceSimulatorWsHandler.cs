@@ -116,11 +116,10 @@ public static class DeviceSimulatorWsHandler
                 "D={D:F2}m  S={S:F2}m/s  E={E}  Ht={Ht}mm  CRC=0x{CRC:X4}",
                 nodeId, temp, hum, light, dist, speed, energy, height, receivedCrc);
 
-            // Route to SensorBroadcaster – sensor IDs must exist in the database.
-            // Light and Energy have no direct sensor type in the current schema; they are skipped.
             await Task.WhenAll(
                 broadcaster.ProcessReadingAsync($"{nodeId}-TEMP",  temp,   ct),
                 broadcaster.ProcessReadingAsync($"{nodeId}-HUM",   hum,    ct),
+                broadcaster.ProcessReadingAsync($"{nodeId}-LIGHT", light,  ct),
                 broadcaster.ProcessReadingAsync($"{nodeId}-RADAR", dist,   ct),
                 broadcaster.ProcessReadingAsync($"{nodeId}-VIB",   speed,  ct),
                 broadcaster.ProcessReadingAsync($"{nodeId}-WATER", height, ct)

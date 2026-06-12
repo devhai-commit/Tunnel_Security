@@ -55,34 +55,9 @@ public sealed class SensorBroadcaster
 
         var level = ComputeLevel(value, sensor.WarningThreshold, sensor.CriticalThreshold);
         var now   = DateTime.UtcNow;
+        var node  = await _repo.GetNodeAsync(sensor.NodeId, ct);
 
-        // Write-through: single parameterized UPDATE, no entity load.
-        await _repo.UpdateSensorCurrentValueAsync(sensorId, value, level, now, ct);
-
-        // Append to TimescaleDB hypertable (best-effort, non-fatal).
-        if (_ts is not null)
-        {
-            try
-            {
-                _ts.SensorReadings.Add(new SensorReadingTs
-                {
-                    Time         = now,
-                    SensorId     = sensor.Id,
-                    NodeId       = sensor.NodeId,
-                    SensorByteId = sensor.SensorByteId,
-                    Value        = value,
-                    Level        = Enum.Parse<ReadingLevel>(level)
-                });
-                await _ts.SaveChangesAsync(ct);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug("[Broadcaster] TimescaleDB write failed: {Msg}", ex.Message);
-            }
-        }
-
-        var node = await _repo.GetNodeAsync(sensor.NodeId, ct);
-
+        // Enqueue broadcast before DB writes so clients receive data without waiting for persistence.
         _queue.Enqueue(new SensorBroadcastMessage(
             Id:           sensor.Id,
             NodeId:       sensor.NodeId,
@@ -96,6 +71,30 @@ public sealed class SensorBroadcaster
             NodeName:     node?.Name,
             NodeByteId:   node?.NodeByteId,
             SensorByteId: sensor.SensorByteId));
+
+        // Persist after broadcast (best-effort — does not block fan-out).
+        await _repo.UpdateSensorCurrentValueAsync(sensorId, value, level, now, ct);
+
+        if (_ts is not null)
+        {
+            try
+            {
+                _ts.SensorReadings.Add(new SensorReadingTs
+                {
+                    Time         = now,
+                    SensorId     = sensor.Id,
+                    NodeId       = sensor.NodeId,
+                    SensorByteId = (short)(sensor.SensorByteId ?? 0),
+                    Value        = value,
+                    Level        = Enum.Parse<ReadingLevel>(level)
+                });
+                await _ts.SaveChangesAsync(ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug("[Broadcaster] TimescaleDB write failed: {Msg}", ex.Message);
+            }
+        }
     }
 
     /// <summary>
@@ -125,6 +124,7 @@ public sealed class SensorBroadcaster
     private static string InferTypeFromSensorId(string id) =>
         id.EndsWith("-TEMP",  StringComparison.OrdinalIgnoreCase) ? "temperature" :
         id.EndsWith("-HUM",   StringComparison.OrdinalIgnoreCase) ? "humidity"    :
+        id.EndsWith("-LIGHT", StringComparison.OrdinalIgnoreCase) ? "light"       :
         id.EndsWith("-RADAR", StringComparison.OrdinalIgnoreCase) ? "radar"       :
         id.EndsWith("-VIB",   StringComparison.OrdinalIgnoreCase) ? "vibration"   :
         id.EndsWith("-WATER", StringComparison.OrdinalIgnoreCase) ? "waterlevel"  :
@@ -140,6 +140,7 @@ public sealed class SensorBroadcaster
     {
         "temperature" => "°C",
         "humidity"    => "%",
+        "light"       => "lux",
         "radar"       => "m",
         "vibration"   => "m/s",
         "waterlevel"  => "mm",

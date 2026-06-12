@@ -1,9 +1,12 @@
 using Backend.Data;
 using Backend.Hubs;
+using Backend.Models;
+using Backend.Models.TimeSeries;
 using Backend.Services;
 using Backend.Services.Caching;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,8 +22,15 @@ builder.Services.AddDbContext<TunnelDbContext>(options =>
 // writes gracefully degrade and SignalR still works.
 if (builder.Configuration.GetValue<bool>("TimeSeries:Enabled"))
 {
+    var tsConnStr = builder.Configuration.GetConnectionString("TimeSeries")!;
+    var tsDataSourceBuilder = new NpgsqlDataSourceBuilder(tsConnStr);
+    tsDataSourceBuilder.MapEnum<ReadingLevel>("reading_level");
+    tsDataSourceBuilder.MapEnum<NodeStatus>("node_status");
+    tsDataSourceBuilder.MapEnum<CameraEventType>("cam_event_type");
+    var tsDataSource = tsDataSourceBuilder.Build();
+
     builder.Services.AddDbContext<TimeSeriesDbContext>(options =>
-        options.UseNpgsql(builder.Configuration.GetConnectionString("TimeSeries")));
+        options.UseNpgsql(tsDataSource));
 }
 
 // ── Application services ──────────────────────────────────────────────────────

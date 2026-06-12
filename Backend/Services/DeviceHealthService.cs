@@ -109,7 +109,7 @@ public sealed class DeviceHealthService : BackgroundService
                 {
                     Time            = DateTime.UtcNow,
                     NodeId          = node.Id,
-                    NodeByteId      = node.NodeByteId,
+                    NodeByteId      = (short)(node.NodeByteId ?? 0),
                     Status          = newStatus,
                     BatteryLevel    = node.BatteryLevel,
                     Rssi            = node.RSSI,
