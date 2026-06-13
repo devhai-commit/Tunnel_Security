@@ -23,6 +23,10 @@
 		<Content Include="Assets\Map\**\*">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
+		<Content Remove="Assets\Sounds\critical.mp3" />
+		<Content Remove="Assets\Sounds\high.mp3" />
+		<Content Remove="Assets\Sounds\low.mp3" />
+		<Content Remove="Assets\Sounds\medium.mp3" />
 		<Content Include="Assets\SecurityMap.html">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
@@ -1626,6 +1630,18 @@
 	<ItemGroup>
 	  <None Update=".env">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+	  <None Update="Assets\Sounds\critical.mp3">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Update="Assets\Sounds\high.mp3">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Update="Assets\Sounds\low.mp3">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Update="Assets\Sounds\medium.mp3">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>
 	</ItemGroup>
 
