@@ -22,6 +22,10 @@
             bottom: 0;
         }
 
+        .maplibregl-popup {
+            max-width: 90% !important; /* Ép popup không được to hơn 90% chiều rộng bản đồ */
+        }
+
         /* --- DARK POPUP (Mặc định) --- */
         .maplibregl-popup-content {
             background-color: #1e293b;
@@ -33,6 +37,10 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
             border: 1px solid #334155;
             max-width: 350px !important;
+            width: max-content;
+            max-width: 100% !important;
+            max-height: 250px; /* Nếu nội dung quá dài thì không bị tràn khỏi viền dưới bản đồ */
+            overflow-y: auto; /* Tự động hiện thanh cuộn dọc nếu cần */
         }
 
         .maplibregl-popup-close-button {
@@ -662,6 +670,7 @@
         // --- LOGIC KÉO THẢ (DRAG & DROP) ---
         function setupDraggableLogic() {
             let isDragging = false;
+            let hasMoved = false; // Cờ đánh dấu có thực sự di chuyển chuột không
             let draggedFeatureId = null;
             let originalCoords = null;
             const canvas = map.getCanvas();
@@ -671,6 +680,7 @@
                 if (features.length > 0) {
                     e.preventDefault();
                     isDragging = true;
+                    hasMoved = false; // RESET: Bắt đầu nhấn chuột chưa tính là di chuyển
                     draggedFeatureId = features[0].properties.id;
 
                     const feature = sensorsGeoJson.features.find(f => f.properties.id === draggedFeatureId);
@@ -687,6 +697,7 @@
 
             map.on('mousemove', (e) => {
                 if (isDragging) {
+                    hasMoved = true; // Chuột nhích đi mới được tính là kéo thả
                     canvas.style.cursor = 'grabbing';
 
                     const coords = e.lngLat;
@@ -700,7 +711,6 @@
                 }
             });
 
-            // LƯU Ý: Đã thêm chữ "async" vào đây để dùng lệnh await chờ người dùng bấm nút
             map.on('mouseup', async (e) => {
                 if (isDragging) {
                     isDragging = false;
@@ -708,10 +718,10 @@
 
                     const feature = sensorsGeoJson.features.find(f => f.properties.id === draggedFeatureId);
 
-                    if (feature) {
+                    // Chỉ hiện hộp thoại nếu thực sự có di chuyển (hasMoved = true)
+                    if (feature && hasMoved) {
                         const coords = e.lngLat;
 
-                        // GỌI HỘP THOẠI CUSTOM Ở ĐÂY VÀ CHỜ KẾT QUẢ
                         const isConfirmed = await showCustomConfirm(`Bạn có muốn thay đổi vị trí của<br><b style="color:#60a5fa; font-size:16px;">${feature.properties.name}</b> ?`);
 
                         if (isConfirmed) {
@@ -722,7 +732,6 @@
                                 lat: coords.lat
                             });
                         } else {
-                            // Hủy -> Quay về chỗ cũ
                             feature.geometry.coordinates = originalCoords;
                             map.getSource('sensors').setData(sensorsGeoJson);
                             updateRoutes();
@@ -734,7 +743,6 @@
                 }
             });
         }
-
         function setupSensorInteractions() {
             const popupLayers = ['sensors-circle', 'station-circle'];
             map.on('click', popupLayers, async (e) => {
@@ -749,7 +757,17 @@
                 const popupContent = document.createElement('div');
                 buildPopupHTML(popupContent, p, coords);
 
-                new maplibregl.Popup({ closeOnClick: true, maxWidth: '380px' })
+                map.flyTo({
+                    center: coords,
+                    offset: [0, -100],
+                    speed: 1.5,
+                    essential: true
+                });
+
+                new maplibregl.Popup({
+                    closeOnClick: true,
+                    maxWidth: 'none',
+                    offset: 15                  })
                     .setLngLat(coords)
                     .setDOMContent(popupContent)
                     .addTo(map);

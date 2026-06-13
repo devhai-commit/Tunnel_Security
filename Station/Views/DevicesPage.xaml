@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <Page
     x:Class="Station.Views.DevicesPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -5,78 +6,130 @@
     xmlns:local="using:Station.ViewModels"
     Background="{StaticResource DkBgBrush}">
 
+    <!-- Hiệu ứng trượt mượt mà khi mở trang -->
+    <Page.Transitions>
+        <TransitionCollection>
+            <NavigationThemeTransition/>
+        </TransitionCollection>
+    </Page.Transitions>
+
+    <Page.Resources>
+        <!-- Gradients Tùy chỉnh cho độ long lanh -->
+        <LinearGradientBrush x:Key="CyberTitleGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#00E5FF" Offset="0.0"/>
+            <!-- Xanh Neon -->
+            <GradientStop Color="#0072FF" Offset="1.0"/>
+            <!-- Xanh Đậm -->
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="AddBtnGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#00F2FE" Offset="0.0"/>
+            <GradientStop Color="#4FACFE" Offset="1.0"/>
+        </LinearGradientBrush>
+
+        <!-- Glassmorphism Brushes (Hiệu ứng kính mờ cho Card) -->
+        <SolidColorBrush x:Key="GlassBackground" Color="#0AFFFFFF"/>
+        <SolidColorBrush x:Key="GlassBorder" Color="#1AFFFFFF"/>
+        <SolidColorBrush x:Key="SensorGlassBg" Color="#05FFFFFF"/>
+
+        <!-- Bo góc đồng bộ -->
+        <CornerRadius x:Key="MegaRadius">16</CornerRadius>
+        <CornerRadius x:Key="NormalRadius">12</CornerRadius>
+        <CornerRadius x:Key="PillRadius">24</CornerRadius>
+    </Page.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>   <!-- Header -->
-            <RowDefinition Height="Auto"/>   <!-- Filter bar -->
-            <RowDefinition Height="*"/>      <!-- Cards grid -->
+            <RowDefinition Height="Auto"/>
+            <!-- Header -->
+            <RowDefinition Height="Auto"/>
+            <!-- Filter bar -->
+            <RowDefinition Height="*"/>
+            <!-- Cards grid -->
         </Grid.RowDefinitions>
 
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <!-- HEADER                                                          -->
+        <!-- HEADER - Sang trọng & Nổi bật                                   -->
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <Border Grid.Row="0" Style="{StaticResource DkHeaderBarStyle}">
-            <Grid>
+        <Border Grid.Row="0" Background="{StaticResource DkBgBrush}" Padding="32,24" BorderBrush="{StaticResource DkBorderBrush}" BorderThickness="0,0,0,1">
+            <Grid MaxWidth="1600" HorizontalAlignment="Stretch">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Title + live badge -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal"
-                            Spacing="14" VerticalAlignment="Center">
-                    <StackPanel>
-                        <TextBlock Text="Quản lý Thiết bị Cống ngầm"
-                                   FontSize="20" FontWeight="Bold"
-                                   Foreground="{StaticResource DkTextPrimaryBrush}"/>
-                        <TextBlock FontSize="12"
-                                   Foreground="{StaticResource DkTextMutedBrush}"
-                                   Margin="0,2,0,0">
-                            <Run Text="{x:Bind ViewModel.TotalDevices, Mode=OneWay}"/>
-                            <Run Text="thiết bị •"/>
-                            <Run Text="{x:Bind ViewModel.OnlineDevices, Mode=OneWay}" Foreground="#22C55E"/>
-                            <Run Text="hoạt động •" Foreground="#22C55E"/>
-                            <Run Text="{x:Bind ViewModel.OfflineDevices, Mode=OneWay}" Foreground="#64748B"/>
-                            <Run Text="offline •" Foreground="#64748B"/>
-                            <Run Text="{x:Bind ViewModel.FaultDevices, Mode=OneWay}" Foreground="#EF4444"/>
-                            <Run Text="lỗi" Foreground="#EF4444"/>
-                        </TextBlock>
+                <!-- Left: Title + Modern Status Badges -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
+                    <!-- Icon trang -->
+                    <Border Background="#1A00E5FF" Width="52" Height="52" CornerRadius="{StaticResource NormalRadius}">
+                        <FontIcon Glyph="&#xE968;" FontSize="24" Foreground="{StaticResource CyberTitleGradient}"/>
+                    </Border>
+
+                    <StackPanel Spacing="6" VerticalAlignment="Center">
+                        <TextBlock Text="Giám sát Thiết bị Cống ngầm" FontSize="26" FontWeight="Bold" Foreground="{StaticResource CyberTitleGradient}"/>
+
+                        <!-- Badges thống kê -->
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Tổng quan:" FontSize="13" Foreground="{StaticResource DkTextMutedBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+
+                            <Border Background="#1AFFFFFF" CornerRadius="4" Padding="6,2">
+                                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource DkTextPrimaryBrush}">
+                                    <Run Text="{x:Bind ViewModel.TotalDevices, Mode=OneWay}"/> <Run Text="thiết bị"/>
+                                </TextBlock>
+                            </Border>
+
+                            <Border Background="#1A22C55E" CornerRadius="4" Padding="6,2">
+                                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#22C55E">
+                                    <Run Text="• "/> <Run Text="{x:Bind ViewModel.OnlineDevices, Mode=OneWay}"/> <Run Text="Hoạt động"/>
+                                </TextBlock>
+                            </Border>
+
+                            <Border Background="#1A64748B" CornerRadius="4" Padding="6,2">
+                                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8">
+                                    <Run Text="• "/> <Run Text="{x:Bind ViewModel.OfflineDevices, Mode=OneWay}"/> <Run Text="Offline"/>
+                                </TextBlock>
+                            </Border>
+
+                            <Border Background="#1AEF4444" CornerRadius="4" Padding="6,2">
+                                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#EF4444">
+                                    <Run Text="• "/> <Run Text="{x:Bind ViewModel.FaultDevices, Mode=OneWay}"/> <Run Text="Lỗi"/>
+                                </TextBlock>
+                            </Border>
+                        </StackPanel>
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Right: search + add button -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal"
-                            Spacing="10" VerticalAlignment="Center">
+                <!-- Right: Search + Action -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                    <!-- Search Box Nâng cấp -->
                     <Grid>
                         <TextBox Style="{StaticResource DkSearchBoxStyle}"
                                  Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                 PlaceholderText="Tìm kiếm ID, vị trí..."
-                                 MinWidth="260"/>
-                        <FontIcon Glyph="&#xE721;" FontSize="14"
-                                  Foreground="{StaticResource DkTextMutedBrush}"
-                                  HorizontalAlignment="Left" VerticalAlignment="Center"
-                                  Margin="12,0,0,0" IsHitTestVisible="False"/>
+                                 PlaceholderText="Nhập ID, Vị trí để tìm..."
+                                 MinWidth="300" Height="40" CornerRadius="8"
+                                 Background="{StaticResource GlassBackground}" BorderBrush="{StaticResource GlassBorder}"/>
+                        <FontIcon Glyph="&#xE721;" FontSize="14" Foreground="{StaticResource DkTextMutedBrush}"
+                                  HorizontalAlignment="Left" VerticalAlignment="Center" Margin="14,0,0,0" IsHitTestVisible="False"/>
                     </Grid>
-                    <Button Style="{StaticResource DkPrimaryButtonStyle}"
-                            Click="AddDeviceButton_Click">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE710;" FontSize="14" Foreground="White"/>
-                            <TextBlock Text="Thêm thiết bị" FontSize="13" FontWeight="SemiBold"/>
-                        </StackPanel>
-                    </Button>
+
+                    <!-- Add Button Nổi bật -->
+                    <Border Background="{StaticResource AddBtnGradient}" CornerRadius="8" Height="40">
+                        <Button Click="AddDeviceButton_Click" Background="Transparent" BorderThickness="0" Padding="16,0" VerticalAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE710;" FontSize="14" Foreground="White" FontWeight="Bold"/>
+                                <TextBlock Text="THÊM THIẾT BỊ" FontSize="13" FontWeight="Bold" Foreground="White" CharacterSpacing="50"/>
+                            </StackPanel>
+                        </Button>
+                    </Border>
                 </StackPanel>
             </Grid>
         </Border>
 
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <!-- FILTER BAR                                                       -->
+        <!-- FILTER BAR - Thanh Lọc Thông Minh                               -->
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <Border Grid.Row="1"
-                Background="{StaticResource DkSurfaceBrush}"
-                BorderBrush="{StaticResource DkBorderBrush}"
-                BorderThickness="0,0,0,1"
-                Padding="24,10,24,10">
-            <Grid>
+        <Border Grid.Row="1" Background="#05FFFFFF" BorderBrush="{StaticResource DkBorderBrush}" BorderThickness="0,0,0,1" Padding="32,12">
+            <Grid MaxWidth="1600" HorizontalAlignment="Stretch">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
@@ -85,109 +138,91 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Line filter -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal"
-                            Spacing="8" VerticalAlignment="Center" Margin="0,0,20,0">
-                    <TextBlock Text="Tuyến:" Style="{StaticResource DkLabelStyle}"
-                               VerticalAlignment="Center"/>
-                    <ComboBox Style="{StaticResource DkComboBoxStyle}"
-                              ItemsSource="{x:Bind ViewModel.LineFilters}"
-                              SelectedItem="{x:Bind ViewModel.SelectedLine, Mode=TwoWay}"
-                              MinWidth="160"/>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center" Margin="0,0,32,0">
+                    <FontIcon Glyph="&#xE81D;" FontSize="14" Foreground="{StaticResource DkTextDimBrush}"/>
+                    <TextBlock Text="Khu vực / Tuyến:" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource DkTextSecondaryBrush}" VerticalAlignment="Center"/>
+                    <ComboBox Style="{StaticResource DkComboBoxStyle}" ItemsSource="{x:Bind ViewModel.LineFilters}" SelectedItem="{x:Bind ViewModel.SelectedLine, Mode=TwoWay}" MinWidth="200" CornerRadius="6" Height="36"/>
                 </StackPanel>
 
-                <!-- Status pill filters -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal"
-                            Spacing="6" VerticalAlignment="Center">
-                    <Border x:Name="FilterAllBorder" Tag="Tất cả trạng thái"
-                            Style="{StaticResource FilterPillActiveStyle}"
-                            Tapped="StatusFilter_Tapped">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Ellipse Width="7" Height="7" Fill="{StaticResource DkBlueBrush}" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="FilterAllText" Text="Tất cả"
-                                       FontSize="13" FontWeight="SemiBold"
-                                       Foreground="{StaticResource DkBlueBrush}"/>
+                <!-- Status Filters (Làm dạng Pill UI hiện đại) -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <Border x:Name="FilterAllBorder" Tag="Tất cả trạng thái" Style="{StaticResource FilterPillActiveStyle}" Tapped="StatusFilter_Tapped" CornerRadius="{StaticResource PillRadius}" Padding="16,8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Ellipse Width="8" Height="8" Fill="{StaticResource DkBlueBrush}"/>
+                            <TextBlock x:Name="FilterAllText" Text="Tất cả" FontSize="13" FontWeight="Bold" Foreground="{StaticResource DkBlueBrush}"/>
                         </StackPanel>
                     </Border>
 
-                    <Border x:Name="FilterOnlineBorder" Tag="Hoạt động"
-                            Style="{StaticResource FilterPillStyle}"
-                            Tapped="StatusFilter_Tapped">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Ellipse Width="7" Height="7" Fill="{StaticResource DkGreenBrush}" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="FilterOnlineText" Text="Hoạt động"
-                                       FontSize="13" FontWeight="SemiBold"
-                                       Foreground="{StaticResource DkTextSecondaryBrush}"/>
+                    <Border x:Name="FilterOnlineBorder" Tag="Hoạt động" Style="{StaticResource FilterPillStyle}" Tapped="StatusFilter_Tapped" CornerRadius="{StaticResource PillRadius}" Padding="16,8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Ellipse Width="8" Height="8" Fill="{StaticResource DkGreenBrush}"/>
+                            <TextBlock x:Name="FilterOnlineText" Text="Hoạt động" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource DkTextSecondaryBrush}"/>
                         </StackPanel>
                     </Border>
 
-                    <Border x:Name="FilterFaultBorder" Tag="Lỗi"
-                            Style="{StaticResource FilterPillStyle}"
-                            Tapped="StatusFilter_Tapped">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Ellipse Width="7" Height="7" Fill="{StaticResource DkYellowBrush}" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="FilterFaultText" Text="Bảo trì"
-                                       FontSize="13" FontWeight="SemiBold"
-                                       Foreground="{StaticResource DkTextSecondaryBrush}"/>
+                    <Border x:Name="FilterFaultBorder" Tag="Lỗi" Style="{StaticResource FilterPillStyle}" Tapped="StatusFilter_Tapped" CornerRadius="{StaticResource PillRadius}" Padding="16,8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Ellipse Width="8" Height="8" Fill="{StaticResource DkYellowBrush}"/>
+                            <TextBlock x:Name="FilterFaultText" Text="Bảo trì" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource DkTextSecondaryBrush}"/>
                         </StackPanel>
                     </Border>
 
-                    <Border x:Name="FilterOfflineBorder" Tag="Ngoại tuyến"
-                            Style="{StaticResource FilterPillStyle}"
-                            Tapped="StatusFilter_Tapped">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Ellipse Width="7" Height="7" Fill="{StaticResource DkGrayBrush}" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="FilterOfflineText" Text="Offline"
-                                       FontSize="13" FontWeight="SemiBold"
-                                       Foreground="{StaticResource DkTextSecondaryBrush}"/>
+                    <Border x:Name="FilterOfflineBorder" Tag="Ngoại tuyến" Style="{StaticResource FilterPillStyle}" Tapped="StatusFilter_Tapped" CornerRadius="{StaticResource PillRadius}" Padding="16,8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Ellipse Width="8" Height="8" Fill="{StaticResource DkGrayBrush}"/>
+                            <TextBlock x:Name="FilterOfflineText" Text="Offline" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource DkTextSecondaryBrush}"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>
 
-                <!-- Export button (right) -->
-                <Button Grid.Column="3" Style="{StaticResource DkSecondaryButtonStyle}">
+                <!-- Export button -->
+                <Button Grid.Column="3" Style="{StaticResource DkSecondaryButtonStyle}" Height="36" CornerRadius="6">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE74E;" FontSize="13"
-                                  Foreground="{StaticResource DkTextSecondaryBrush}"/>
-                        <TextBlock Text="Xuất báo cáo" FontSize="13"/>
+                        <FontIcon Glyph="&#xE74E;" FontSize="14" Foreground="{StaticResource CyberTitleGradient}"/>
+                        <TextBlock Text="Xuất báo cáo" FontSize="13" FontWeight="SemiBold"/>
                     </StackPanel>
                 </Button>
             </Grid>
         </Border>
 
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <!-- DEVICE CARDS GRID                                               -->
+        <!-- DEVICE CARDS GRID - Giao diện Thẻ Kính (Glass Cards)            -->
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"
-                      Padding="20,16,20,20">
-            <ItemsRepeater ItemsSource="{x:Bind ViewModel.FilteredNodes, Mode=OneWay}">
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="32">
+            <ItemsRepeater ItemsSource="{x:Bind ViewModel.FilteredNodes, Mode=OneWay}" MaxWidth="1600" HorizontalAlignment="Stretch">
                 <ItemsRepeater.Layout>
                     <UniformGridLayout MaximumRowsOrColumns="3"
-                                       MinItemWidth="300"
+                                       MinItemWidth="380"
                                        ItemsStretch="Fill"
-                                       MinColumnSpacing="14"
-                                       MinRowSpacing="14"/>
+                                       MinColumnSpacing="24"
+                                       MinRowSpacing="24"/>
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate>
-
                         <!-- ── NODE CARD ── -->
-                        <Border Style="{StaticResource DkCardStyle}"
+                        <Border Background="{StaticResource GlassBackground}"
+                                BorderBrush="{StaticResource GlassBorder}"
+                                BorderThickness="1"
+                                CornerRadius="{StaticResource MegaRadius}"
                                 Tag="{Binding}"
                                 Tapped="DeviceCard_Tapped"
                                 PointerEntered="DeviceCard_PointerEntered"
-                                PointerExited="DeviceCard_PointerExited">
+                                PointerExited="DeviceCard_PointerExited"
+                                Margin="4">
+                            <!-- Cừa lề cho Shadow nếu có -->
+
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
 
-                                <!-- Card Header -->
-                                <Border Grid.Row="0" Padding="14,12"
+                                <!-- Card Header (Kế thừa màu Status Background của bạn) -->
+                                <Border Grid.Row="0" Padding="20,16"
                                         Background="{Binding StatusBackgroundColor}"
-                                        BorderBrush="{StaticResource DkBorderBrush}"
+                                        BorderBrush="{StaticResource GlassBorder}"
                                         BorderThickness="0,0,0,1"
-                                        CornerRadius="12,12,0,0">
+                                        CornerRadius="16,16,0,0">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
@@ -195,106 +230,61 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- Node icon -->
-                                        <Border Grid.Column="0"
-                                                Width="46" Height="46" CornerRadius="10" Margin="0,0,12,0"
-                                                Background="{StaticResource DkBgBrush}"
-                                                BorderBrush="{Binding StatusColor}" BorderThickness="1">
-                                            <FontIcon Glyph="&#xE968;" FontSize="20"
-                                                      Foreground="{Binding StatusColor}"
-                                                      HorizontalAlignment="Center"
-                                                      VerticalAlignment="Center"/>
+                                        <!-- Glow Node Icon -->
+                                        <Border Grid.Column="0" Width="48" Height="48" CornerRadius="12" Margin="0,0,16,0"
+                                                Background="{StaticResource DkBgBrush}" BorderBrush="{Binding StatusColor}" BorderThickness="1.5">
+                                            <FontIcon Glyph="&#xE968;" FontSize="22" Foreground="{Binding StatusColor}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Border>
 
-                                        <!-- Node name + location -->
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <TextBlock Text="{Binding NodeName}"
-                                                           FontSize="16" FontWeight="Bold"
-                                                           Foreground="{StaticResource DkTextPrimaryBrush}"/>
-                                                <Border Background="{Binding StatusBackgroundColor}"
-                                                        BorderBrush="{Binding StatusColor}"
-                                                        BorderThickness="1"
-                                                        CornerRadius="4" Padding="7,2"
-                                                        VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding StatusText}"
-                                                               FontSize="10" FontWeight="Bold"
-                                                               CharacterSpacing="30"
-                                                               Foreground="{Binding StatusColor}"/>
+                                        <!-- Info -->
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding NodeName}" FontSize="18" FontWeight="ExtraBlack" Foreground="{StaticResource DkTextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                                <Border Background="#1AFFFFFF" BorderBrush="{Binding StatusColor}" BorderThickness="1" CornerRadius="6" Padding="8,2" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding StatusText}" FontSize="11" FontWeight="Bold" CharacterSpacing="20" Foreground="{Binding StatusColor}"/>
                                                 </Border>
                                             </StackPanel>
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <FontIcon Glyph="&#xE707;" FontSize="10"
-                                                          Foreground="{StaticResource DkTextDimBrush}"
-                                                          VerticalAlignment="Center"/>
-                                                <TextBlock Text="{Binding Location}"
-                                                           FontSize="12"
-                                                           Foreground="{StaticResource DkTextMutedBrush}"
-                                                           TextTrimming="CharacterEllipsis"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="6" Opacity="0.8">
+                                                <FontIcon Glyph="&#xE707;" FontSize="12" Foreground="{StaticResource DkTextMutedBrush}" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Location}" FontSize="13" Foreground="{StaticResource DkTextMutedBrush}" TextTrimming="CharacterEllipsis"/>
                                             </StackPanel>
                                         </StackPanel>
 
-                                        <!-- Action buttons -->
-                                        <StackPanel Grid.Column="2" Orientation="Horizontal"
-                                                    Spacing="0" VerticalAlignment="Top" Margin="0,-2,0,0">
-                                            <Button Style="{StaticResource DkIconButtonStyle}"
-                                                    ToolTipService.ToolTip="Cấu hình"
-                                                    Tag="{Binding}"
-                                                    Click="ConfigButton_Click">
-                                                <FontIcon Glyph="&#xE713;" FontSize="14"
-                                                          Foreground="{StaticResource DkTextDimBrush}"/>
+                                        <!-- Actions -->
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Top">
+                                            <Button Style="{StaticResource DkIconButtonStyle}" ToolTipService.ToolTip="Cấu hình" Tag="{Binding}" Click="ConfigButton_Click" Width="36" Height="36" CornerRadius="18">
+                                                <FontIcon Glyph="&#xE713;" FontSize="14" Foreground="{StaticResource DkTextDimBrush}"/>
                                             </Button>
-                                            <Button Style="{StaticResource DkIconButtonStyle}"
-                                                    ToolTipService.ToolTip="Khởi động lại"
-                                                    Tag="{Binding}"
-                                                    Click="RestartButton_Click">
-                                                <FontIcon Glyph="&#xE72C;" FontSize="14"
-                                                          Foreground="{StaticResource DkTextDimBrush}"/>
+                                            <Button Style="{StaticResource DkIconButtonStyle}" ToolTipService.ToolTip="Khởi động lại" Tag="{Binding}" Click="RestartButton_Click" Width="36" Height="36" CornerRadius="18">
+                                                <FontIcon Glyph="&#xE72C;" FontSize="14" Foreground="{StaticResource DkTextDimBrush}"/>
                                             </Button>
                                         </StackPanel>
                                     </Grid>
                                 </Border>
 
-                                <!-- Sensor readings grid -->
-                                <Border Grid.Row="1" Padding="12"
-                                        Style="{StaticResource DkInsetStyle}">
+                                <!-- Sensor Grid (Telemetry UI) -->
+                                <Border Grid.Row="1" Padding="20">
                                     <ItemsRepeater ItemsSource="{Binding Sensors}">
                                         <ItemsRepeater.Layout>
                                             <UniformGridLayout MaximumRowsOrColumns="4"
                                                                MinItemWidth="80"
                                                                ItemsStretch="Fill"
-                                                               MinColumnSpacing="8"
-                                                               MinRowSpacing="8"/>
+                                                               MinColumnSpacing="12"
+                                                               MinRowSpacing="12"/>
                                         </ItemsRepeater.Layout>
                                         <ItemsRepeater.ItemTemplate>
                                             <DataTemplate>
-                                                <Border Style="{StaticResource DkSensorCardStyle}">
-                                                    <StackPanel Spacing="5">
-                                                        <!-- Label row -->
-                                                        <StackPanel Orientation="Horizontal" Spacing="4">
-                                                            <FontIcon Glyph="{Binding TypeIcon}" FontSize="10"
-                                                                      Foreground="{StaticResource DkTextDimBrush}"
-                                                                      VerticalAlignment="Center"/>
-                                                            <TextBlock Text="{Binding SensorTypeDisplay}"
-                                                                       FontSize="9" FontWeight="Bold"
-                                                                       CharacterSpacing="40"
-                                                                       TextTrimming="CharacterEllipsis"
-                                                                       Foreground="{StaticResource DkTextDimBrush}"/>
+                                                <!-- Sensor Mini-Card -->
+                                                <Border Background="{StaticResource SensorGlassBg}" BorderBrush="{StaticResource GlassBorder}" BorderThickness="1" CornerRadius="10" Padding="12,10">
+                                                    <StackPanel Spacing="6">
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <FontIcon Glyph="{Binding TypeIcon}" FontSize="12" Foreground="{StaticResource DkTextDimBrush}" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="{Binding SensorTypeDisplay}" FontSize="10" FontWeight="SemiBold" CharacterSpacing="20" TextTrimming="CharacterEllipsis" Foreground="{StaticResource DkTextDimBrush}" VerticalAlignment="Center"/>
                                                         </StackPanel>
-                                                        <!-- Value -->
-                                                        <TextBlock Text="{Binding CurrentValue}"
-                                                                   FontSize="16" FontWeight="Bold"
-                                                                   Foreground="{Binding SensorStatusColor}"
-                                                                   TextTrimming="CharacterEllipsis"/>
-                                                        <!-- Unit + dot -->
-                                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                                            <Ellipse Width="5" Height="5"
-                                                                     Fill="{Binding SensorStatusColor}"
-                                                                     VerticalAlignment="Center"/>
-                                                            <TextBlock Text="{Binding Unit}"
-                                                                       FontSize="10"
-                                                                       Foreground="{StaticResource DkTextDimBrush}"
-                                                                       VerticalAlignment="Center"/>
+
+                                                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Bottom">
+                                                            <TextBlock Text="{Binding CurrentValue}" FontSize="18" FontWeight="Black" Foreground="{Binding SensorStatusColor}" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{Binding Unit}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource DkTextMutedBrush}" VerticalAlignment="Bottom" Margin="0,0,0,2"/>
                                                         </StackPanel>
                                                     </StackPanel>
                                                 </Border>
@@ -305,7 +295,6 @@
 
                             </Grid>
                         </Border>
-
                     </DataTemplate>
                 </ItemsRepeater.ItemTemplate>
             </ItemsRepeater>
