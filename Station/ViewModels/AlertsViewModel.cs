@@ -226,7 +226,7 @@ namespace Station.ViewModels
         private void InitializeLocalMode()
         {
             // Subscribe to local MockDataService (existing behavior)
-            MockDataService.Instance.AlertGenerated += OnLocalAlertGenerated;
+            DataServiceLocator.Current.AlertGenerated += OnLocalAlertGenerated;
         }
 
         private void OnApiSensorUpdated(object? sender, ApiSensorUpdate e)

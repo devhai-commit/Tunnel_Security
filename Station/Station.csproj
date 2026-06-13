@@ -27,6 +27,7 @@
 		<Content Remove="Assets\Sounds\high.mp3" />
 		<Content Remove="Assets\Sounds\low.mp3" />
 		<Content Remove="Assets\Sounds\medium.mp3" />
+		<None Remove="Views\DataPage.xaml" />
 		<Content Include="Assets\SecurityMap.html">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>

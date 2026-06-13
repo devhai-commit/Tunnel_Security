@@ -63,27 +63,37 @@
                     </Grid>
                 </Border>
 
-                <!-- Log entries -->
-                <ScrollViewer x:Name="LogScrollViewer"
-                              Margin="0,40,0,0"
-                              VerticalScrollBarVisibility="Auto">
-                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.Entries}">
-                        <ItemsRepeater.ItemTemplate>
-                            <DataTemplate x:DataType="models:LogEntry">
-                                <TextBlock FontFamily="Consolas" FontSize="12"
-                                           Margin="16,2"
-                                           Foreground="#cbd5e1"
-                                           TextWrapping="Wrap">
-                                    <Run Foreground="#0bda5e" Text="{x:Bind Timestamp}"/>
-                                    <Run Text=" "/>
-                                    <Run Text="{x:Bind Source}"/>
-                                    <Run Text=": "/>
-                                    <Run Text="{x:Bind Message}"/>
-                                </TextBlock>
-                            </DataTemplate>
-                        </ItemsRepeater.ItemTemplate>
-                    </ItemsRepeater>
-                </ScrollViewer>
+                <!-- Log entries — ListView has built-in UI virtualization,
+                     only renders items currently in the viewport. -->
+                <ListView x:Name="LogList"
+                          ItemsSource="{x:Bind ViewModel.Entries}"
+                          SelectionMode="None"
+                          IsItemClickEnabled="False"
+                          Margin="0,40,0,0"
+                          Background="Transparent"
+                          BorderThickness="0">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="models:LogEntry">
+                            <TextBlock FontFamily="Consolas" FontSize="12"
+                                       Foreground="#cbd5e1"
+                                       TextWrapping="Wrap">
+                                <Run Foreground="#0bda5e" Text="{x:Bind Timestamp}"/>
+                                <Run Text="  "/>
+                                <Run Text="{x:Bind Source}"/>
+                                <Run Text=": "/>
+                                <Run Text="{x:Bind Message}"/>
+                            </TextBlock>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="Padding" Value="16,2"/>
+                            <Setter Property="MinHeight" Value="0"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                </ListView>
             </Grid>
         </Border>
     </Grid>

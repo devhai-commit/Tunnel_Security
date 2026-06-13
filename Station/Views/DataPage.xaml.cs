@@ -1,13 +1,11 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Shapes;
 using Microsoft.UI.Dispatching;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading.Tasks;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.WinUI;
@@ -24,24 +22,18 @@ namespace Station.Views
         private List<LineData> _lines = new();
         private string _selectedLineId = "all";
         private string _selectedStatus = "all";
-        private int _timeRangeHours = 6;
         private string _searchText = "";
         private HashSet<string> _selectedNodeIds = new();
-        private HashSet<string> _selectedTypes = new() { "radar", "infrared", "temperature", "humidity", "light", "vibration" };
+        private HashSet<string> _selectedTypes = new() { "infrared", "temperature", "humidity", "light", "vibration" };
         private int _columnsPerRow = 2;
-        private Random _random = new Random();
+        private readonly Random _random = new();
+
         private Dictionary<string, List<double>> _sensorHistoricalData = new();
         private Dictionary<string, CartesianChart> _chartInstances = new();
         private Dictionary<string, TextBlock> _sensorValueTexts = new();
+        private Dictionary<string, ProgressBar> _sensorProgressBars = new();
 
-        // Mock data service for real-time updates
-        private readonly MockDataService _mockData = MockDataService.Instance;
-
-        // Simulation WebSocket client
-        private SimulationWebSocketClient? _wsClient;
-        private bool _useSimulation = false;
-
-        // Timer to refresh chart visuals every 1 second
+        private readonly IDataService _dataService = DataServiceLocator.Current;
         private DispatcherQueueTimer? _chartRefreshTimer;
 
         public DataPage()
@@ -52,164 +44,101 @@ namespace Station.Views
             this.Unloaded += DataPage_Unloaded;
         }
 
-        private async void DataPage_Loaded(object sender, RoutedEventArgs e)
-        {
-            // Initialize historical data for charts
-            InitializeHistoricalData();
+        // ──────────────── Lifecycle ────────────────
 
-            BuildNodeFilterComboBox();
-            LoadChartsForAllNodes();
-
-            // Try connecting to Simulation WebSocket for real data
-            await TryConnectToSimulationAsync();
-
-            // If simulation not available, fallback to MockDataService
-            if (!_useSimulation)
-            {
-                _mockData.SensorTick += OnMockSensorTick;
-                Debug.WriteLine("[DataPage] Using MockDataService (local mode)");
-            }
-
-            // Start 1-second timer to refresh chart visuals
-            _chartRefreshTimer = DispatcherQueue.CreateTimer();
-            _chartRefreshTimer.Interval = TimeSpan.FromSeconds(1);
-            _chartRefreshTimer.Tick += ChartRefreshTimer_Tick;
-            _chartRefreshTimer.Start();
-            Debug.WriteLine("[DataPage] Chart refresh timer started (1s interval)");
-        }
-
-        private void InitializeHistoricalData()
-        {
-            // Pre-populate historical data with initial sensor values
-            foreach (var line in _lines)
-            {
-                foreach (var node in line.Nodes)
-                {
-                    foreach (var sensor in node.Sensors)
-                    {
-                        if (sensor.Value.HasValue && !_sensorHistoricalData.ContainsKey(sensor.Id))
-                        {
-                            // Initialize with 24 data points (2 seconds each = 48 seconds of history)
-                            var initialValue = sensor.Value.Value;
-                            _sensorHistoricalData[sensor.Id] = new List<double>();
-                            for (int i = 0; i < 24; i++)
-                            {
-                                _sensorHistoricalData[sensor.Id].Add(initialValue);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private async Task TryConnectToSimulationAsync()
+        private void DataPage_Loaded(object sender, RoutedEventArgs e)
         {
             try
             {
-                _wsClient = new SimulationWebSocketClient();
-                _wsClient.SensorUpdated += OnSimulationSensorUpdated;
-                _wsClient.ConnectionChanged += OnSimulationConnectionChanged;
-                await _wsClient.ConnectAsync();
-                _useSimulation = true;
-                // Khi chuyển sang simulation, làm sạch lịch sử dữ liệu để tránh lẫn dữ liệu mock
-                _sensorHistoricalData.Clear();
-                Debug.WriteLine("[DataPage] Connected to Simulation WebSocket for real-time updates");
+                _dataService.TopologyLoaded += OnTopologyLoaded;
+                _dataService.SensorTick += OnMockSensorTick;
+                RebuildCharts();
             }
-            catch (Exception ex)
-            {
-                _useSimulation = false;
-                Debug.WriteLine($"[DataPage] Simulation WebSocket not available, using local mode: {ex.Message}");
-            }
+            catch (Exception ex) { Debug.WriteLine($"[DataPage_Loaded ERROR] {ex}"); }
         }
 
-        private void OnSimulationConnectionChanged(object? sender, bool isConnected)
+        private void DataPage_Unloaded(object sender, RoutedEventArgs e)
         {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                Debug.WriteLine($"[DataPage] Simulation connection changed: {isConnected}");
-            });
-        }
-
-        private void OnSimulationSensorUpdated(object? sender, SimulationSensorUpdate e)
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                UpdateChartWithSimulationData(e);
-            });
-        }
-
-        private void UpdateChartWithSimulationData(SimulationSensorUpdate update)
-        {
-            // Map sensorId from simulation to local sensor.Id (case-insensitive, exact match)
-            var sensorId = update.SensorId;
-            var sensor = _lines.SelectMany(l => l.Nodes)
-                              .SelectMany(n => n.Sensors)
-                              .FirstOrDefault(s => string.Equals(s.Id, sensorId, StringComparison.OrdinalIgnoreCase));
-
-            if (sensor != null)
-            {
-                // Update sensor value from simulation (absolute value)
-                sensor.Value = update.Value;
-                // Update status
-                sensor.Status = update.Level?.ToLower() switch
-                {
-                    "critical" => "critical",
-                    "warning" => "warning",
-                    _ => "normal"
-                };
-
-                // Update historical data for charts (absolute value, no delta)
-                if (!_sensorHistoricalData.ContainsKey(sensor.Id))
-                {
-                    _sensorHistoricalData[sensor.Id] = new List<double>();
-                }
-                var history = _sensorHistoricalData[sensor.Id];
-                history.Add(update.Value);
-                if (history.Count > 50)
-                {
-                    history.RemoveAt(0);
-                }
-            }
-
-            Debug.WriteLine($"[DataPage] Simulation update: {update.Name} = {update.Value:F2} {update.Unit}");
-        }
-
-        private async void DataPage_Unloaded(object sender, RoutedEventArgs e)
-        {
-            // Stop chart refresh timer
+            _dataService.TopologyLoaded -= OnTopologyLoaded;
+            _dataService.SensorTick -= OnMockSensorTick;
             _chartRefreshTimer?.Stop();
             _chartRefreshTimer = null;
-
-            // Unsubscribe from MockDataService
-            _mockData.SensorTick -= OnMockSensorTick;
-
-            // Disconnect WebSocket if connected
-            if (_wsClient != null)
-            {
-                await _wsClient.DisposeAsync();
-                _wsClient = null;
-                _useSimulation = false;
-            }
-            Debug.WriteLine("[DataPage] Unloaded — all resources cleaned up");
         }
 
-        private void StartRealtimeUpdates()
+        private void OnTopologyLoaded(object? sender, EventArgs e)
         {
-            // Xoá hoặc vô hiệu hoá StartRealtimeUpdates và các dòng gọi _realtimeTimer
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                try { IncrementalRebuildCharts(); }
+                catch (Exception ex) { Debug.WriteLine($"[OnTopologyLoaded ERROR] {ex}"); }
+            });
         }
 
         private void OnMockSensorTick(object? sender, SensorTickEventArgs e)
         {
             DispatcherQueue.TryEnqueue(() =>
             {
-                // Update chart with new sensor data from MockDataService
-                UpdateChartWithMockData(e.Sensor.SensorId, e.NewValue);
+                try
+                {
+                    UpdateChartWithMockData(e.Sensor.SensorId, e.NewValue);
+                    UpdateCharts();
+                }
+                catch (Exception ex) { Debug.WriteLine($"[OnMockSensorTick ERROR] {ex}"); }
             });
+        }
+
+        // ──────────────── Chart rebuild ────────────────
+
+        private void RebuildCharts()
+        {
+            try
+            {
+                InitializeMockData();
+                _sensorHistoricalData.Clear();
+                InitializeHistoricalData();
+                BuildNodeFilterComboBox();
+                LoadChartsForAllNodes();
+            }
+            catch (Exception ex) { Debug.WriteLine($"[RebuildCharts ERROR] {ex}"); }
+        }
+
+        private void IncrementalRebuildCharts()
+        {
+            try
+            {
+                InitializeMockData();
+                InitializeHistoricalData();
+                BuildNodeFilterComboBox();
+                LoadChartsForAllNodes();
+            }
+            catch (Exception ex) { Debug.WriteLine($"[IncrementalRebuildCharts ERROR] {ex}"); }
+        }
+
+        private void InitializeHistoricalData()
+        {
+            foreach (var sensor in _lines.SelectMany(l => l.Nodes).SelectMany(n => n.Sensors))
+            {
+                if (!sensor.Value.HasValue || _sensorHistoricalData.ContainsKey(sensor.Id)) continue;
+
+                var init = sensor.Value.Value;
+                var history = new List<double>();
+
+                if (sensor.Type == "vibration")
+                {
+                    for (int i = 0; i < 50; i++)
+                        history.Add(init + (_random.NextDouble() - 0.5) * init * 2);
+                }
+                else
+                {
+                    for (int i = 0; i < 24; i++) history.Add(init);
+                }
+
+                _sensorHistoricalData[sensor.Id] = history;
+            }
         }
 
         private void UpdateChartWithMockData(string sensorId, double newValue)
         {
-            // Update sensor value in local data structure
             var sensor = _lines.SelectMany(l => l.Nodes)
                                .SelectMany(n => n.Sensors)
                                .FirstOrDefault(s => string.Equals(s.Id, sensorId, StringComparison.OrdinalIgnoreCase));
@@ -217,290 +146,162 @@ namespace Station.Views
             if (sensor != null)
             {
                 sensor.Value = newValue;
-
-                // Also update status from MockDataService sensor
-                var mockSensor = _mockData.Sensors.FirstOrDefault(s => s.SensorId == sensorId);
-                if (mockSensor != null)
-                {
-                    sensor.Status = mockSensor.CurrentLevel switch
+                var ms = _dataService.Sensors.FirstOrDefault(s => s.SensorId == sensorId);
+                if (ms != null)
+                    sensor.Status = ms.CurrentLevel switch
                     {
                         SensorAlertLevel.Critical => "critical",
                         SensorAlertLevel.Warning => "warning",
                         _ => "normal"
                     };
-                }
             }
 
             if (!_sensorHistoricalData.ContainsKey(sensorId))
             {
-                // Initialize if not exists
                 _sensorHistoricalData[sensorId] = new List<double>();
-                for (int i = 0; i < 24; i++)
-                {
-                    _sensorHistoricalData[sensorId].Add(newValue);
-                }
+                for (int i = 0; i < 24; i++) _sensorHistoricalData[sensorId].Add(newValue);
             }
 
             var history = _sensorHistoricalData[sensorId];
             history.Add(newValue);
-            if (history.Count > 50)
-            {
-                history.RemoveAt(0);
-            }
-        }
-
-        private void StopRealtimeUpdates()
-        {
-            // Xoá hoặc vô hiệu hoá StopRealtimeUpdates
-        }
-
-        /// <summary>
-        /// Called every 1 second by DispatcherQueueTimer to refresh chart visuals.
-        /// </summary>
-        private void ChartRefreshTimer_Tick(DispatcherQueueTimer sender, object args)
-        {
-            // Only refresh chart visuals with latest data from _sensorHistoricalData.
-            // Data is populated by:
-            //   - MockDataService.SensorTick event → OnMockSensorTick → UpdateChartWithMockData (local mode)
-            //   - SimulationWebSocketClient.SensorUpdated event → OnSimulationSensorUpdated → UpdateChartWithSimulationData (simulation mode)
-            UpdateCharts();
-        }
-
-        private void RealtimeTimer_Tick(object sender, object e)
-        {
-            // Legacy — kept for compatibility, no longer used
-        }
-
-        private void UpdateSensorValues()
-        {
-            foreach (var line in _lines)
-            {
-                foreach (var node in line.Nodes)
-                {
-                    foreach (var sensor in node.Sensors)
-                    {
-                        if (sensor.Value.HasValue)
-                        {
-                            // Update sensor value with random variation
-                            var baseValue = sensor.Value.Value;
-                            var variation = sensor.Type switch
-                            {
-                                "temperature" => (_random.NextDouble() - 0.5) * 2,
-                                "humidity" => (_random.NextDouble() - 0.5) * 4,
-                                "light" => (_random.NextDouble() - 0.5) * 10,
-                                "water" => (_random.NextDouble() - 0.5) * 2,
-                                "vibration" => (_random.NextDouble() - 0.5) * 0.1,
-                                "radar" => _random.Next(-1, 2),
-                                "camera" => _random.Next(-1, 2),
-                                _ => 0
-                            };
-
-                            sensor.Value = Math.Max(0, baseValue + variation);
-
-                            // Update historical data
-                            if (!_sensorHistoricalData.ContainsKey(sensor.Id))
-                            {
-                                _sensorHistoricalData[sensor.Id] = new List<double>();
-                                for (int i = 0; i < 24; i++)
-                                {
-                                    _sensorHistoricalData[sensor.Id].Add(baseValue);
-                                }
-                            }
-
-                            var history = _sensorHistoricalData[sensor.Id];
-                            history.RemoveAt(0);
-                            history.Add(sensor.Value.Value);
-                        }
-                    }
-                }
-            }
+            if (history.Count > 50) history.RemoveAt(0);
         }
 
         private void UpdateCharts()
         {
-            foreach (var kvp in _chartInstances)
+            foreach (var (sensorId, chart) in _chartInstances)
             {
-                var sensorId = kvp.Key;
-                var chart = kvp.Value;
+                if (!_sensorHistoricalData.ContainsKey(sensorId)) continue;
 
-                if (_sensorHistoricalData.ContainsKey(sensorId))
+                var sensor = _lines.SelectMany(l => l.Nodes)
+                                   .SelectMany(n => n.Sensors)
+                                   .FirstOrDefault(s => s.Id == sensorId);
+
+                if (sensor == null || chart.Series == null) continue;
+
+                // Large value text
+                if (_sensorValueTexts.TryGetValue(sensorId, out var tb))
+                    tb.Text = $"{(sensor.Value ?? 0):F1}";
+
+                // Progress bar + level color
+                if (_sensorProgressBars.TryGetValue(sensorId, out var pb))
                 {
-                    var sensor = _lines.SelectMany(l => l.Nodes)
-                                       .SelectMany(n => n.Sensors)
-                                       .FirstOrDefault(s => s.Id == sensorId);
-
-                    if (sensor != null && chart.Series != null)
-                    {
-                        var seriesArray = chart.Series.ToArray();
-                        if (seriesArray.Length > 0)
+                    pb.Value = CalculateProgressPercent(sensor);
+                    var ms = _dataService.Sensors.FirstOrDefault(s => s.SensorId == sensorId);
+                    if (ms != null)
+                        pb.Foreground = new SolidColorBrush(ms.CurrentLevel switch
                         {
-                            // Update value text
-                            if (_sensorValueTexts.ContainsKey(sensorId))
-                            {
-                                _sensorValueTexts[sensorId].Text = $"Giá trị: {sensor.Value:F1} {GetUnit(sensor.Type)}";
-                            }
-
-                            if (sensor.Type == "vibration" && seriesArray[0] is ColumnSeries<double> columnSeries)
-                            {
-                                // Update vibration chart with more points
-                                var values = new double[120];
-                                var baseValue = sensor.Value ?? 0;
-                                for (int i = 0; i < 120; i++)
-                                {
-                                    var variance = (_random.NextDouble() - 0.5) * 2;
-                                    values[i] = baseValue + variance * baseValue * 2;
-                                }
-                                columnSeries.Values = values;
-                            }
-                            else if (seriesArray[0] is LineSeries<double> lineSeries)
-                            {
-                                // Update line chart
-                                lineSeries.Values = _sensorHistoricalData[sensor.Id].ToArray();
-                            }
-                        }
-                    }
+                            SensorAlertLevel.Critical => Color.FromArgb(255, 255, 64, 64),
+                            SensorAlertLevel.Warning => Color.FromArgb(255, 255, 176, 32),
+                            _ => Color.FromArgb(255, 0, 200, 138)
+                        });
                 }
+
+                // Chart series
+                var series = chart.Series.ToArray();
+                if (series.Length == 0) continue;
+                if (sensor.Type == "vibration" && series[0] is ColumnSeries<double> col)
+                    col.Values = _sensorHistoricalData[sensorId].ToArray();
+                else if (series[0] is LineSeries<double> line)
+                    line.Values = _sensorHistoricalData[sensorId].ToArray();
             }
+
+            UpdateHeaderStats();
         }
+
+        // ──────────────── Data init ────────────────
 
         private void InitializeMockData()
         {
-            // Build local data from MockDataService to ensure sensorId consistency
             _lines = new List<LineData>();
 
-            // Group sensors by Line → Node using MockDataService
-            var mockSensors = _mockData.Sensors;
-            var lineGroups = mockSensors.GroupBy(s => s.LineId).OrderBy(g => g.Key);
-
-            foreach (var lineGroup in lineGroups)
+            foreach (var lineGroup in _dataService.Sensors.GroupBy(s => s.LineId).OrderBy(g => g.Key))
             {
-                var firstSensor = lineGroup.First();
-                var line = new LineData
-                {
-                    Id = lineGroup.Key,
-                    Name = firstSensor.LineName,
-                    Status = "active",
-                    Nodes = new List<NodeData>()
-                };
+                var first = lineGroup.First();
+                var line = new LineData { Id = lineGroup.Key, Name = first.LineName, Status = "active" };
 
-                var nodeGroups = lineGroup.GroupBy(s => s.NodeId).OrderBy(g => g.Key);
-                foreach (var nodeGroup in nodeGroups)
+                foreach (var nodeGroup in lineGroup.GroupBy(s => s.NodeId).OrderBy(g => g.Key))
                 {
-                    var firstNodeSensor = nodeGroup.First();
-                    var node = new NodeData
-                    {
-                        Id = nodeGroup.Key,
-                        Name = firstNodeSensor.NodeName,
-                        Status = "normal",
-                        Sensors = new List<SensorData>()
-                    };
+                    var nFirst = nodeGroup.First();
+                    var node = new NodeData { Id = nodeGroup.Key, Name = nFirst.NodeName, Status = "normal" };
 
-                    foreach (var mockSensor in nodeGroup)
-                    {
+                    foreach (var ms in nodeGroup)
                         node.Sensors.Add(new SensorData
                         {
-                            Id = mockSensor.SensorId,          // Use exact ID from MockDataService
-                            Name = mockSensor.SensorName,
-                            Type = MapCategoryToType(mockSensor.Category),
+                            Id = ms.SensorId,
+                            Name = ms.SensorName,
+                            Type = MapCategoryToType(ms.Category),
                             Status = "normal",
-                            Value = mockSensor.CurrentValue     // Use initial value from service
+                            Value = ms.CurrentValue
                         });
-                    }
 
                     line.Nodes.Add(node);
                 }
                 _lines.Add(line);
             }
-
-            Debug.WriteLine($"[DataPage] Initialized {_lines.Count} lines, " +
-                $"{_lines.Sum(l => l.Nodes.Count)} nodes, " +
-                $"{_lines.Sum(l => l.Nodes.Sum(n => n.Sensors.Count))} sensors from MockDataService");
         }
 
-        /// <summary>
-        /// Maps MockDataService AlertCategory enum to local sensor type string
-        /// </summary>
-        private string MapCategoryToType(Station.Models.AlertCategory category)
+        private string MapCategoryToType(Station.Models.AlertCategory cat) => cat switch
         {
-            return category switch
-            {
-                Station.Models.AlertCategory.Radar => "radar",
-                Station.Models.AlertCategory.Infrared => "infrared",
-                Station.Models.AlertCategory.Temperature => "temperature",
-                Station.Models.AlertCategory.Humidity => "humidity",
-                Station.Models.AlertCategory.Light => "light",
-                Station.Models.AlertCategory.Accelerometer => "vibration",
-                Station.Models.AlertCategory.Intrusion => "camera",
-                _ => "other"
-            };
-        }
+            Station.Models.AlertCategory.Radar => "radar",
+            Station.Models.AlertCategory.Infrared => "infrared",
+            Station.Models.AlertCategory.Temperature => "temperature",
+            Station.Models.AlertCategory.Humidity => "humidity",
+            Station.Models.AlertCategory.Light => "light",
+            Station.Models.AlertCategory.Accelerometer => "vibration",
+            Station.Models.AlertCategory.Intrusion => "camera",
+            _ => "other"
+        };
 
-        //private void UpdateSensorCounts()
-        //{
-        //    var allSensors = _lines.SelectMany(l => l.Nodes).SelectMany(n => n.Sensors).ToList();
-        //    RadarCount.Text = allSensors.Count(s => s.Type == "radar").ToString();
-        //    CameraCount.Text = allSensors.Count(s => s.Type == "camera").ToString();
-        //    TempCount.Text = allSensors.Count(s => s.Type == "temperature").ToString();
-        //    HumidityCount.Text = allSensors.Count(s => s.Type == "humidity").ToString();
-        //    LightCount.Text = allSensors.Count(s => s.Type == "light").ToString();
-        //    WaterCount.Text = allSensors.Count(s => s.Type == "water").ToString();
-        //    VibrationCount.Text = allSensors.Count(s => s.Type == "vibration").ToString();
-        //}
-
+        // ──────────────── Filters ────────────────
 
         private void BuildNodeFilterComboBox()
         {
             if (NodeFilterComboBox == null) return;
-
             NodeFilterComboBox.Items.Clear();
+            NodeFilterComboBox.Items.Add(new ComboBoxItem { Content = "Tất cả nodes", Tag = "all" });
 
-            // Add "All Nodes" option
-            var allItem = new ComboBoxItem
-            {
-                Content = "Tất cả nodes",
-                Tag = "all"
-            };
-            NodeFilterComboBox.Items.Add(allItem);
-
-            // Get lines based on selected line filter
-            var linesToShow = _selectedLineId == "all"
-                ? _lines
-                : _lines.Where(l => l.Id == _selectedLineId).ToList();
-
-            // Add nodes from filtered lines
-            foreach (var line in linesToShow)
-            {
+            var lines = _selectedLineId == "all" ? _lines : _lines.Where(l => l.Id == _selectedLineId).ToList();
+            foreach (var line in lines)
                 foreach (var node in line.Nodes)
-                {
-                    var nodeItem = new ComboBoxItem
+                    NodeFilterComboBox.Items.Add(new ComboBoxItem
                     {
-                        Content = _selectedLineId == "all"
-                            ? $"{line.Name} - {node.Name}"
-                            : node.Name, // If specific line selected, no need to show line name
+                        Content = _selectedLineId == "all" ? $"{line.Name} — {node.Name}" : node.Name,
                         Tag = node.Id
-                    };
-                    NodeFilterComboBox.Items.Add(nodeItem);
-                }
-            }
+                    });
 
             NodeFilterComboBox.SelectedIndex = 0;
-            _selectedNodeIds.Clear(); // Reset node selection when rebuilding
+            _selectedNodeIds.Clear();
         }
 
-        private void NodeFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private List<SensorData> GetFilteredSensors()
         {
-            if (NodeFilterComboBox.SelectedItem is ComboBoxItem item && item.Tag is string tag)
+            var nodes = _lines.SelectMany(l => l.Nodes).ToList();
+
+            if (_selectedLineId != "all")
             {
-                _selectedNodeIds.Clear();
-
-                if (tag != "all")
-                {
-                    _selectedNodeIds.Add(tag);
-                }
-
-                LoadChartsForAllNodes();
+                var line = _lines.FirstOrDefault(l => l.Id == _selectedLineId);
+                nodes = line?.Nodes ?? new List<NodeData>();
             }
+
+            if (_selectedNodeIds.Count > 0)
+                nodes = nodes.Where(n => _selectedNodeIds.Contains(n.Id)).ToList();
+
+            var sensors = nodes.SelectMany(n => n.Sensors).ToList();
+            sensors = sensors.Where(s => _selectedTypes.Contains(s.Type)).ToList();
+
+            if (_selectedStatus != "all")
+                sensors = sensors.Where(s => s.Status == _selectedStatus).ToList();
+
+            if (!string.IsNullOrEmpty(_searchText))
+                sensors = sensors.Where(s =>
+                    s.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+                    s.Id.Contains(_searchText, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            return sensors;
         }
+
+        // ──────────────── Load charts ────────────────
 
         private void LoadChartsForAllNodes()
         {
@@ -510,699 +311,498 @@ namespace Station.Views
             CameraPanel.Children.Clear();
             _chartInstances.Clear();
             _sensorValueTexts.Clear();
+            _sensorProgressBars.Clear();
 
-            var filteredSensors = GetFilteredSensors();
+            UpdateHeaderStats();
 
-            // Separate cameras from other sensors
-            var cameraSensors = filteredSensors.Where(s => s.Type == "camera").ToList();
-            var chartSensors = filteredSensors.Where(s => s.Type != "camera").ToList();
+            var filtered = GetFilteredSensors();
+            var chartSensors = filtered.Where(s => s.Type != "camera" && s.Type != "radar").ToList();
+            var cameraSensors = filtered.Where(s => s.Type == "camera").ToList();
 
-            // Handle Charts Panel
+            // Charts
             if (chartSensors.Count == 0)
             {
                 EmptyState.Visibility = Visibility.Visible;
-                ChartCountText.Text = "0 biểu đồ";
+                if (_lines.Count == 0)
+                {
+                    ChartCountText.Text = "...";
+                    if (ChartCountBadge != null) ChartCountBadge.Text = "Đang tải...";
+                    EmptyStateText.Text = "ĐANG KẾT NỐI DỮ LIỆU TỪ BACKEND...";
+                }
+                else
+                {
+                    ChartCountText.Text = "0";
+                    if (ChartCountBadge != null) ChartCountBadge.Text = "0 biểu đồ";
+                    EmptyStateText.Text = "CHỌN LOẠI BIỂU ĐỒ TỪ BẢNG ĐIỀU KHIỂN";
+                }
             }
             else
             {
                 EmptyState.Visibility = Visibility.Collapsed;
-                ChartCountText.Text = $"{chartSensors.Count} biểu đồ";
+                ChartCountText.Text = chartSensors.Count.ToString();
+                if (ChartCountBadge != null) ChartCountBadge.Text = $"{chartSensors.Count} biểu đồ";
 
-                // Create rows based on layout setting
-                var currentRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 16 };
-                int itemsInRow = 0;
-
-                foreach (var sensor in chartSensors)
+                if (_columnsPerRow == 1)
                 {
-                    var chartCard = CreateChartCard(sensor);
-                    currentRow.Children.Add(chartCard);
-                    itemsInRow++;
-
-                    if (itemsInRow >= _columnsPerRow)
+                    foreach (var sensor in chartSensors)
                     {
-                        ChartsPanel.Children.Add(currentRow);
-                        currentRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 16 };
-                        itemsInRow = 0;
+                        try
+                        {
+                            var card = CreateChartCard(sensor);
+                            card.HorizontalAlignment = HorizontalAlignment.Stretch;
+                            ChartsPanel.Children.Add(card);
+                        }
+                        catch (Exception ex) { Debug.WriteLine($"[Card ERROR] {sensor.Id}: {ex.Message}"); }
                     }
                 }
-
-                // Add remaining items
-                if (currentRow.Children.Count > 0)
+                else
                 {
-                    ChartsPanel.Children.Add(currentRow);
+                    var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14 };
+                    int count = 0;
+
+                    foreach (var sensor in chartSensors)
+                    {
+                        try
+                        {
+                            row.Children.Add(CreateChartCard(sensor));
+                            count++;
+                            if (count >= _columnsPerRow)
+                            {
+                                ChartsPanel.Children.Add(row);
+                                row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14 };
+                                count = 0;
+                            }
+                        }
+                        catch (Exception ex) { Debug.WriteLine($"[Card ERROR] {sensor.Id}: {ex.Message}"); }
+                    }
+
+                    if (row.Children.Count > 0) ChartsPanel.Children.Add(row);
                 }
             }
 
-            // Handle Camera Panel
+            // Cameras
             if (cameraSensors.Count == 0)
             {
                 CameraEmptyState.Visibility = Visibility.Visible;
-                CameraCountText.Text = "0 camera";
+                CameraCountText.Text = "0";
             }
             else
             {
                 CameraEmptyState.Visibility = Visibility.Collapsed;
-                CameraCountText.Text = $"{cameraSensors.Count} camera";
-
-                foreach (var sensor in cameraSensors)
-                {
-                    var cameraCard = CreateCameraCard(sensor);
-                    CameraPanel.Children.Add(cameraCard);
-                }
+                CameraCountText.Text = cameraSensors.Count.ToString();
+                foreach (var s in cameraSensors) CameraPanel.Children.Add(CreateCameraCard(s));
             }
         }
 
-        private List<SensorData> GetFilteredSensors()
+        private void UpdateHeaderStats()
         {
-            // Get all nodes
-            var allNodes = _lines.SelectMany(l => l.Nodes).ToList();
-
-            // Filter by line
-            if (_selectedLineId != "all")
-            {
-                var line = _lines.FirstOrDefault(l => l.Id == _selectedLineId);
-                allNodes = line?.Nodes ?? new List<NodeData>();
-            }
-
-            // Filter by selected nodes
-            if (_selectedNodeIds.Count > 0)
-            {
-                allNodes = allNodes.Where(n => _selectedNodeIds.Contains(n.Id)).ToList();
-            }
-
-            // Get all sensors from filtered nodes
-            var allSensors = allNodes.SelectMany(n => n.Sensors).ToList();
-
-            // Filter by sensor type (checkboxes in sidebar)
-            allSensors = allSensors.Where(s => _selectedTypes.Contains(s.Type)).ToList();
-
-            // Filter by status
-            if (_selectedStatus != "all")
-            {
-                allSensors = allSensors.Where(s => s.Status == _selectedStatus).ToList();
-            }
-
-            // Filter by search text
-            if (!string.IsNullOrEmpty(_searchText))
-            {
-                allSensors = allSensors.Where(s =>
-                    s.Name.ToLower().Contains(_searchText.ToLower()) ||
-                    s.Id.ToLower().Contains(_searchText.ToLower())
-                ).ToList();
-            }
-
-            return allSensors;
+            var total = _lines.Sum(l => l.Nodes.Sum(n => n.Sensors.Count));
+            if (ActiveSensorCountText != null) ActiveSensorCountText.Text = total.ToString();
+            if (ActiveAlertCountText != null) ActiveAlertCountText.Text = _dataService.ActiveAlerts.Count.ToString();
         }
+
+        // ──────────────── Card builders ────────────────
 
         private Border CreateChartCard(SensorData sensor)
         {
+            var accent = GetSensorAccentColor(sensor.Type);
+
             var card = new Border
             {
-                Background = (Brush)Application.Current.Resources["BackgroundSecondaryBrush"],
-                CornerRadius = new CornerRadius(8),
-                Padding = new Thickness(16),
-                MinWidth = _columnsPerRow == 1 ? 0 : (_columnsPerRow == 2 ? 450 : 300),
+                Background = new SolidColorBrush(Color.FromArgb(255, 10, 19, 32)),
+                CornerRadius = new CornerRadius(6),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(255, 22, 45, 65)),
+                BorderThickness = new Thickness(1),
+                MinWidth = _columnsPerRow switch { 1 => 0, 3 => 220, _ => 340 },
                 HorizontalAlignment = _columnsPerRow == 1 ? HorizontalAlignment.Stretch : HorizontalAlignment.Left
             };
 
-            var grid = new Grid();
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(250) });
+            // Outer: accent bar | content
+            var outer = new Grid();
+            outer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3) });
+            outer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-            // Header
-            var header = new Grid { Margin = new Thickness(0, 0, 0, 12) };
-            header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var accentBar = new Border
+            {
+                Background = new SolidColorBrush(accent),
+                CornerRadius = new CornerRadius(5, 0, 0, 5)
+            };
+            Grid.SetColumn(accentBar, 0);
 
-            var titleStack = new StackPanel();
-            var title = new TextBlock
+            // Content: header | chart | progress | value
+            var content = new Grid { Margin = new Thickness(12, 10, 12, 10) };
+            content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(160) });
+            content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            Grid.SetColumn(content, 1);
+
+            // Row 0 — header
+            var headerGrid = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var typeLabel = new TextBlock
+            {
+                Text = GetSensorLabel(sensor.Type),
+                FontSize = 9,
+                FontFamily = new FontFamily("Consolas"),
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(accent),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(typeLabel, 0);
+
+            var nodeLabel = new TextBlock
             {
                 Text = sensor.Name,
-                FontSize = 14,
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold
+                FontSize = 10,
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 61, 96, 112)),
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                MaxWidth = 110
             };
-            var subtitle = new TextBlock
-            {
-                Text = $"Giá trị: {sensor.Value:F1} {GetUnit(sensor.Type)}",
-                FontSize = 11,
-                Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"],
-                Margin = new Thickness(0, 2, 0, 0)
-            };
+            Grid.SetColumn(nodeLabel, 1);
 
-            // Store subtitle reference for realtime updates
-            _sensorValueTexts[sensor.Id] = subtitle;
+            headerGrid.Children.Add(typeLabel);
+            headerGrid.Children.Add(nodeLabel);
+            Grid.SetRow(headerGrid, 0);
 
-            titleStack.Children.Add(title);
-            titleStack.Children.Add(subtitle);
-            Grid.SetColumn(titleStack, 0);
-
-
-            header.Children.Add(titleStack);
-            Grid.SetRow(header, 0);
-
-            // Chart or Radar View (no camera here)
-            FrameworkElement chart;
-            if (sensor.Type == "radar")
-            {
-                // Use WebView2 radar chart for radar sensors
-                chart = CreateRadarChart(sensor);
-            }
-            else
-            {
-                // Use line chart for other sensors
-                chart = CreateChart(sensor);
-            }
+            // Row 1 — chart
+            FrameworkElement chart = sensor.Type == "radar" ? CreateRadarChart(sensor) : CreateChart(sensor);
             Grid.SetRow(chart, 1);
 
-            grid.Children.Add(header);
-            grid.Children.Add(chart);
-            card.Child = grid;
+            // Row 2 — progress bar
+            var progRow = new Grid { Margin = new Thickness(0, 8, 0, 0) };
+            progRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            progRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
+            var pb = new ProgressBar
+            {
+                Minimum = 0,
+                Maximum = 100,
+                Value = CalculateProgressPercent(sensor),
+                Height = 3,
+                Foreground = new SolidColorBrush(GetLevelColor(sensor.Status)),
+                Background = new SolidColorBrush(Color.FromArgb(255, 18, 38, 54)),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            _sensorProgressBars[sensor.Id] = pb;
+            Grid.SetColumn(pb, 0);
+
+            var pctLabel = new TextBlock
+            {
+                Text = $"{pb.Value:F0}%",
+                FontSize = 8,
+                FontFamily = new FontFamily("Consolas"),
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 61, 96, 112)),
+                Margin = new Thickness(6, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(pctLabel, 1);
+
+            progRow.Children.Add(pb);
+            progRow.Children.Add(pctLabel);
+            Grid.SetRow(progRow, 2);
+
+            // Row 3 — large value + unit
+            var valueGrid = new Grid { Margin = new Thickness(0, 6, 0, 0) };
+            valueGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            valueGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var valueTb = new TextBlock
+            {
+                Text = $"{(sensor.Value ?? 0):F1}",
+                FontSize = 26,
+                FontFamily = new FontFamily("Consolas"),
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 192, 216, 234)),
+                VerticalAlignment = VerticalAlignment.Bottom
+            };
+            _sensorValueTexts[sensor.Id] = valueTb;
+            Grid.SetColumn(valueTb, 0);
+
+            var unitTb = new TextBlock
+            {
+                Text = GetUnit(sensor.Type),
+                FontSize = 11,
+                FontFamily = new FontFamily("Consolas"),
+                Foreground = new SolidColorBrush(accent),
+                VerticalAlignment = VerticalAlignment.Bottom,
+                Margin = new Thickness(4, 0, 0, 3)
+            };
+            Grid.SetColumn(unitTb, 1);
+
+            valueGrid.Children.Add(valueTb);
+            valueGrid.Children.Add(unitTb);
+            Grid.SetRow(valueGrid, 3);
+
+            content.Children.Add(headerGrid);
+            content.Children.Add(chart);
+            content.Children.Add(progRow);
+            content.Children.Add(valueGrid);
+
+            outer.Children.Add(accentBar);
+            outer.Children.Add(content);
+            card.Child = outer;
             return card;
         }
 
         private RadarChartControl CreateRadarChart(SensorData sensor)
         {
-            var random = new Random();
             var detections = new List<RadarDetection>();
-
-            // Generate random detections based on sensor value
-            var detectionCount = (int)(sensor.Value ?? 0);
-            for (int i = 0; i < detectionCount; i++)
-            {
-                // Generate detections in active zone (60° - 120°)
+            var count = (int)(sensor.Value ?? 0);
+            for (int i = 0; i < count; i++)
                 detections.Add(new RadarDetection
                 {
-                    angle = 60 + random.Next(61), // Random angle between 60° and 120°
-                    distance = 10 + random.Next(35), // Random distance between 10cm and 45cm
-                    intensity = 50 + random.Next(50), // Random intensity
+                    angle = 60 + _random.Next(61),
+                    distance = 10 + _random.Next(35),
+                    intensity = 50 + _random.Next(50),
                     objectType = "Person"
                 });
-            }
 
-            var radarChart = new RadarChartControl();
-
-            // Update detections after control is loaded
-            radarChart.Loaded += async (s, e) =>
-            {
-                await radarChart.UpdateDetectionsAsync(detections);
-            };
-
-            return radarChart;
+            var rc = new RadarChartControl();
+            rc.Loaded += async (s, e) => await rc.UpdateDetectionsAsync(detections);
+            return rc;
         }
 
-        private Grid CreateCameraView(NodeData node)
+        private CartesianChart CreateChart(SensorData sensor)
         {
-            var grid = new Grid
-            {
-                Background = new SolidColorBrush(Color.FromArgb(255, 20, 20, 30)),
-                CornerRadius = new CornerRadius(8)
-            };
+            var baseValue = sensor.Value ?? 0;
+            var showGrid = ChkShowGrid?.IsChecked ?? true;
+            var axisColor = new SKColor(61, 96, 112);
+            var gridColor = new SKColor(18, 38, 54, 200);
 
-            // Camera feed placeholder with border
-            var videoContainer = new Border
+            if (!_sensorHistoricalData.ContainsKey(sensor.Id))
             {
-                Background = new SolidColorBrush(Color.FromArgb(255, 30, 30, 40)),
-                CornerRadius = new CornerRadius(4),
-                Margin = new Thickness(8),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(255, 60, 60, 80)),
-                BorderThickness = new Thickness(1)
-            };
+                _sensorHistoricalData[sensor.Id] = new List<double>();
+                for (int i = 0; i < 24; i++)
+                    _sensorHistoricalData[sensor.Id].Add(
+                        Math.Max(0, baseValue + (_random.NextDouble() - 0.5) * baseValue * 0.2));
+            }
 
-            // Video feed with live indicator
-            var videoGrid = new Grid();
+            SolidColorPaint? gridPaint = showGrid ? new SolidColorPaint(gridColor) { StrokeThickness = 1 } : null;
 
-            // Placeholder video feed (you can replace this with actual video stream)
-            var placeholder = new Border
+            if (sensor.Type == "vibration")
             {
-                Background = new LinearGradientBrush
+                var values = _sensorHistoricalData[sensor.Id].ToArray();
+                var absMax = Math.Max(baseValue * 3, 1);
+
+                var chart = new CartesianChart
                 {
-                    StartPoint = new Windows.Foundation.Point(0, 0),
-                    EndPoint = new Windows.Foundation.Point(1, 1),
-                    GradientStops = new GradientStopCollection
+                    Series = new ISeries[]
                     {
-                        new GradientStop { Color = Color.FromArgb(255, 45, 55, 72), Offset = 0 },
-                        new GradientStop { Color = Color.FromArgb(255, 30, 40, 55), Offset = 1 }
-                    }
-                }
-            };
-
-            // Camera icon in center
-            var cameraIcon = new StackPanel
+                        new ColumnSeries<double>
+                        {
+                            Values      = values,
+                            Fill        = new SolidColorPaint(GetChartColor(sensor.Type, 160)),
+                            Stroke      = null,
+                            MaxBarWidth = 3,
+                            IgnoresBarPosition = true
+                        }
+                    },
+                    XAxes = new[] { new Axis {
+                        Labels          = Enumerable.Range(0, 6).Select(i => $"{i*10}s").ToArray(),
+                        LabelsPaint     = new SolidColorPaint(axisColor),
+                        SeparatorsPaint = gridPaint,
+                        TextSize        = 9
+                    }},
+                    YAxes = new[] { new Axis {
+                        LabelsPaint     = new SolidColorPaint(axisColor),
+                        SeparatorsPaint = gridPaint,
+                        TextSize        = 9,
+                        MinLimit        = -absMax,
+                        MaxLimit        = absMax
+                    }}
+                };
+                _chartInstances[sensor.Id] = chart;
+                return chart;
+            }
+            else
             {
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                Spacing = 8
-            };
+                var values = _sensorHistoricalData[sensor.Id].ToArray();
+                var showPts = ChkShowDataPoints?.IsChecked ?? true;
+                var smooth = (ChkSmoothLine?.IsChecked ?? true) ? 0.5 : 0;
+                var stroke = GetChartColor(sensor.Type);
+                var fill = GetChartColor(sensor.Type, 18);
+                var dot = new SKColor(10, 19, 32);
 
-            var icon = new FontIcon
-            {
-                Glyph = "\uE714", // Camera icon
-                FontSize = 48,
-                Foreground = new SolidColorBrush(Color.FromArgb(100, 255, 255, 255))
-            };
-
-            var statusText = new TextBlock
-            {
-                Text = "Camera Feed",
-                FontSize = 12,
-                Foreground = new SolidColorBrush(Color.FromArgb(150, 255, 255, 255)),
-                HorizontalAlignment = HorizontalAlignment.Center
-            };
-
-            cameraIcon.Children.Add(icon);
-            cameraIcon.Children.Add(statusText);
-
-            // Live indicator
-            var liveIndicator = new Border
-            {
-                Background = new SolidColorBrush(Color.FromArgb(255, 239, 68, 68)),
-                CornerRadius = new CornerRadius(12),
-                Padding = new Thickness(10, 4, 10, 4),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(12, 12, 0, 0)
-            };
-
-            var liveStack = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Spacing = 6
-            };
-
-            var recordDot = new Ellipse
-            {
-                Width = 8,
-                Height = 8,
-                Fill = new SolidColorBrush(Microsoft.UI.Colors.White),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-
-            liveStack.Children.Add(recordDot);
-            liveIndicator.Child = liveStack;
-
-            // Camera info overlay
-            var infoPanel = new StackPanel
-            {
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Bottom,
-                Margin = new Thickness(0, 0, 12, 12),
-                Spacing = 4
-            };
-
-            var timeText = new TextBlock
-            {
-                Text = DateTime.Now.ToString("HH:mm:ss"),
-                FontSize = 11,
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                HorizontalAlignment = HorizontalAlignment.Right
-            };
-
-            var fpsText = new TextBlock
-            {
-                Text = "30 FPS • 1080p",
-                FontSize = 10,
-                Foreground = new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)),
-                HorizontalAlignment = HorizontalAlignment.Right
-            };
-
-            infoPanel.Children.Add(timeText);
-            infoPanel.Children.Add(fpsText);
-
-            videoGrid.Children.Add(placeholder);
-            videoGrid.Children.Add(cameraIcon);
-            videoGrid.Children.Add(liveIndicator);
-            videoGrid.Children.Add(infoPanel);
-
-            videoContainer.Child = videoGrid;
-            grid.Children.Add(videoContainer);
-
-            return grid;
+                var chart = new CartesianChart
+                {
+                    Series = new ISeries[]
+                    {
+                        new LineSeries<double>
+                        {
+                            Values         = values,
+                            Fill           = new SolidColorPaint(fill),
+                            Stroke         = new SolidColorPaint(stroke) { StrokeThickness = 1.5f },
+                            GeometrySize   = showPts ? 4 : 0,
+                            GeometryStroke = showPts ? new SolidColorPaint(stroke) { StrokeThickness = 1.5f } : null,
+                            GeometryFill   = showPts ? new SolidColorPaint(dot) : null,
+                            LineSmoothness = smooth
+                        }
+                    },
+                    XAxes = new[] { new Axis {
+                        Labels          = new[] { "00h", "04h", "08h", "12h", "16h", "20h", "24h" },
+                        LabelsPaint     = new SolidColorPaint(axisColor),
+                        SeparatorsPaint = gridPaint,
+                        TextSize        = 9
+                    }},
+                    YAxes = new[] { new Axis {
+                        LabelsPaint     = new SolidColorPaint(axisColor),
+                        SeparatorsPaint = gridPaint,
+                        TextSize        = 9
+                    }}
+                };
+                _chartInstances[sensor.Id] = chart;
+                return chart;
+            }
         }
 
         private Border CreateCameraCard(SensorData sensor)
         {
             var card = new Border
             {
-                Background = (Brush)Application.Current.Resources["BackgroundSecondaryBrush"],
-                CornerRadius = new CornerRadius(8),
-                Padding = new Thickness(12),
-                MinHeight = 220
+                Background = new SolidColorBrush(Color.FromArgb(255, 10, 19, 32)),
+                CornerRadius = new CornerRadius(6),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(255, 22, 45, 65)),
+                BorderThickness = new Thickness(1),
+                MinHeight = 160
             };
 
             var grid = new Grid();
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-            // Header
-            var header = new Grid { Margin = new Thickness(0, 0, 0, 8) };
-            header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-            var titleStack = new StackPanel();
-            var title = new TextBlock
+            var header = new StackPanel { Margin = new Thickness(10, 8, 10, 6), Spacing = 2 };
+            header.Children.Add(new TextBlock
+            {
+                Text = "CAMERA",
+                FontSize = 8,
+                FontFamily = new FontFamily("Consolas"),
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 229, 255))
+            });
+            header.Children.Add(new TextBlock
             {
                 Text = sensor.Name,
-                FontSize = 12,
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold
-            };
-            titleStack.Children.Add(title);
-            Grid.SetColumn(titleStack, 0);
-
-
-            header.Children.Add(titleStack);
-            //header.Children.Add(statusBadge);
+                FontSize = 10,
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 192, 216, 234))
+            });
             Grid.SetRow(header, 0);
 
-            // Camera View (compact version for sidebar)
-            var cameraView = CreateCompactCameraView(sensor);
-            Grid.SetRow(cameraView, 1);
+            var placeholder = new Border
+            {
+                Background = new SolidColorBrush(Color.FromArgb(255, 14, 27, 42)),
+                CornerRadius = new CornerRadius(0, 0, 5, 5),
+                Margin = new Thickness(1, 0, 1, 1)
+            };
+            placeholder.Child = new FontIcon
+            {
+                Glyph = "",
+                FontSize = 28,
+                Foreground = new SolidColorBrush(Color.FromArgb(60, 0, 229, 255)),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetRow(placeholder, 1);
 
             grid.Children.Add(header);
-            grid.Children.Add(cameraView);
+            grid.Children.Add(placeholder);
             card.Child = grid;
-
             return card;
         }
 
-        private Grid CreateCompactCameraView(SensorData sensor)
+        // ──────────────── Color / label helpers ────────────────
+
+        private SKColor GetChartColor(string type, byte alpha = 255) => type switch
         {
-            var grid = new Grid
-            {
-                Background = new SolidColorBrush(Color.FromArgb(255, 20, 20, 30)),
-                CornerRadius = new CornerRadius(6)
-            };
+            "temperature" => new SKColor(255, 77, 77, alpha),
+            "humidity" => new SKColor(0, 200, 255, alpha),
+            "light" => new SKColor(255, 184, 0, alpha),
+            "vibration" => new SKColor(255, 140, 0, alpha),
+            "infrared" => new SKColor(255, 105, 180, alpha),
+            "radar" => new SKColor(0, 255, 136, alpha),
+            "waterlevel" => new SKColor(80, 160, 255, alpha),
+            _ => new SKColor(0, 229, 255, alpha)
+        };
 
-            // Camera feed placeholder
-            var videoContainer = new Border
-            {
-                Background = new SolidColorBrush(Color.FromArgb(255, 30, 30, 40)),
-                CornerRadius = new CornerRadius(4),
-                Margin = new Thickness(4),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(255, 60, 60, 80)),
-                BorderThickness = new Thickness(1)
-            };
+        private Color GetSensorAccentColor(string type) => type switch
+        {
+            "temperature" => Color.FromArgb(255, 255, 77, 77),
+            "humidity" => Color.FromArgb(255, 0, 200, 255),
+            "light" => Color.FromArgb(255, 255, 184, 0),
+            "vibration" => Color.FromArgb(255, 255, 140, 0),
+            "infrared" => Color.FromArgb(255, 255, 105, 180),
+            "radar" => Color.FromArgb(255, 0, 255, 136),
+            "waterlevel" => Color.FromArgb(255, 80, 160, 255),
+            _ => Color.FromArgb(255, 0, 229, 255)
+        };
 
-            var videoGrid = new Grid();
+        private string GetSensorLabel(string type) => type switch
+        {
+            "temperature" => "NHIỆT ĐỘ",
+            "humidity" => "ĐỘ ẨM",
+            "light" => "ÁNH SÁNG",
+            "vibration" => "RUNG ĐỘNG",
+            "infrared" => "HỒNG NGOẠI",
+            "radar" => "RADAR",
+            "waterlevel" => "MỰC NƯỚC",
+            _ => type.ToUpperInvariant()
+        };
 
-            // Placeholder
-            var placeholder = new Border
-            {
-                Background = new LinearGradientBrush
-                {
-                    StartPoint = new Windows.Foundation.Point(0, 0),
-                    EndPoint = new Windows.Foundation.Point(1, 1),
-                    GradientStops = new GradientStopCollection
-                    {
-                        new GradientStop { Color = Color.FromArgb(255, 45, 55, 72), Offset = 0 },
-                        new GradientStop { Color = Color.FromArgb(255, 30, 40, 55), Offset = 1 }
-                    }
-                }
-            };
+        private Color GetLevelColor(string status) => status switch
+        {
+            "warning" => Color.FromArgb(255, 255, 176, 32),
+            "critical" => Color.FromArgb(255, 255, 64, 64),
+            _ => Color.FromArgb(255, 0, 200, 138)
+        };
 
-            // Camera icon
-            var cameraIcon = new StackPanel
-            {
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                Spacing = 6
-            };
-
-            var icon = new FontIcon
-            {
-                Glyph = "\uE714",
-                FontSize = 32,
-                Foreground = new SolidColorBrush(Color.FromArgb(100, 255, 255, 255))
-            };
-
-            var statusText = new TextBlock
-            {
-                Text = "Camera Feed",
-                FontSize = 10,
-                Foreground = new SolidColorBrush(Color.FromArgb(150, 255, 255, 255)),
-                HorizontalAlignment = HorizontalAlignment.Center
-            };
-
-            cameraIcon.Children.Add(icon);
-            cameraIcon.Children.Add(statusText);
-
-
-            var liveStack = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Spacing = 4
-            };
-
-            var recordDot = new Ellipse
-            {
-                Width = 6,
-                Height = 6,
-                Fill = new SolidColorBrush(Microsoft.UI.Colors.White),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-
-
-            liveStack.Children.Add(recordDot);
-
-            // Info overlay
-            var infoPanel = new StackPanel
-            {
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Bottom,
-                Margin = new Thickness(0, 0, 8, 8),
-                Spacing = 2
-            };
-
-            var timeText = new TextBlock
-            {
-                Text = DateTime.Now.ToString("HH:mm:ss"),
-                FontSize = 9,
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                HorizontalAlignment = HorizontalAlignment.Right
-            };
-
-            var fpsText = new TextBlock
-            {
-                Text = "30 FPS",
-                FontSize = 8,
-                Foreground = new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)),
-                HorizontalAlignment = HorizontalAlignment.Right
-            };
-
-            infoPanel.Children.Add(timeText);
-            infoPanel.Children.Add(fpsText);
-
-            videoGrid.Children.Add(placeholder);
-            videoGrid.Children.Add(cameraIcon);
-            videoGrid.Children.Add(infoPanel);
-
-            videoContainer.Child = videoGrid;
-            grid.Children.Add(videoContainer);
-
-            return grid;
+        private double CalculateProgressPercent(SensorData sensor)
+        {
+            if (!sensor.Value.HasValue) return 0;
+            var ms = _dataService.Sensors.FirstOrDefault(s => s.SensorId == sensor.Id);
+            var max = ms?.AbsoluteMax > 0 ? ms.AbsoluteMax
+                    : ms?.WarnThreshold > 0 ? ms.WarnThreshold * 2
+                    : 100.0;
+            return Math.Clamp(sensor.Value.Value / max * 100.0, 0, 100);
         }
 
-        private CartesianChart CreateChart(SensorData sensor)
+        private string GetUnit(string? type) => type?.ToLower() switch
         {
-            var random = new Random();
-            var baseValue = sensor.Value ?? 0;
-            var showGrid = ChkShowGrid?.IsChecked ?? true;
+            "temperature" => "°C",
+            "humidity" => "%RH",
+            "light" => "lux",
+            "infrared" => "%",
+            "vibration" => "m/s²",
+            "radar" => "%",
+            "waterlevel" => "mm",
+            _ => ""
+        };
 
-            // Initialize historical data if not exists
-            if (!_sensorHistoricalData.ContainsKey(sensor.Id))
-            {
-                _sensorHistoricalData[sensor.Id] = new List<double>();
-                for (int i = 0; i < 24; i++)
-                {
-                    var variance = (random.NextDouble() - 0.5) * baseValue * 0.2;
-                    _sensorHistoricalData[sensor.Id].Add(Math.Max(0, baseValue + variance));
-                }
-            }
+        // ──────────────── Event handlers ────────────────
 
-            // Biểu đồ rung động dùng bar chart với nhiều điểm dữ liệu
-            if (sensor.Type == "vibration")
-            {
-                var dataPoints = 120; // Nhiều điểm dữ liệu để tạo hiệu ứng dày đặc
-                var values = new double[dataPoints];
-
-                for (int i = 0; i < dataPoints; i++)
-                {
-                    // Tạo dao động ngẫu nhiên xung quanh giá trị trung bình
-                    var variance = (random.NextDouble() - 0.5) * 2;
-                    values[i] = baseValue + variance * baseValue * 2;
-                }
-
-                var series = new ISeries[]
-                {
-                    new ColumnSeries<double>
-                    {
-                        Values = values,
-                        Fill = new SolidColorPaint(GetChartColor(sensor.Type, 180)),
-                        Stroke = null,
-                        MaxBarWidth = 3,
-                        IgnoresBarPosition = true
-                    }
-                };
-
-                var xAxis = new Axis
-                {
-                    Labels = Enumerable.Range(0, 7).Select(i => $"{i * 10}s").ToArray(),
-                    LabelsPaint = new SolidColorPaint(new SKColor(148, 163, 184)),
-                    SeparatorsPaint = showGrid ? new SolidColorPaint(new SKColor(226, 232, 240)) { StrokeThickness = 1 } : null,
-                    TextSize = 10,
-                    MinLimit = 0
-                };
-
-                var yAxis = new Axis
-                {
-                    LabelsPaint = new SolidColorPaint(new SKColor(148, 163, 184)),
-                    SeparatorsPaint = showGrid ? new SolidColorPaint(new SKColor(226, 232, 240)) { StrokeThickness = 1 } : null,
-                    TextSize = 10,
-                    MinLimit = -baseValue * 3,
-                    MaxLimit = baseValue * 3
-                };
-
-                var chart = new CartesianChart
-                {
-                    Series = series,
-                    XAxes = new[] { xAxis },
-                    YAxes = new[] { yAxis }
-                };
-
-                _chartInstances[sensor.Id] = chart;
-                return chart;
-            }
-            else
-            {
-                // Các loại biểu đồ khác giữ nguyên dạng line chart
-                var values = _sensorHistoricalData[sensor.Id].ToArray();
-
-                var showDataPoints = ChkShowDataPoints?.IsChecked ?? true;
-                var smoothLine = ChkSmoothLine?.IsChecked ?? true ? 0.5 : 0;
-
-                var series = new ISeries[]
-                {
-                    new LineSeries<double>
-                    {
-                        Values = values,
-                        Fill = new LinearGradientPaint(
-                            GetChartColor(sensor.Type, 60),
-                            GetChartColor(sensor.Type, 10),
-                            new SKPoint(0, 0),
-                            new SKPoint(0, 1)),
-                        Stroke = new SolidColorPaint(GetChartColor(sensor.Type)) { StrokeThickness = 2 },
-                        GeometrySize = showDataPoints ? 6 : 0,
-                        GeometryStroke = showDataPoints ? new SolidColorPaint(GetChartColor(sensor.Type)) { StrokeThickness = 2 } : null,
-                        GeometryFill = showDataPoints ? new SolidColorPaint(new SKColor(255, 255, 255)) : null,
-                        LineSmoothness = smoothLine
-                    }
-                };
-
-                var xAxis = new Axis
-                {
-                    Labels = new[] { "00h", "04h", "08h", "12h", "16h", "20h", "24h" },
-                    LabelsPaint = new SolidColorPaint(new SKColor(148, 163, 184)),
-                    SeparatorsPaint = showGrid ? new SolidColorPaint(new SKColor(226, 232, 240)) { StrokeThickness = 1 } : null,
-                    TextSize = 10
-                };
-
-                var yAxis = new Axis
-                {
-                    LabelsPaint = new SolidColorPaint(new SKColor(148, 163, 184)),
-                    SeparatorsPaint = showGrid ? new SolidColorPaint(new SKColor(226, 232, 240)) { StrokeThickness = 1 } : null,
-                    TextSize = 10
-                };
-
-                var chart = new CartesianChart
-                {
-                    Series = series,
-                    XAxes = new[] { xAxis },
-                    YAxes = new[] { yAxis }
-                };
-
-                _chartInstances[sensor.Id] = chart;
-                return chart;
-            }
-        }
-
-        private SKColor GetChartColor(string type, byte alpha = 255)
-        {
-            return type switch
-            {
-                "radar" => new SKColor(16, 185, 129, alpha),
-                "infrared" => new SKColor(220, 38, 127, alpha),
-                "camera" => new SKColor(59, 130, 246, alpha),
-                "temperature" => new SKColor(239, 68, 68, alpha),
-                "humidity" => new SKColor(6, 182, 212, alpha),
-                "light" => new SKColor(251, 191, 36, alpha),
-                "vibration" => new SKColor(245, 158, 11, alpha),
-                _ => new SKColor(156, 163, 175, alpha)
-            };
-        }
-
-        private SolidColorBrush GetStatusBrush(string status)
-        {
-            return status switch
-            {
-                "normal" => new SolidColorBrush(Color.FromArgb(255, 34, 197, 94)),
-                "warning" => new SolidColorBrush(Color.FromArgb(255, 245, 158, 11)),
-                "critical" => new SolidColorBrush(Color.FromArgb(255, 239, 68, 68)),
-                _ => new SolidColorBrush(Color.FromArgb(255, 156, 163, 175))
-            };
-        }
-
-        private string GetUnit(string type)
-        {
-            return type?.ToLower() switch
-            {
-                "temperature" => "°C",
-                "humidity" or "hum" => "%RH",
-                "light" => "lux",
-                "infrared" => "%",
-                "vibration" or "vib" or "accelerometer" => "m/s²",
-                "radar" => "%",
-                "camera" => "người",
-                _ => ""
-            };
-        }
-
-        /// <summary>
-        /// Maps Backend sensor type to local sensor type
-        /// </summary>
-        private string MapSensorType(string apiType)
-        {
-            return apiType?.ToLower() switch
-            {
-                "radar" => "radar",
-                "vibration" => "vibration",
-                "temperature" => "temperature",
-                "humidity" => "humidity",
-                "waterlevel" => "water",
-                "smokefire" => "smoke",
-                "gas" => "gas",
-                _ => apiType?.ToLower() ?? ""
-            };
-        }
-
-
-        // Event Handlers
         private void LineFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             _selectedLineId = LineFilterComboBox.SelectedIndex switch
             {
-                0 => "all",
                 1 => "LINE-01",
                 2 => "LINE-02",
                 3 => "LINE-03",
                 _ => "all"
             };
-
-            // Rebuild node dropdown based on selected line
             BuildNodeFilterComboBox();
             LoadChartsForAllNodes();
         }
 
-
+        private void NodeFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (NodeFilterComboBox.SelectedItem is ComboBoxItem item && item.Tag is string tag)
+            {
+                _selectedNodeIds.Clear();
+                if (tag != "all") _selectedNodeIds.Add(tag);
+                LoadChartsForAllNodes();
+            }
+        }
 
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
@@ -1212,13 +812,10 @@ namespace Station.Views
 
         private void ChartType_CheckChanged(object sender, RoutedEventArgs e)
         {
-            if (sender is CheckBox checkBox && checkBox.Tag is string type)
+            if (sender is CheckBox cb && cb.Tag is string type)
             {
-                if (checkBox.IsChecked == true)
-                    _selectedTypes.Add(type);
-                else
-                    _selectedTypes.Remove(type);
-
+                if (cb.IsChecked == true) _selectedTypes.Add(type);
+                else _selectedTypes.Remove(type);
                 LoadChartsForAllNodes();
             }
         }
@@ -1230,7 +827,6 @@ namespace Station.Views
             ChkTemperature.IsChecked = true;
             ChkHumidity.IsChecked = true;
             ChkLight.IsChecked = true;
-            // ChkInfrared.IsChecked = true;
             ChkVibration.IsChecked = true;
         }
 
@@ -1245,32 +841,21 @@ namespace Station.Views
             ChkVibration.IsChecked = false;
         }
 
-        private void DisplayOption_Changed(object sender, RoutedEventArgs e)
-        {
-            LoadChartsForAllNodes();
-        }
+        private void DisplayOption_Changed(object sender, RoutedEventArgs e) => LoadChartsForAllNodes();
 
         private void LayoutOption_Changed(object sender, RoutedEventArgs e)
         {
-            if (LayoutSingle?.IsChecked == true)
-                _columnsPerRow = 1;
-            else if (LayoutDouble?.IsChecked == true)
-                _columnsPerRow = 2;
-            else if (LayoutTriple?.IsChecked == true)
-                _columnsPerRow = 3;
-
+            _columnsPerRow = LayoutSingle?.IsChecked == true ? 1 :
+                             LayoutTriple?.IsChecked == true ? 3 : 2;
             LoadChartsForAllNodes();
         }
 
-        private void RefreshData_Click(object sender, RoutedEventArgs e)
-        {
-            LoadChartsForAllNodes();
-        }
+        private void RefreshData_Click(object sender, RoutedEventArgs e) => LoadChartsForAllNodes();
 
-        private void ExportData_Click(object sender, RoutedEventArgs e)
-        {
-            Debug.WriteLine("Export data functionality - to be implemented");
-        }
+        private void ExportData_Click(object sender, RoutedEventArgs e) =>
+            Debug.WriteLine("[DataPage] Export — to be implemented");
+
+        // ──────────────── Inner types ────────────────
 
         public class LineData
         {

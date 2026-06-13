@@ -1,0 +1,224 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.3.0 Chrome/140.0.7339.249 Electron/38.7.2 Safari/537.36" version="29.3.0">
+  <diagram name="Dual Stream Architecture" id="JES6O0bZo1FNnOM9XcDX">
+    <mxGraphModel dx="2437" dy="1601" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-143" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=27;fontStyle=1;fontColor=#000000;labelBackgroundColor=none;" value="&lt;span&gt;KIến trúc truyền dữ liệu&lt;/span&gt;" vertex="1">
+          <mxGeometry height="40" width="1000" x="303" y="-15" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-144" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#0284C7;strokeWidth=2;opacity=30;labelBackgroundColor=none;" value="" vertex="1">
+          <mxGeometry height="952" width="781" x="-1" y="58" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-145" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#0284C7;" value="&amp;nbsp;SENSOR DATA STREAM" vertex="1">
+          <mxGeometry height="28" width="280" x="71" y="78" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-146" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF2F2;strokeColor=#DC2626;strokeWidth=2;opacity=30;" value="" vertex="1">
+          <mxGeometry height="953" width="621" x="874" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-147" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#DC2626;" value="&amp;nbsp;VIDEO / IMAGE STREAM" vertex="1">
+          <mxGeometry height="28" width="280" x="927" y="78" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-148" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#16A34A;strokeWidth=2;opacity=40;" value="" vertex="1">
+          <mxGeometry height="556" width="74" x="790" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-149" parent="1" style="swimlane;fillColor=#FFFFFF;strokeColor=#0284C7;fontSize=12;fontStyle=1;startSize=28;" value="Physical Sensors" vertex="1">
+          <mxGeometry height="111" width="641" x="64" y="121" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-150" parent="QtJxqQHgGcDI5aKwGHsR-149" style="shape=mxgraph.cisco.computers_and_peripherals.pc;fillColor=#FFFFFF;strokeColor=#0284C7;fontColor=#000000;fontSize=10;labelPosition=center;verticalLabelPosition=bottom;" value="Radar" vertex="1">
+          <mxGeometry height="40" width="50" x="20" y="36" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-151" parent="QtJxqQHgGcDI5aKwGHsR-149" style="shape=mxgraph.cisco.computers_and_peripherals.pc;fillColor=#FFFFFF;strokeColor=#0284C7;fontColor=#000000;fontSize=10;labelPosition=center;verticalLabelPosition=bottom;" value="Temp/Hum" vertex="1">
+          <mxGeometry height="40" width="50" x="110" y="36" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-152" parent="QtJxqQHgGcDI5aKwGHsR-149" style="shape=mxgraph.cisco.computers_and_peripherals.pc;fillColor=#FFFFFF;strokeColor=#0284C7;fontColor=#000000;fontSize=10;labelPosition=center;verticalLabelPosition=bottom;" value="Gas/Smoke" vertex="1">
+          <mxGeometry height="40" width="50" x="200" y="36" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-153" parent="QtJxqQHgGcDI5aKwGHsR-149" style="shape=mxgraph.cisco.computers_and_peripherals.pc;fillColor=#FFFFFF;strokeColor=#0284C7;fontColor=#000000;fontSize=10;labelPosition=center;verticalLabelPosition=bottom;" value="Water Level" vertex="1">
+          <mxGeometry height="40" width="50" x="290" y="36" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-154" parent="QtJxqQHgGcDI5aKwGHsR-149" style="shape=mxgraph.cisco.computers_and_peripherals.pc;fillColor=#FFFFFF;strokeColor=#0284C7;fontColor=#000000;fontSize=10;labelPosition=center;verticalLabelPosition=bottom;" value="Vibration" vertex="1">
+          <mxGeometry height="40" width="50" x="380" y="36" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-155" parent="QtJxqQHgGcDI5aKwGHsR-149" style="shape=mxgraph.cisco.computers_and_peripherals.pc;fillColor=#FFFFFF;strokeColor=#0284C7;fontColor=#000000;fontSize=10;labelPosition=center;verticalLabelPosition=bottom;" value="Pressure" vertex="1">
+          <mxGeometry height="40" width="50" x="470" y="36" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-156" parent="QtJxqQHgGcDI5aKwGHsR-149" style="shape=mxgraph.cisco.computers_and_peripherals.pc;fillColor=#FFFFFF;strokeColor=#0284C7;fontColor=#000000;fontSize=10;labelPosition=center;verticalLabelPosition=bottom;" value="Motion" vertex="1">
+          <mxGeometry height="40" width="50" x="560" y="36" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-157" parent="QtJxqQHgGcDI5aKwGHsR-149" style="text;html=1;fontSize=18;fontStyle=1;fillColor=none;strokeColor=none;" value="..." vertex="1">
+          <mxGeometry height="30" width="9" x="628" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-158" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0284C7;fontSize=11;fontStyle=1;" value="Transport Layer&#xa;(Serial / RS-485 / TCP)" vertex="1">
+          <mxGeometry height="52" width="360" x="180" y="268" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-159" edge="1" parent="1" source="QtJxqQHgGcDI5aKwGHsR-149" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0284C7;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontColor=#000000;fontSize=9;labelBackgroundColor=none;" target="QtJxqQHgGcDI5aKwGHsR-158" value="raw bytes">
+          <mxGeometry relative="1" x="-0.5128" y="-14" as="geometry">
+            <mxPoint x="14" y="14" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-160" parent="1" style="shape=mxgraph.flowchart.multi-document;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0284C7;fontColor=#000000;fontSize=12;fontStyle=1;" value="Byte Queue&#xa;(ConcurrentQueue&lt;byte[]&gt;)" vertex="1">
+          <mxGeometry height="70" width="360" x="180" y="368" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-161" edge="1" parent="1" source="QtJxqQHgGcDI5aKwGHsR-158" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0284C7;strokeWidth=2;fontColor=#000000;fontSize=9;labelBackgroundColor=none;" target="QtJxqQHgGcDI5aKwGHsR-160" value="enqueue bytes">
+          <mxGeometry relative="1" x="-0.0833" y="34" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-164" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0284C7;fontColor=#000000;fontSize=13;fontStyle=1;" value="Protocol Decoder" vertex="1">
+          <mxGeometry height="52" width="360" x="180" y="488" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-165" edge="1" parent="1" source="QtJxqQHgGcDI5aKwGHsR-160" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0284C7;strokeWidth=2;fontColor=#000000;fontSize=9;labelBackgroundColor=none;" target="QtJxqQHgGcDI5aKwGHsR-164" value="dequeue &amp;amp; parse">
+          <mxGeometry relative="1" x="-0.08" y="40" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-168" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0284C7;fontColor=#000000;fontSize=11;" value="SensorReading Model&#xa;{ sensorId, type, value, unit, timestamp }" vertex="1">
+          <mxGeometry height="52" width="360" x="180" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-169" edge="1" parent="1" source="QtJxqQHgGcDI5aKwGHsR-164" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0284C7;strokeWidth=2;fontColor=#000000;fontSize=9;labelBackgroundColor=none;" target="QtJxqQHgGcDI5aKwGHsR-168" value="structured data">
+          <mxGeometry relative="1" x="-0.08" y="39" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-170" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0284C7;fontColor=#000000;fontSize=11;" value="SensorDataService&#xa;(Threshold Check · Alert Generator · State Cache)" vertex="1">
+          <mxGeometry height="52" width="360" x="180" y="692" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-171" edge="1" parent="1" source="QtJxqQHgGcDI5aKwGHsR-168" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0284C7;strokeWidth=2;fontColor=#000000;fontSize=9;labelBackgroundColor=none;" target="QtJxqQHgGcDI5aKwGHsR-170" value="validate &amp;amp; alert">
+          <mxGeometry relative="1" x="-0.04" y="55" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-172" parent="1" style="swimlane;fillColor=#FFFFFF;strokeColor=#DC2626;fontSize=12;fontStyle=1;startSize=28;" value="IP Cameras / CCTV" vertex="1">
+          <mxGeometry height="110" width="530" x="914" y="114" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-173" parent="QtJxqQHgGcDI5aKwGHsR-172" style="shape=mxgraph.cisco.computers_and_peripherals.pc;fillColor=#FFFFFF;strokeColor=#DC2626;fontColor=#000000;fontSize=9;labelPosition=center;verticalLabelPosition=bottom;" value="Camera 1&#xa;H.264/1080p" vertex="1">
+          <mxGeometry height="44" width="50" x="30" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-174" parent="QtJxqQHgGcDI5aKwGHsR-172" style="shape=mxgraph.cisco.computers_and_peripherals.pc;fillColor=#FFFFFF;strokeColor=#DC2626;fontColor=#000000;fontSize=9;labelPosition=center;verticalLabelPosition=bottom;" value="Camera 2&#xa;H.264/1080p" vertex="1">
+          <mxGeometry height="44" width="50" x="120" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-175" parent="QtJxqQHgGcDI5aKwGHsR-172" style="shape=mxgraph.cisco.computers_and_peripherals.pc;fillColor=#FFFFFF;strokeColor=#DC2626;fontColor=#000000;fontSize=9;labelPosition=center;verticalLabelPosition=bottom;" value="Camera 3&#xa;H.265/4K" vertex="1">
+          <mxGeometry height="44" width="50" x="210" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-176" parent="QtJxqQHgGcDI5aKwGHsR-172" style="shape=mxgraph.cisco.computers_and_peripherals.pc;fillColor=#FFFFFF;strokeColor=#DC2626;fontColor=#000000;fontSize=9;labelPosition=center;verticalLabelPosition=bottom;" value="IR Camera&#xa;Night Vision" vertex="1">
+          <mxGeometry height="44" width="50" x="300" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-177" parent="QtJxqQHgGcDI5aKwGHsR-172" style="shape=mxgraph.cisco.computers_and_peripherals.pc;fillColor=#FFFFFF;strokeColor=#DC2626;fontColor=#000000;fontSize=9;labelPosition=center;verticalLabelPosition=bottom;" value="PTZ Camera" vertex="1">
+          <mxGeometry height="44" width="50" x="390" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-178" parent="QtJxqQHgGcDI5aKwGHsR-172" style="text;html=1;fontSize=18;fontStyle=1;fillColor=none;strokeColor=none;" value="..." vertex="1">
+          <mxGeometry height="30" width="40" x="460" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-179" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#DC2626;fontSize=11;fontStyle=1;" value="Transport Layer&#xa;(RTSP / RTP / TCP / UDP)" vertex="1">
+          <mxGeometry height="52" width="360" x="1034" y="268" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-180" edge="1" parent="1" source="QtJxqQHgGcDI5aKwGHsR-172" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#DC2626;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontColor=#000000;fontSize=9;labelBackgroundColor=none;" target="QtJxqQHgGcDI5aKwGHsR-179" value="compressed stream">
+          <mxGeometry relative="1" x="-0.4947" y="-17" as="geometry">
+            <mxPoint x="16" y="17" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-181" parent="1" style="shape=mxgraph.flowchart.multi-document;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#DC2626;fontColor=#000000;fontSize=12;fontStyle=1;" value="Frame Queue&#xa;(ConcurrentQueue&lt;byte[]&gt; / Channel&lt;T&gt;)" vertex="1">
+          <mxGeometry height="70" width="360" x="1034" y="368" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-182" edge="1" parent="1" source="QtJxqQHgGcDI5aKwGHsR-179" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0284C7;strokeWidth=2;fontColor=#000000;fontSize=9;labelBackgroundColor=none;" target="QtJxqQHgGcDI5aKwGHsR-181" value="enqueue NAL units / RTP packets">
+          <mxGeometry relative="1" x="0.0833" y="-84" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-185" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#DC2626;fontColor=#000000;fontSize=12;fontStyle=1;" value="Video Decoder (H.264 / H.265)&#xa;FFmpeg / MediaFoundation" vertex="1">
+          <mxGeometry height="52" width="360" x="1034" y="488" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-186" edge="1" parent="1" source="QtJxqQHgGcDI5aKwGHsR-181" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#DC2626;strokeWidth=2;fontColor=#000000;fontSize=9;labelBackgroundColor=none;" target="QtJxqQHgGcDI5aKwGHsR-185" value="dequeue &amp;amp; decode frames">
+          <mxGeometry relative="1" x="-0.12" y="-41" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-189" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#DC2626;fontColor=#000000;fontSize=11;" value="Decoded Frame Buffer&#xa;{ cameraId, frameIndex, width, height, pixelData, pts }" vertex="1">
+          <mxGeometry height="52" width="360" x="1034" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-190" edge="1" parent="1" source="QtJxqQHgGcDI5aKwGHsR-185" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#DC2626;strokeWidth=2;fontColor=#000000;fontSize=9;labelBackgroundColor=none;" target="QtJxqQHgGcDI5aKwGHsR-189" value="YUV → RGB conversion">
+          <mxGeometry relative="1" x="-0.08" y="-75" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-191" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#DC2626;fontColor=#000000;fontSize=11;" value="VideoStreamService&#xa;(Frame Rate Control · Snapshot · AI Analysis Trigger)" vertex="1">
+          <mxGeometry height="52" width="360" x="1034" y="692" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-192" edge="1" parent="1" source="QtJxqQHgGcDI5aKwGHsR-189" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#DC2626;strokeWidth=2;fontColor=#000000;fontSize=9;labelBackgroundColor=none;" target="QtJxqQHgGcDI5aKwGHsR-191" value="frame dispatch">
+          <mxGeometry relative="1" x="0.12" y="-51" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-193" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0284C7;fontColor=#000000;fontSize=12;fontStyle=1;" value="SignalR Hub&#xa;(SensorHub)" vertex="1">
+          <mxGeometry height="60" width="290" x="680" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-194" edge="1" parent="1" source="QtJxqQHgGcDI5aKwGHsR-170" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0284C7;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontColor=#000000;fontSize=9;labelBackgroundColor=none;" target="QtJxqQHgGcDI5aKwGHsR-193" value="SensorUpdated event">
+          <mxGeometry relative="1" x="0.0476" y="-50" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-195" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#16A34A;fontColor=#000000;fontSize=12;fontStyle=1;" value="RTSP Relay / WebRTC&#xa;Media Server" vertex="1">
+          <mxGeometry height="60" width="290" x="680" y="900" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-196" edge="1" parent="1" source="QtJxqQHgGcDI5aKwGHsR-191" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#DC2626;strokeWidth=2;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;fontColor=#000000;fontSize=9;labelBackgroundColor=none;" target="QtJxqQHgGcDI5aKwGHsR-195" value="stream push">
+          <mxGeometry relative="1" x="-0.2391" y="43" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-197" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#16A34A;fontColor=#000000;fontSize=11;" value="REST API&#xa;(ASP.NET Core 8)" vertex="1">
+          <mxGeometry height="52" width="250" x="700" y="696" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-198" edge="1" parent="1" source="QtJxqQHgGcDI5aKwGHsR-170" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0284C7;strokeWidth=1.5;dashed=1;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="QtJxqQHgGcDI5aKwGHsR-197" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-199" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#DC2626;fontColor=#000000;fontSize=12;fontStyle=1;" value="Station App (WinUI 3)&#xa;Dashboard · Live Video · Alerts" vertex="1">
+          <mxGeometry height="60" width="360" x="610" y="1171" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-201" edge="1" parent="1" source="QtJxqQHgGcDI5aKwGHsR-193" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#16A34A;strokeWidth=2;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontColor=#000000;fontSize=9;labelBackgroundColor=none;" target="QtJxqQHgGcDI5aKwGHsR-199" value="JSON / real-time push">
+          <mxGeometry relative="1" x="-0.6717" y="-57" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-203" edge="1" parent="1" source="QtJxqQHgGcDI5aKwGHsR-195" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#16A34A;strokeWidth=2;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;fontColor=default;fontSize=9;labelBackgroundColor=none;" target="QtJxqQHgGcDI5aKwGHsR-199" value="RTSP stream">
+          <mxGeometry relative="1" x="-0.1615" y="52" as="geometry">
+            <mxPoint y="1" as="offset" />
+            <Array as="points">
+              <mxPoint x="980" y="930" />
+              <mxPoint x="980" y="1073" />
+              <mxPoint x="977" y="1073" />
+              <mxPoint x="977" y="1201" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-205" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#475569;strokeWidth=1;" value="" vertex="1">
+          <mxGeometry height="360" width="74" x="790" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-206" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" value="Legend" vertex="1">
+          <mxGeometry height="20" width="74" x="790" y="88" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-207" parent="1" style="rounded=1;fillColor=#FFFFFF;strokeColor=#0284C7;fontColor=#000000;fontSize=8;" value="Sensor&#xa;flow" vertex="1">
+          <mxGeometry height="30" width="54" x="800" y="116" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-208" parent="1" style="rounded=1;fillColor=#FFFFFF;strokeColor=#DC2626;fontColor=#000000;fontSize=8;" value="Video&#xa;flow" vertex="1">
+          <mxGeometry height="30" width="54" x="800" y="156" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-209" parent="1" style="shape=mxgraph.flowchart.multi-document;fillColor=#FFFFFF;strokeColor=#0284C7;fontColor=#000000;fontSize=8;" value="Queue" vertex="1">
+          <mxGeometry height="30" width="54" x="800" y="196" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-210" parent="1" style="rounded=1;fillColor=#FFFFFF;strokeColor=#0284C7;fontColor=#000000;fontSize=8;" value="Decoder" vertex="1">
+          <mxGeometry height="30" width="54" x="800" y="236" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-211" parent="1" style="rounded=1;fillColor=#FFFFFF;strokeColor=#16A34A;fontColor=#000000;fontSize=8;" value="Backend&#xa;Service" vertex="1">
+          <mxGeometry height="30" width="54" x="800" y="276" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-212" parent="1" style="rounded=1;fillColor=#FFFFFF;strokeColor=#475569;fontColor=#000000;fontSize=8;" value="Client&#xa;App" vertex="1">
+          <mxGeometry height="30" width="54" x="800" y="316" as="geometry" />
+        </mxCell>
+        <mxCell id="QtJxqQHgGcDI5aKwGHsR-213" parent="1" style="rounded=1;fillColor=#FFFFFF;strokeColor=#16A34A;fontColor=#000000;fontSize=8;dashed=1;" value="REST&#xa;API" vertex="1">
+          <mxGeometry height="30" width="54" x="800" y="356" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

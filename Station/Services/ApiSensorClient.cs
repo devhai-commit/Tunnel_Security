@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Station.Services;
@@ -47,6 +49,10 @@ public class ApiSensorClient : IAsyncDisposable
         _connection = new HubConnectionBuilder()
             .WithUrl($"{_apiBaseUrl}/hubs/sensors")
             .WithAutomaticReconnect(new[] { TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(5) })
+            .AddJsonProtocol(options =>
+            {
+                options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+            })
             .Build();
 
         // Handle incoming sensor updates
@@ -133,17 +139,13 @@ public class ApiSensorClient : IAsyncDisposable
 public class ApiSensorUpdate
 {
     public string Id { get; set; } = string.Empty;
-    public string SensorNodeId { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public double CurrentValue { get; set; }
     public string Unit { get; set; } = string.Empty;
     public DateTime LastReading { get; set; }
+    public string Level { get; set; } = string.Empty;
     public string NodeStatus { get; set; } = string.Empty;
     public string NodeId { get; set; } = string.Empty;
     public string NodeName { get; set; } = string.Empty;
-    public string LineId { get; set; } = string.Empty;
-    public string LineName { get; set; } = string.Empty;
-    public string StationId { get; set; } = string.Empty;
-    public string StationName { get; set; } = string.Empty;
 }

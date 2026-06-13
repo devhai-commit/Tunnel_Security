@@ -1,5 +1,10 @@
+using DotNetEnv;
+using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
 using Microsoft.UI.Xaml;
 using Station.Services;
+using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Station
@@ -12,16 +17,46 @@ namespace Station
         public App()
         {
             InitializeComponent();
+            LoadEnv();
+
+            // Initialize LiveCharts SkiaSharp renderer — required before any CartesianChart is created
+            LiveCharts.Configure(config => config
+                .AddSkiaSharp()
+                .AddDefaultMappers());
+
+            this.UnhandledException += (s, e) =>
+            {
+                System.Diagnostics.Debug.WriteLine($"[UNHANDLED EXCEPTION] {e.Exception}");
+                e.Handled = true;
+            };
+        }
+
+        private static void LoadEnv()
+        {
+            // Load .env from the package/exe directory first (most reliable in MSIX packaging).
+            // Fall back to TraversePath so local unpackaged runs still work.
+            var exeEnv = Path.Combine(AppContext.BaseDirectory, ".env");
+            if (File.Exists(exeEnv))
+                Env.Load(exeEnv);
+            else
+                Env.TraversePath().Load();
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[App] DATA_SOURCE={Environment.GetEnvironmentVariable("DATA_SOURCE") ?? "(not set → mock)"}");
         }
 
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            // Start mock data simulation
-            MockDataService.Instance.Start();
+            // Khởi tạo data service theo DATA_SOURCE env var
+            var dataService = DataServiceLocator.Initialize();
+            dataService.Start();
 
-            // Start web API server on background thread
-            _simServer = new SimulationApiServer();
-            Task.Run(() => _simServer.StartAsync());
+            // Chạy simulation API server nếu dùng mock mode
+            if (dataService is MockDataService)
+            {
+                _simServer = new SimulationApiServer();
+                Task.Run(() => _simServer.StartAsync());
+            }
 
             m_window = new MainWindow();
             m_window.Activate();

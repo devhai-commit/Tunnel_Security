@@ -115,8 +115,16 @@ public class Node
     public NodeStatus Status { get; set; } = NodeStatus.Offline;
     public DateTime? LastOnline { get; set; }
     
+    /// <summary>Wire-protocol byte ID của node (1–10) — dùng trong binary frame</summary>
+    public byte? NodeByteId { get; set; }
+
+    /// <summary>Khoảng cách từ đầu tuyến đến nút (m)</summary>
+    public double? DistanceM { get; set; }
+
     // Thông tin thiết bị
     public string? HardwareId { get; set; }
+    public string? Mac { get; set; }
+    public string? IpAddress { get; set; }
     public string? FirmwareVersion { get; set; }
     public bool IsHub { get; set; } // Nút hub/gateway
     
@@ -145,21 +153,27 @@ public class Sensor
 {
     public string Id { get; set; } = default!;
     public string NodeId { get; set; } = default!;
+
+    /// <summary>Wire-protocol byte ID của sensor trong node (1–7)</summary>
+    public byte? SensorByteId { get; set; }
+
     public SensorType Type { get; set; }
     public string Name { get; set; } = default!;
     public string Unit { get; set; } = string.Empty; // °C, %, mm, mm/s
-    
+
     // Ngưỡng cảnh báo
     public double? WarningThreshold { get; set; }
     public double? CriticalThreshold { get; set; }
-    
-    // Giá trị hiện tại
+
+    // Giá trị hiện tại (cache — cập nhật mỗi reading)
     public double? CurrentValue { get; set; }
+    public string? CurrentLevel { get; set; } // "Normal" | "Warning" | "Critical"
     public DateTime? LastReading { get; set; }
-    
+
     // Cấu hình
     public bool IsEnabled { get; set; } = true;
     public int SamplingRate { get; set; } = 1; // Hz
+    public double? SamplingRateHz { get; set; } // precise rate nếu cần
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }

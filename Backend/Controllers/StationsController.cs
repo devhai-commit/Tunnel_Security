@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Backend.Mock;
-using Backend.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Backend.Data;
 
 namespace Backend.Controllers;
 
@@ -8,42 +8,79 @@ namespace Backend.Controllers;
 [Route("api/[controller]")]
 public class StationsController : ControllerBase
 {
+    private readonly TunnelDbContext _db;
+
+    public StationsController(TunnelDbContext db)
+    {
+        _db = db;
+    }
+
     // GET /api/stations
     [HttpGet]
-    public IActionResult GetStations()
-        => Ok(MockData.Stations);
+    public async Task<IActionResult> GetStations()
+    {
+        var stations = await _db.Stations
+            .Include(s => s.Lines)
+                .ThenInclude(l => l.Nodes)
+                    .ThenInclude(n => n.Sensors)
+            .ToListAsync();
+        return Ok(stations);
+    }
 
     // GET /api/stations/{id}
     [HttpGet("{id}")]
-    public IActionResult GetStation(string id)
+    public async Task<IActionResult> GetStation(string id)
     {
-        var s = MockData.Stations.FirstOrDefault(x => x.Id == id);
-        return s == null ? NotFound() : Ok(s);
+        var station = await _db.Stations
+            .Include(s => s.Lines)
+                .ThenInclude(l => l.Nodes)
+                    .ThenInclude(n => n.Sensors)
+            .FirstOrDefaultAsync(s => s.Id == id);
+
+        return station == null ? NotFound() : Ok(station);
     }
 
     // GET /api/stations/{id}/lines
     [HttpGet("{id}/lines")]
-    public IActionResult GetLines(string id)
+    public async Task<IActionResult> GetLines(string id)
     {
-        var station = MockData.Stations.FirstOrDefault(x => x.Id == id);
-        if (station == null) return NotFound();
-        
-        return Ok(station.Lines);
+        var exists = await _db.Stations.AnyAsync(s => s.Id == id);
+        if (!exists) return NotFound();
+
+        var lines = await _db.Lines
+            .Include(l => l.Nodes)
+                .ThenInclude(n => n.Sensors)
+            .Where(l => l.StationId == id)
+            .ToListAsync();
+
+        return Ok(lines);
     }
 
-    // GET /api/stations/{id}/nodes (GeoJSON) - Tất cả nodes trong trạm
+    // GET /api/stations/{id}/nodes (GeoJSON)
     [HttpGet("{id}/nodes")]
-    public IActionResult GetNodes(string id)
+    public async Task<IActionResult> GetNodes(string id)
     {
-        var station = MockData.Stations.FirstOrDefault(x => x.Id == id);
+        var station = await _db.Stations.FirstOrDefaultAsync(s => s.Id == id);
         if (station == null) return NotFound();
 
-        var allNodes = station.Lines.SelectMany(l => l.Nodes).ToList();
+        var lineIds = await _db.Lines
+            .Where(l => l.StationId == id)
+            .Select(l => l.Id)
+            .ToListAsync();
+
+        var nodes = await _db.Nodes
+            .Include(n => n.Sensors)
+            .Where(n => lineIds.Contains(n.LineId))
+            .ToListAsync();
+
+        var lineNames = await _db.Lines
+            .Where(l => l.StationId == id)
+            .ToDictionaryAsync(l => l.Id, l => l.Name);
 
         var geo = new
         {
             type = "FeatureCollection",
-            features = allNodes.Select(node => new
+            features = nodes.Select(node => new
             {
                 type = "Feature",
                 geometry = new
@@ -57,7 +94,7 @@ public class StationsController : ControllerBase
                     node.Code,
                     node.Name,
                     node.LineId,
-                    Line = station.Lines.FirstOrDefault(l => l.Id == node.LineId)?.Name,
+                    Line = lineNames.GetValueOrDefault(node.LineId),
                     node.Status,
                     node.IsHub,
                     node.BatteryLevel,
@@ -72,17 +109,22 @@ public class StationsController : ControllerBase
         return Ok(geo);
     }
 
-    // GET /api/stations/{id}/lines-geojson (GeoJSON) - Các tuyến dạng LineString
+    // GET /api/stations/{id}/lines-geojson (GeoJSON)
     [HttpGet("{id}/lines-geojson")]
-    public IActionResult GetLinesGeoJson(string id)
+    public async Task<IActionResult> GetLinesGeoJson(string id)
     {
-        var station = MockData.Stations.FirstOrDefault(x => x.Id == id);
-        if (station == null) return NotFound();
+        var exists = await _db.Stations.AnyAsync(s => s.Id == id);
+        if (!exists) return NotFound();
+
+        var lines = await _db.Lines
+            .Include(l => l.Nodes)
+            .Where(l => l.StationId == id)
+            .ToListAsync();
 
         var geo = new
         {
             type = "FeatureCollection",
-            features = station.Lines.Select(line => new
+            features = lines.Select(line => new
             {
                 type = "Feature",
                 geometry = new
@@ -111,12 +153,13 @@ public class StationsController : ControllerBase
 
     // GET /api/stations/{stationId}/lines/{lineId}/nodes
     [HttpGet("{stationId}/lines/{lineId}/nodes")]
-    public IActionResult GetLineNodes(string stationId, string lineId)
+    public async Task<IActionResult> GetLineNodes(string stationId, string lineId)
     {
-        var station = MockData.Stations.FirstOrDefault(x => x.Id == stationId);
-        if (station == null) return NotFound("Station not found");
+        var line = await _db.Lines
+            .Include(l => l.Nodes)
+                .ThenInclude(n => n.Sensors)
+            .FirstOrDefaultAsync(l => l.Id == lineId && l.StationId == stationId);
 
-        var line = station.Lines.FirstOrDefault(l => l.Id == lineId);
         if (line == null) return NotFound("Line not found");
 
         return Ok(line.Nodes);
@@ -124,33 +167,38 @@ public class StationsController : ControllerBase
 
     // GET /api/stations/{stationId}/nodes/{nodeId}
     [HttpGet("{stationId}/nodes/{nodeId}")]
-    public IActionResult GetNodeDetail(string stationId, string nodeId)
+    public async Task<IActionResult> GetNodeDetail(string stationId, string nodeId)
     {
-        var station = MockData.Stations.FirstOrDefault(x => x.Id == stationId);
-        if (station == null) return NotFound("Station not found");
+        var lineIds = await _db.Lines
+            .Where(l => l.StationId == stationId)
+            .Select(l => l.Id)
+            .ToListAsync();
 
-        var node = station.Lines
-            .SelectMany(l => l.Nodes)
-            .FirstOrDefault(n => n.Id == nodeId);
-            
-        if (node == null) return NotFound("Node not found");
+        var node = await _db.Nodes
+            .Include(n => n.Sensors)
+            .FirstOrDefaultAsync(n => n.Id == nodeId && lineIds.Contains(n.LineId));
 
-        return Ok(node);
+        return node == null ? NotFound("Node not found") : Ok(node);
     }
 
     // GET /api/stations/{stationId}/nodes/{nodeId}/sensors
     [HttpGet("{stationId}/nodes/{nodeId}/sensors")]
-    public IActionResult GetNodeSensors(string stationId, string nodeId)
+    public async Task<IActionResult> GetNodeSensors(string stationId, string nodeId)
     {
-        var station = MockData.Stations.FirstOrDefault(x => x.Id == stationId);
-        if (station == null) return NotFound("Station not found");
+        var lineIds = await _db.Lines
+            .Where(l => l.StationId == stationId)
+            .Select(l => l.Id)
+            .ToListAsync();
 
-        var node = station.Lines
-            .SelectMany(l => l.Nodes)
-            .FirstOrDefault(n => n.Id == nodeId);
-            
-        if (node == null) return NotFound("Node not found");
+        var nodeExists = await _db.Nodes
+            .AnyAsync(n => n.Id == nodeId && lineIds.Contains(n.LineId));
 
-        return Ok(node.Sensors);
+        if (!nodeExists) return NotFound("Node not found");
+
+        var sensors = await _db.Sensors
+            .Where(s => s.NodeId == nodeId)
+            .ToListAsync();
+
+        return Ok(sensors);
     }
 }
