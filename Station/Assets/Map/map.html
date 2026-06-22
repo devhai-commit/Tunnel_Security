@@ -22,6 +22,10 @@
             bottom: 0;
         }
 
+        .maplibregl-popup {
+            max-width: 90% !important; /* Ép popup không được to hơn 90% chiều rộng bản đồ */
+        }
+
         /* --- DARK POPUP (Mặc định) --- */
         .maplibregl-popup-content {
             background-color: #1e293b;
@@ -33,6 +37,10 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
             border: 1px solid #334155;
             max-width: 350px !important;
+            width: max-content;
+            max-width: 100% !important;
+            max-height: 250px; /* Nếu nội dung quá dài thì không bị tràn khỏi viền dưới bản đồ */
+            overflow-y: auto; /* Tự động hiện thanh cuộn dọc nếu cần */
         }
 
         .maplibregl-popup-close-button {
@@ -97,6 +105,92 @@
             body.light-theme .maplibregl-popup-anchor-right .maplibregl-popup-tip {
                 border-left-color: #ffffff;
             }
+
+        /* Hiệu ứng nháy đỏ cho sự cố */
+        .incident-pulse {
+            width: 50px;
+            height: 50px;
+            background-color: rgba(239, 68, 68, 0.3);
+            border: 2px solid #EF4444;
+            border-radius: 50%;
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            pointer-events: none; /* Để không che mất click vào hố ga */
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.3);
+                opacity: 1;
+            }
+
+            80% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        /* 🔴 CRITICAL: Nút màu đỏ tĩnh + Sóng radar nhỏ tỏa ra từ tâm */
+        .pulse-critical {
+            width: 16px; /* Kích thước bằng nút hố ga bình thường */
+            height: 16px;
+            background-color: #EF4444;
+            border: 2px solid #FFFFFF;
+            border-radius: 50%;
+            position: relative;
+        }
+            /* Vòng sóng tỏa ra ngoài */
+            .pulse-critical::after {
+                content: '';
+                position: absolute;
+                top: -12px; /* Bù trừ tọa độ để sóng nằm ngay giữa tâm nút */
+                left: -12px;
+                width: 36px;
+                height: 36px;
+                border: 2px solid #EF4444;
+                border-radius: 50%;
+                animation: radar-pulse 1.2s ease-out infinite;
+                pointer-events: none;
+            }
+
+        /* 🟠 HIGH: Nút màu cam tự chớp nháy (không có sóng lan tỏa) */
+        .blink-high {
+            width: 16px;
+            height: 16px;
+            background-color: #F97316;
+            border: 2px solid #FFFFFF;
+            border-radius: 50%;
+            animation: node-blinker 0.6s infinite alternate; /* Sáng lên rồi mờ đi */
+        }
+
+        /* Khung hình Animation */
+        @keyframes radar-pulse {
+            0% {
+                transform: scale(0.5);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(2.0);
+                opacity: 0;
+            }
+        }
+
+        @keyframes node-blinker {
+            0% {
+                opacity: 1;
+                box-shadow: 0 0 12px #F97316;
+            }
+
+            100% {
+                opacity: 0.4;
+                box-shadow: none;
+            }
+        }
     </style>
 </head>
 
@@ -135,15 +229,77 @@
 
         if (window.chrome && window.chrome.webview) {
             window.chrome.webview.addEventListener('message', event => {
+                // SỬA Ở ĐÂY: Trả lại event.data gốc, bỏ JSON.parse đi
                 const msg = event.data;
+
                 if (msg.type === "init") {
                     backendBaseUrl = msg.backend;
                     stationId = msg.station;
                     initMap();
                 }
+
                 if (msg.type === "refresh-data" && mapInitialized) {
                     loadSensors();
                     loadRoutes();
+                }
+
+                // --- HIỆU ỨNG NHÁY ĐỎ BẢN ĐỒ ---
+                // --- HIỆU ỨNG & ĐỔI MÀU BẢN ĐỒ THEO MỨC ĐỘ ---
+                if (msg.type === "highlight-node") {
+                    if (!sensorsGeoJson || !window.map) return;
+
+                    const node = sensorsGeoJson.features.find(f => f.properties.id === msg.nodeId);
+                    if (node) {
+                        const coords = node.geometry.coordinates;
+                        const severity = msg.severity; // Sẽ nhận: "Critical", "High", "Medium", "Low"
+                        const lineName = node.properties.line; // Thuộc tuyến nào (VD: Tuyến Kim Mã)
+
+                        // 1. ĐỔI MÀU TĨNH CHO NÚT (Cập nhật trực tiếp vào GeoJSON)
+                        node.properties.status = severity;
+                        window.map.getSource('sensors').setData(sensorsGeoJson);
+
+                        // 2. LÂY NHIỄM MÀU CHO ĐƯỜNG ỐNG (Routes)
+                        if (routesGeoJson) {
+                            const route = routesGeoJson.features.find(f => f.properties.name === lineName);
+                            if (route) {
+                                // Quét xem trên tuyến này có thằng nào nặng hơn không
+                                let highestSeverity = "Online";
+                                const nodesOnLine = sensorsGeoJson.features.filter(f => f.properties.line === lineName);
+
+                                if (nodesOnLine.some(n => n.properties.status === "Critical")) highestSeverity = "Critical";
+                                else if (nodesOnLine.some(n => n.properties.status === "High")) highestSeverity = "High";
+                                else if (nodesOnLine.some(n => n.properties.status === "Medium" || n.properties.status === "Warning")) highestSeverity = "Medium";
+
+                                route.properties.status = highestSeverity;
+                                window.map.getSource('routes').setData(routesGeoJson); // Cập nhật lại đường ống
+                            }
+                        }
+
+                        // 3. XỬ LÝ HOẠT ẢNH ANIMATION (Chỉ dùng cho Critical và High)
+                        if (!window.activeAlertMarkers) window.activeAlertMarkers = {};
+                        if (window.activeAlertMarkers[msg.nodeId]) {
+                            window.activeAlertMarkers[msg.nodeId].remove();
+                        }
+
+                        if (severity === "Critical" || severity === "High") {
+                            // Focus camera bản đồ nếu là Critical
+                            if (severity === "Critical") {
+                                window.map.flyTo({ center: coords, zoom: 17, pitch: 45, speed: 1.2 });
+                            }
+
+                            const el = document.createElement('div');
+                            el.className = severity === "Critical" ? 'pulse-critical' : 'blink-high';
+
+                            const marker = new maplibregl.Marker({ element: el })
+                                .setLngLat(coords)
+                                .addTo(window.map);
+
+                            window.activeAlertMarkers[msg.nodeId] = marker;
+
+                            // Tự xóa lớp nháy động sau 20 giây (Màu tĩnh vẫn giữ nguyên ở bước 1)
+                            setTimeout(() => marker.remove(), 20000);
+                        }
+                    }
                 }
             });
         }
@@ -212,11 +368,63 @@
         }
 
         function setupSensorLayers() {
-            map.addLayer({ id: 'sensors-circle', type: 'circle', source: 'sensors', filter: ['!=', ['get', 'isHub'], true], paint: { 'circle-color': ['match', ['get', 'status'], 'Online', '#10B981', 'Warning', '#F59E0B', 'Critical', '#EF4444', 'Offline', '#6B7280', '#94A3B8'], 'circle-radius': 8, 'circle-stroke-color': '#0f172a', 'circle-stroke-width': 2 } });
-            map.addLayer({ id: 'station-outer-ring', type: 'circle', source: 'sensors', filter: ['==', ['get', 'isHub'], true], paint: { 'circle-color': '#3B82F6', 'circle-radius': 18, 'circle-opacity': 0.3 } });
-            map.addLayer({ id: 'station-circle', type: 'circle', source: 'sensors', filter: ['==', ['get', 'isHub'], true], paint: { 'circle-color': '#3B82F6', 'circle-radius': 12, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 } });
-            map.addLayer({ id: 'station-label', type: 'symbol', source: 'sensors', filter: ['==', ['get', 'isHub'], true], layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 13, 'text-variable-anchor': ['top', 'bottom', 'left', 'right'], 'text-radial-offset': 1.8 }, paint: { 'text-color': '#ffffff', 'text-halo-color': '#0b1121', 'text-halo-width': 2 } });
-            map.addLayer({ id: 'relay-label', type: 'symbol', source: 'sensors', filter: ['!=', ['get', 'isHub'], true], layout: { 'text-field': ['get', 'code'], 'text-font': ['Noto Sans Semibold'], 'text-size': 11, 'text-offset': [0, 1.8], 'text-anchor': 'top' }, paint: { 'text-color': '#cbd5e1', 'text-halo-color': '#0b1121', 'text-halo-width': 2 } });
+            // 1. Layer vẽ các nút hố ga (Sensors)
+            map.addLayer({
+                id: 'sensors-circle',
+                type: 'circle',
+                source: 'sensors',
+                filter: ['!=', ['get', 'isHub'], true],
+                paint: {
+                    'circle-color': [
+                        'match', ['get', 'status'],
+                        'Critical', '#EF4444', // Đỏ
+                        'High', '#F97316',     // Cam
+                        'Medium', '#EAB308',   // Vàng tĩnh
+                        'Warning', '#EAB308',  // (Giữ lại dự phòng data cũ)
+                        'Low', '#6B7280',      // Xám
+                        'Offline', '#6B7280',  // Xám
+                        '#10B981'              // Xanh lá (Mặc định - Online)
+                    ],
+                    'circle-radius': 8,
+                    'circle-stroke-color': '#0f172a',
+                    'circle-stroke-width': 2
+                }
+            });
+
+            // 2. Các Layer dưới đây GIỮ NGUYÊN (Vẽ trạm trung tâm và nhãn tên)
+            map.addLayer({
+                id: 'station-outer-ring',
+                type: 'circle',
+                source: 'sensors',
+                filter: ['==', ['get', 'isHub'], true],
+                paint: { 'circle-color': '#3B82F6', 'circle-radius': 18, 'circle-opacity': 0.3 }
+            });
+
+            map.addLayer({
+                id: 'station-circle',
+                type: 'circle',
+                source: 'sensors',
+                filter: ['==', ['get', 'isHub'], true],
+                paint: { 'circle-color': '#3B82F6', 'circle-radius': 12, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 }
+            });
+
+            map.addLayer({
+                id: 'station-label',
+                type: 'symbol',
+                source: 'sensors',
+                filter: ['==', ['get', 'isHub'], true],
+                layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 13, 'text-variable-anchor': ['top', 'bottom', 'left', 'right'], 'text-radial-offset': 1.8 },
+                paint: { 'text-color': '#ffffff', 'text-halo-color': '#0b1121', 'text-halo-width': 2 }
+            });
+
+            map.addLayer({
+                id: 'relay-label',
+                type: 'symbol',
+                source: 'sensors',
+                filter: ['!=', ['get', 'isHub'], true],
+                layout: { 'text-field': ['get', 'code'], 'text-font': ['Noto Sans Semibold'], 'text-size': 11, 'text-offset': [0, 1.8], 'text-anchor': 'top' },
+                paint: { 'text-color': '#cbd5e1', 'text-halo-color': '#0b1121', 'text-halo-width': 2 }
+            });
         }
 
         // --- HÀM TỰ ĐỘNG VẼ LẠI ĐƯỜNG NỐI ---
@@ -226,18 +434,16 @@
             const features = [];
             routeConfigs.forEach(route => {
                 const coords = [];
-                // Quét từng ID trong tuyến, tìm tọa độ hiện tại của nó
                 route.nodes.forEach(nodeId => {
                     const node = sensorsGeoJson.features.find(f => f.properties.id === nodeId);
                     if (node) coords.push(node.geometry.coordinates);
                 });
 
-                // Nếu có từ 2 điểm trở lên thì mới vẽ đường
                 if (coords.length > 1) {
                     features.push({
                         "type": "Feature",
                         "geometry": { "type": "LineString", "coordinates": coords },
-                        "properties": { "Status": route.status }
+                        "properties": { "status": route.status } // Sửa chữ 'S' thành 's'
                     });
                 }
             });
@@ -246,18 +452,126 @@
             map.getSource('routes').setData(geojson);
         }
 
+        // --- CẬP NHẬT LOGIC LẮNG NGHE LỆNH TỪ C# ---
+        if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.addEventListener('message', event => {
+                const msg = event.data;
+
+                if (msg.type === "init") {
+                    backendBaseUrl = msg.backend;
+                    stationId = msg.station;
+                    initMap();
+                }
+
+                if (msg.type === "refresh-data" && mapInitialized) {
+                    loadSensors();
+                    loadRoutes();
+                }
+
+                // 1. NHẬN LỆNH BÁO ĐỘNG (BẬT NHÁY, ĐỔI MÀU)
+                if (msg.type === "highlight-node") {
+                    if (!sensorsGeoJson || !window.map) return;
+                    const node = sensorsGeoJson.features.find(f => f.properties.id === msg.nodeId);
+
+                    if (node) {
+                        const coords = node.geometry.coordinates;
+                        const severity = msg.severity;
+
+                        // Đổi màu tĩnh cho nút
+                        node.properties.status = severity;
+                        window.map.getSource('sensors').setData(sensorsGeoJson);
+
+                        // Lây nhiễm màu cho tuyến cống
+                        const route = routeConfigs.find(r => r.nodes.includes(msg.nodeId));
+                        if (route) {
+                            let highest = "Online";
+                            const nodesOnLine = sensorsGeoJson.features.filter(f => route.nodes.includes(f.properties.id));
+                            if (nodesOnLine.some(n => n.properties.status === "Critical")) highest = "Critical";
+                            else if (nodesOnLine.some(n => n.properties.status === "High")) highest = "High";
+                            else if (nodesOnLine.some(n => n.properties.status === "Medium" || n.properties.status === "Warning")) highest = "Medium";
+
+                            route.status = highest;
+                            updateRoutes(); // Vẽ lại tuyến với màu mới
+                        }
+
+                        // Xử lý hiệu ứng nháy/sóng radar
+                        if (!window.activeAlertMarkers) window.activeAlertMarkers = {};
+                        if (window.activeAlertMarkers[msg.nodeId]) {
+                            window.activeAlertMarkers[msg.nodeId].remove();
+                        }
+
+                        if (severity === "Critical" || severity === "High") {
+                            if (severity === "Critical") {
+                                window.map.flyTo({ center: coords, zoom: 17, pitch: 45, speed: 1.2 });
+                            }
+
+                            const el = document.createElement('div');
+                            el.className = severity === "Critical" ? 'pulse-critical' : 'blink-high';
+
+                            const marker = new maplibregl.Marker({ element: el })
+                                .setLngLat(coords)
+                                .addTo(window.map);
+
+                            window.activeAlertMarkers[msg.nodeId] = marker;
+                        }
+                    }
+                }
+
+                // 2. NHẬN LỆNH ĐÃ XỬ LÝ (TẮT NHÁY, VỀ XANH)
+                else if (msg.type === "restore-node") {
+                    if (!sensorsGeoJson || !window.map) return;
+                    const node = sensorsGeoJson.features.find(f => f.properties.id === msg.nodeId);
+
+                    if (node) {
+                        // Tắt hiệu ứng nháy
+                        if (window.activeAlertMarkers && window.activeAlertMarkers[msg.nodeId]) {
+                            window.activeAlertMarkers[msg.nodeId].remove();
+                            delete window.activeAlertMarkers[msg.nodeId];
+                        }
+
+                        // Trả nút về màu xanh (Online)
+                        node.properties.status = "Online";
+                        window.map.getSource('sensors').setData(sensorsGeoJson);
+
+                        // Trả đường ống về theo trạng thái các nút còn lại
+                        const route = routeConfigs.find(r => r.nodes.includes(msg.nodeId));
+                        if (route) {
+                            let highest = "Online";
+                            const nodesOnLine = sensorsGeoJson.features.filter(f => route.nodes.includes(f.properties.id));
+                            if (nodesOnLine.some(n => n.properties.status === "Critical")) highest = "Critical";
+                            else if (nodesOnLine.some(n => n.properties.status === "High")) highest = "High";
+                            else if (nodesOnLine.some(n => n.properties.status === "Medium" || n.properties.status === "Warning")) highest = "Medium";
+
+                            route.status = highest;
+                            updateRoutes();
+                        }
+                    }
+                }
+            });
+        }
         async function loadRoutes() {
             try {
                 const emptyGeojson = { "type": "FeatureCollection", "features": [] };
 
                 if (!map.getSource('routes')) {
                     map.addSource('routes', { type: 'geojson', data: emptyGeojson });
+                    // Thêm Layer vẽ đường nối các nút
                     map.addLayer({
-                        id: 'routes-line',
-                        type: 'line',
-                        source: 'routes',
-                        layout: { 'line-join': 'round', 'line-cap': 'round' },
-                        paint: { 'line-color': ['match', ['get', 'Status'], 'active', '#10B981', 'warning', '#f59e0b', 'critical', '#ef4444', '#94a3b8'], 'line-width': 4, 'line-opacity': 0.8 }
+                        'id': 'routes-layer',
+                        'type': 'line',
+                        'source': 'routes',
+                        'paint': {
+                            'line-color': [
+                                'match', ['get', 'status'],
+                                'Critical', '#EF4444', // Đỏ
+                                'High', '#F97316',     // Cam
+                                'Medium', '#EAB308',   // Vàng
+                                'Warning', '#EAB308',
+                                'Low', '#6B7280',      // Xám
+                                '#10B981'              // Xanh lá (Mặc định Online)
+                            ],
+                            'line-width': 4
+                        }
                     });
                 }
 
@@ -356,6 +670,7 @@
         // --- LOGIC KÉO THẢ (DRAG & DROP) ---
         function setupDraggableLogic() {
             let isDragging = false;
+            let hasMoved = false; // Cờ đánh dấu có thực sự di chuyển chuột không
             let draggedFeatureId = null;
             let originalCoords = null;
             const canvas = map.getCanvas();
@@ -365,6 +680,7 @@
                 if (features.length > 0) {
                     e.preventDefault();
                     isDragging = true;
+                    hasMoved = false; // RESET: Bắt đầu nhấn chuột chưa tính là di chuyển
                     draggedFeatureId = features[0].properties.id;
 
                     const feature = sensorsGeoJson.features.find(f => f.properties.id === draggedFeatureId);
@@ -381,6 +697,7 @@
 
             map.on('mousemove', (e) => {
                 if (isDragging) {
+                    hasMoved = true; // Chuột nhích đi mới được tính là kéo thả
                     canvas.style.cursor = 'grabbing';
 
                     const coords = e.lngLat;
@@ -394,7 +711,6 @@
                 }
             });
 
-            // LƯU Ý: Đã thêm chữ "async" vào đây để dùng lệnh await chờ người dùng bấm nút
             map.on('mouseup', async (e) => {
                 if (isDragging) {
                     isDragging = false;
@@ -402,10 +718,10 @@
 
                     const feature = sensorsGeoJson.features.find(f => f.properties.id === draggedFeatureId);
 
-                    if (feature) {
+                    // Chỉ hiện hộp thoại nếu thực sự có di chuyển (hasMoved = true)
+                    if (feature && hasMoved) {
                         const coords = e.lngLat;
 
-                        // GỌI HỘP THOẠI CUSTOM Ở ĐÂY VÀ CHỜ KẾT QUẢ
                         const isConfirmed = await showCustomConfirm(`Bạn có muốn thay đổi vị trí của<br><b style="color:#60a5fa; font-size:16px;">${feature.properties.name}</b> ?`);
 
                         if (isConfirmed) {
@@ -416,7 +732,6 @@
                                 lat: coords.lat
                             });
                         } else {
-                            // Hủy -> Quay về chỗ cũ
                             feature.geometry.coordinates = originalCoords;
                             map.getSource('sensors').setData(sensorsGeoJson);
                             updateRoutes();
@@ -428,7 +743,6 @@
                 }
             });
         }
-
         function setupSensorInteractions() {
             const popupLayers = ['sensors-circle', 'station-circle'];
             map.on('click', popupLayers, async (e) => {
@@ -443,7 +757,17 @@
                 const popupContent = document.createElement('div');
                 buildPopupHTML(popupContent, p, coords);
 
-                new maplibregl.Popup({ closeOnClick: true, maxWidth: '380px' })
+                map.flyTo({
+                    center: coords,
+                    offset: [0, -100],
+                    speed: 1.5,
+                    essential: true
+                });
+
+                new maplibregl.Popup({
+                    closeOnClick: true,
+                    maxWidth: 'none',
+                    offset: 15                  })
                     .setLngLat(coords)
                     .setDOMContent(popupContent)
                     .addTo(map);

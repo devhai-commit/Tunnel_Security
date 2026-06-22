@@ -20,6 +20,8 @@ using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
 using Station.Config;
 using Windows.Storage.Streams;
+using Windows.Media.Core;
+using Windows.Media.Playback;
 
 namespace Station.Views
 {
@@ -41,7 +43,9 @@ namespace Station.Views
         private DispatcherTimer _cameraRotationTimer;
         private DispatcherTimer _cameraTimeTimer;
         private int _currentCameraIndex = 0;
-        private int _rotationCountdown = 10;
+		// Máy phát âm thanh cảnh báo chạy ngầm
+		private readonly MediaPlayer _alarmPlayer = new MediaPlayer();
+		private int _rotationCountdown = 10;
         private bool _isPaused = false;
         private string _focusedCamera = null; // Camera to focus when alert detected
         // Cameras are loaded live from MockDataService
@@ -52,8 +56,8 @@ namespace Station.Views
 
         // Alert notification badge
         private int _pendingAlertCount = 0;
-        private Station.Models.Alert? _latestAlert = null;
-        private bool _alertDialogOpen = false;
+		private List<Station.Models.Alert> _pendingAlerts = new();
+		private bool _alertDialogOpen = false;
 
         // Join request notification badge
         private int _pendingJoinRequestCount = 0;
@@ -154,9 +158,28 @@ namespace Station.Views
             OpenModuleWindow("Quản trị người dùng", typeof(UserManagementPage));
         }
 
-
-
-        private void AlertTimeFilter_Click(object sender, RoutedEventArgs e)
+		private void PlayAlarmSound(Station.Models.AlertSeverity severity)
+		{
+			try
+			{
+				string soundFileName = severity switch
+				{
+					Station.Models.AlertSeverity.Critical => "critical.mp3",
+					Station.Models.AlertSeverity.High => "high.mp3",
+					Station.Models.AlertSeverity.Medium => "medium.mp3",
+					_ => "low.mp3"
+				};
+				var uri = new Uri($"ms-appx:///Assets/Sounds/{soundFileName}");
+				_alarmPlayer.Source = MediaSource.CreateFromUri(uri);
+				_alarmPlayer.Volume = severity == Station.Models.AlertSeverity.Critical ? 1.0 : 0.6;
+				_alarmPlayer.Play();
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"❌ Lỗi âm thanh: {ex.Message}");
+			}
+		}
+		private void AlertTimeFilter_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button button)
             {
@@ -876,75 +899,126 @@ namespace Station.Views
             Debug.WriteLine("Camera focus cleared, resuming rotation");
         }
 
+		#endregion
+
+		#region Alert Filter Handlers - Removed (UI redesigned)
+		// Old alert filter methods removed as UI was redesigned
+		#endregion
+
+		#region Alert Notification (Flash + Badge)
+
+		private void OnAlertGeneratedForUI(object? sender, Station.Services.AlertGeneratedEventArgs e)
+		{
+			DispatcherQueue.TryEnqueue(() =>
+			{
+				// Thêm vào hàng đợi và xếp hạng ưu tiên (Khẩn cấp lên đầu)
+				_pendingAlerts.Add(e.Alert);
+				_pendingAlerts = _pendingAlerts.OrderByDescending(a => (int)a.Severity).ToList();
+				_pendingAlertCount = _pendingAlerts.Count;
+
+				// 1. Kích hoạt hiệu ứng UI (Badge)
+				if (e.Alert.Severity != Station.Models.AlertSeverity.Low)
+				{
+					AlertBadgeCountText.Text = _pendingAlertCount.ToString();
+					AlertNotificationBadge.Visibility = Visibility.Visible;
+				}
+
+				if (!string.IsNullOrEmpty(e.Alert.CameraId))
+					FocusOnCameraAlert(e.Alert.CameraId, e.Alert.Title);
+
+				// 2. BẮN LỆNH BẬT NHÁY XUỐNG BẢN ĐỒ
+				if (_securityMapInitialized && SecurityMapWebView != null && e.Alert.NodeId != null)
+				{
+					var payload = new
+					{
+						type = "highlight-node",
+						nodeId = e.Alert.NodeId,
+						severity = e.Alert.Severity.ToString()
+					};
+					var json = JsonSerializer.Serialize(payload);
+					SecurityMapWebView.CoreWebView2.PostWebMessageAsJson(json);
+				}
+
+				// 3. Nếu là lỗi Khẩn Cấp -> Ép bật Popup luôn
+				if (e.Alert.Severity == Station.Models.AlertSeverity.Critical)
+				{
+					RedFlashStoryboard.Begin();
+					if (!_alertDialogOpen)
+					{
+						AlertNotificationBadge_Click(null, null);
+					}
+				}
+			});
+		}
+
+		private async void AlertNotificationBadge_Click(object sender, RoutedEventArgs e)
+		{
+			if (_alertDialogOpen || _pendingAlerts.Count == 0) return;
+			_alertDialogOpen = true;
+
+			RedFlashStoryboard.Stop();
+			RedFlashOverlay.Opacity = 0;
+
+			// Xử lý lần lượt từng cảnh báo trong hàng đợi
+			while (_pendingAlerts.Count > 0)
+			{
+				var currentAlert = _pendingAlerts.First();
+
+				// Mức Thấp (Low) không cần xem Popup
+				if (currentAlert.Severity == Station.Models.AlertSeverity.Low)
+				{
+					_pendingAlerts.Remove(currentAlert);
+					continue;
+				}
+
+				var dialog = new Station.Dialogs.AlertVideoDialog(currentAlert)
+				{
+					XamlRoot = this.XamlRoot
+				};
+
+				await dialog.ShowAsync();
+
+				if (dialog.WasAcknowledged)
+				{
+					// Đã bấm Xác nhận -> Xóa khỏi hàng đợi
+					_pendingAlerts.Remove(currentAlert);
+
+					// BẮN LỆNH TẮT NHÁY, TRẢ VỀ XANH CHO BẢN ĐỒ
+					if (_securityMapInitialized && SecurityMapWebView != null && currentAlert.NodeId != null)
+					{
+						var payload = new { type = "restore-node", nodeId = currentAlert.NodeId };
+						var json = JsonSerializer.Serialize(payload);
+						SecurityMapWebView.CoreWebView2.PostWebMessageAsJson(json);
+					}
+				}
+				else
+				{
+					// Bấm Hủy/Đóng -> Tạm dừng xem, để lại trong Badge
+					break;
+				}
+			}
+
+			// Tính toán lại trạng thái Badge
+			_pendingAlertCount = _pendingAlerts.Count;
+			if (_pendingAlertCount == 0)
+			{
+				AlertNotificationBadge.Visibility = Visibility.Collapsed;
+			}
+			else
+			{
+				AlertBadgeCountText.Text = _pendingAlertCount.ToString();
+				if (_pendingAlerts.Any(a => a.Severity == Station.Models.AlertSeverity.Critical))
+				{
+					RedFlashStoryboard.Begin();
+				}
+			}
+
+			_alertDialogOpen = false;
+		}
+
         #endregion
-
-        #region Alert Filter Handlers - Removed (UI redesigned)
-        // Old alert filter methods removed as UI was redesigned
-        #endregion
-
-        #region Alert Notification (Flash + Badge)
-
-        private void OnAlertGeneratedForUI(object? sender, Station.Services.AlertGeneratedEventArgs e)
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                _latestAlert = e.Alert;
-                _pendingAlertCount++;
-
-                // Trigger red flash
-                RedFlashStoryboard.Begin();
-
-                // Show / update badge
-                AlertBadgeCountText.Text = _pendingAlertCount.ToString();
-                AlertNotificationBadge.Visibility = Visibility.Visible;
-
-                // Also focus the alerting camera
-                if (!string.IsNullOrEmpty(e.Alert.CameraId))
-                    FocusOnCameraAlert(e.Alert.CameraId, e.Alert.Title);
-            });
-        }
-
-        private async void AlertNotificationBadge_Click(object sender, RoutedEventArgs e)
-        {
-            if (_alertDialogOpen || _latestAlert == null) return;
-            _alertDialogOpen = true;
-
-            // Stop pulsing while dialog is open
-            RedFlashStoryboard.Stop();
-            RedFlashOverlay.Opacity = 0;
-
-            var dialog = new Station.Dialogs.AlertVideoDialog(_latestAlert)
-            {
-                XamlRoot = this.XamlRoot
-            };
-
-            await dialog.ShowAsync();
-
-            if (dialog.WasAcknowledged)
-            {
-                // Fully dismissed — clear everything
-                _pendingAlertCount = 0;
-                AlertNotificationBadge.Visibility = Visibility.Collapsed;
-            }
-            else
-            {
-                // Still has pending alerts — resume pulsing
-                if (_pendingAlertCount > 0) _pendingAlertCount--;
-                if (_pendingAlertCount == 0)
-                {
-                    AlertNotificationBadge.Visibility = Visibility.Collapsed;
-                }
-                else
-                {
-                    AlertBadgeCountText.Text = _pendingAlertCount.ToString();
-                    RedFlashStoryboard.Begin();
-                }
-            }
-
-            _alertDialogOpen = false;
-        }
-
-        private void AlertBadge_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+  
+		private void AlertBadge_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
         {
             this.ProtectedCursor = Microsoft.UI.Input.InputSystemCursor.Create(
                 Microsoft.UI.Input.InputSystemCursorShape.Hand);
@@ -956,7 +1030,7 @@ namespace Station.Views
                 Microsoft.UI.Input.InputSystemCursorShape.Arrow);
         }
 
-        #endregion
+      
 
         #region Join Request Notification Badge
 
