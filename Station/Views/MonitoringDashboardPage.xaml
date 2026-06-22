@@ -90,7 +90,7 @@
                     <Run Text="  "/>
                     <Run Text="{x:Bind ViewModel.CurrentTime, Mode=OneWay}"/>
                 </TextBlock>
-                <Button x:Name="AdminButton"
+                <Button x:Name="UserManagementHeaderButton"
                         Click="AdminButton_Click"
                         Background="Transparent"
                         BorderThickness="0"
@@ -136,6 +136,92 @@
                     <FontIcon Glyph="&#xE713;"
                               FontSize="20"
                               Foreground="{StaticResource MonitoringTextPrimaryBrush}"/>
+                </Button>
+                <Button x:Name="AccountButton"
+                        Background="{StaticResource MonitoringPanelBackgroundBrush}"
+                        BorderBrush="{StaticResource MonitoringBorderBrush}"
+                        BorderThickness="1"
+                        Padding="12,8"
+                        CornerRadius="20"
+                        ToolTipService.ToolTip="Tài khoản"
+                        VerticalAlignment="Center">
+                    <Button.Flyout>
+                        <Flyout Placement="BottomEdgeAlignedRight">
+                            <Border MinWidth="250"
+                                    Background="{StaticResource MonitoringPanelBackgroundBrush}"
+                                    BorderBrush="{StaticResource MonitoringBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="12"
+                                    Padding="12">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Tùy chọn tài khoản"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource MonitoringTextPrimaryBrush}"/>
+
+                                    <Button Click="AccountInfoButton_Click"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Left"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="8,6">
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <FontIcon Glyph="&#xE77B;"
+                                                      FontSize="16"
+                                                      Foreground="{StaticResource MonitoringTextPrimaryBrush}"/>
+                                            <TextBlock Text="Thông tin tài khoản"
+                                                       FontSize="13"
+                                                       Foreground="{StaticResource MonitoringTextPrimaryBrush}"/>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button Click="LogoutButton_Click"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Left"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="8,6">
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <FontIcon Glyph="&#xE8AC;"
+                                                      FontSize="16"
+                                                      Foreground="{StaticResource SeverityCriticalBrush}"/>
+                                            <TextBlock Text="Đăng xuất"
+                                                       FontSize="13"
+                                                       Foreground="{StaticResource SeverityCriticalBrush}"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                        </Flyout>
+                    </Button.Flyout>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <FontIcon Glyph="&#xE77B;"
+                                  FontSize="18"
+                                  Foreground="{StaticResource MonitoringTextPrimaryBrush}"
+                                  VerticalAlignment="Center"/>
+
+                        <StackPanel Spacing="0"
+                                    VerticalAlignment="Center"
+                                    MaxWidth="150">
+                            <TextBlock x:Name="HeaderUserNameText"
+                                       Text="Tài khoản"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource MonitoringTextPrimaryBrush}"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBlock x:Name="HeaderRoleText"
+                                       Text="Phiên đăng nhập"
+                                       FontSize="11"
+                                       Foreground="{StaticResource MonitoringTextSecondaryBrush}"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+
+                        <FontIcon Glyph="&#xE70D;"
+                                  FontSize="12"
+                                  Foreground="{StaticResource MonitoringTextSecondaryBrush}"
+                                  VerticalAlignment="Center"/>
+                    </StackPanel>
                 </Button>
             </StackPanel>
         </Grid>

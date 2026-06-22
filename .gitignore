@@ -379,3 +379,4 @@ FodyWeavers.xsd
 # Git worktrees
 .worktrees/
 .claude
+Station/.env
