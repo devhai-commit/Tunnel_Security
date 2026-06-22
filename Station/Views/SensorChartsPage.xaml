@@ -65,15 +65,15 @@
         </Border>
 
         <!-- ══════════════════ BODY ══════════════════ -->
-        <Grid Grid.Row="1" Margin="14,12,14,14">
+        <Grid Grid.Row="1" Margin="16,12,16,16">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="220"/>
+                <ColumnDefinition Width="260"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
             <!-- ─────────── SIDEBAR ─────────── -->
             <Border Grid.Column="0" Background="#060D17" BorderBrush="#1A3548"
-                    BorderThickness="1" CornerRadius="6" Margin="0,0,12,0">
+                    BorderThickness="1" CornerRadius="6" Margin="0,0,16,0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Padding="14" Spacing="14">
 
@@ -227,8 +227,9 @@
                     </Border>
 
                     <!-- Scrollable charts container -->
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="14">
-                        <StackPanel x:Name="ChartsHost" Spacing="12"/>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled" Padding="14">
+                        <Grid x:Name="ChartsHost" RowSpacing="12" ColumnSpacing="12"/>
                     </ScrollViewer>
 
                     <!-- Empty state overlay -->

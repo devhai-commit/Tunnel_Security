@@ -130,6 +130,8 @@ public sealed partial class SensorChartsPage : Page
     private void BuildCharts()
     {
         ChartsHost.Children.Clear();
+        ChartsHost.RowDefinitions.Clear();
+        ChartsHost.ColumnDefinitions.Clear();
         _sensorStates.Clear();
 
         var sensors = _dataService.Sensors
@@ -160,30 +162,34 @@ public sealed partial class SensorChartsPage : Page
         ChartCountBadge.Text = $"{sensors.Count} biểu đồ";
         SetConnectedStatus(true);
 
-        StackPanel? row = null;
-        int col = 0;
-
-        foreach (var sensor in sensors)
+        var columns = Math.Max(1, _columns);
+        for (var i = 0; i < columns; i++)
         {
+            ChartsHost.ColumnDefinitions.Add(new ColumnDefinition
+            {
+                Width = new GridLength(1, GridUnitType.Star)
+            });
+        }
+
+        for (var i = 0; i < sensors.Count; i++)
+        {
+            var sensor = sensors[i];
             var type = SensorTypeString(sensor.Category);
             var state = CreateChartState(sensor.SensorId, sensor.SensorName, type, sensor.CurrentValue);
             _sensorStates[sensor.SensorId] = state;
 
-            if (_columns == 1)
+            var row = i / columns;
+            var column = i % columns;
+
+            while (ChartsHost.RowDefinitions.Count <= row)
             {
-                state.Card.HorizontalAlignment = HorizontalAlignment.Stretch;
-                ChartsHost.Children.Add(state.Card);
+                ChartsHost.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             }
-            else
-            {
-                if (col == 0)
-                {
-                    row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
-                    ChartsHost.Children.Add(row);
-                }
-                row!.Children.Add(state.Card);
-                col = (col + 1) % _columns;
-            }
+
+            state.Card.HorizontalAlignment = HorizontalAlignment.Stretch;
+            Grid.SetRow(state.Card, row);
+            Grid.SetColumn(state.Card, column);
+            ChartsHost.Children.Add(state.Card);
         }
     }
 
@@ -299,10 +305,7 @@ public sealed partial class SensorChartsPage : Page
             CornerRadius = new CornerRadius(6),
             BorderBrush = new SolidColorBrush(Color.FromArgb(255, 22, 45, 65)),
             BorderThickness = new Thickness(1),
-            MinWidth = _columns switch { 1 => 0, 3 => 220, _ => 340 },
-            HorizontalAlignment = _columns == 1
-                ? HorizontalAlignment.Stretch
-                : HorizontalAlignment.Left
+            HorizontalAlignment = HorizontalAlignment.Stretch
         };
 
         var outer = new Grid();
