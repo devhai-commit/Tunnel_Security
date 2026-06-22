@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.Generic;
@@ -21,10 +22,11 @@ public sealed partial class SensorChartsPage : Page
     private readonly IDataService _dataService = DataServiceLocator.Current;
     private readonly Dictionary<string, SensorChartState> _sensorStates = new();
     private readonly Dictionary<string, ObservableCollection<double>> _chartHistories = new();
-    private readonly HashSet<string> _enabledTypes = new()
-    {
-        "temperature", "humidity", "light", "infrared", "vibration"
-    };
+
+    private string _selectedType = "temperature";
+
+    private record TypeItem(Border Btn, TextBlock Lbl);
+    private readonly Dictionary<string, TypeItem> _typeItems = new();
 
     private DispatcherTimer? _renderTimer;
     private const int RenderIntervalMs = 200;
@@ -46,6 +48,14 @@ public sealed partial class SensorChartsPage : Page
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         _isLoaded = true;
+
+        _typeItems["temperature"] = new TypeItem(BtnTemp,     LblTemp);
+        _typeItems["humidity"]    = new TypeItem(BtnHumidity, LblHumidity);
+        _typeItems["light"]       = new TypeItem(BtnLight,    LblLight);
+        _typeItems["infrared"]    = new TypeItem(BtnInfrared, LblInfrared);
+        _typeItems["vibration"]   = new TypeItem(BtnVibration,LblVibration);
+        UpdateTypeItemStates();
+
         _dataService.TopologyLoaded += OnTopologyLoaded;
         _dataService.SensorTick += OnSensorTick;
 
@@ -99,7 +109,7 @@ public sealed partial class SensorChartsPage : Page
         }
     }
 
-    // ─────────── Real-time update ───────────
+    // ─────────── Sensor tick ───────────
 
     private void ProcessSensorTick(SensorTickEventArgs e)
     {
@@ -113,16 +123,45 @@ public sealed partial class SensorChartsPage : Page
 
         var (dotColor, statusLabel) = e.Sensor.CurrentLevel switch
         {
-            SensorAlertLevel.Critical => (Color.FromArgb(255, 255, 64, 64), "CRITICAL"),
-            SensorAlertLevel.Warning  => (Color.FromArgb(255, 255, 176, 32), "WARNING"),
-            SensorAlertLevel.Offline  => (Color.FromArgb(255, 61, 96, 112), "OFFLINE"),
-            _                         => (Color.FromArgb(255, 0, 200, 138), "NORMAL")
+            SensorAlertLevel.Critical => (Color.FromArgb(255, 255, 82,  82),  "CRITICAL"),
+            SensorAlertLevel.Warning  => (Color.FromArgb(255, 255, 209, 102), "WARNING"),
+            SensorAlertLevel.Offline  => (Color.FromArgb(255, 123, 126, 133), "OFFLINE"),
+            _                         => (Color.FromArgb(255, 63,  207, 142), "NORMAL")
         };
 
         var brush = new SolidColorBrush(dotColor);
         state.StatusDot.Background = brush;
         state.StatusText.Text = statusLabel;
         state.StatusText.Foreground = brush;
+    }
+
+    // ─────────── Sidebar type selection ───────────
+
+    private void SensorType_Tapped(object sender, TappedRoutedEventArgs e)
+    {
+        if (sender is Border border && border.Tag is string type)
+        {
+            _selectedType = type;
+            UpdateTypeItemStates();
+            BuildCharts();
+        }
+    }
+
+    private void UpdateTypeItemStates()
+    {
+        var activeBg     = Color.FromArgb(255, 13,  29,  59);
+        var activeBorder = Color.FromArgb(255, 96,  165, 250);
+        var activeText   = Color.FromArgb(255, 96,  165, 250);
+        var inactiveText = Color.FromArgb(255, 150, 160, 179);
+
+        var transparent = Color.FromArgb(0, 0, 0, 0);
+        foreach (var (type, item) in _typeItems)
+        {
+            var active = type == _selectedType;
+            item.Btn.Background  = new SolidColorBrush(active ? activeBg : transparent);
+            item.Btn.BorderBrush = new SolidColorBrush(active ? activeBorder : transparent);
+            item.Lbl.Foreground  = new SolidColorBrush(active ? activeText : inactiveText);
+        }
     }
 
     // ─────────── Chart building ───────────
@@ -135,12 +174,11 @@ public sealed partial class SensorChartsPage : Page
         _sensorStates.Clear();
 
         var sensors = _dataService.Sensors
-            .Where(s => _enabledTypes.Contains(SensorTypeString(s.Category)))
+            .Where(s => SensorTypeString(s.Category) == _selectedType)
             .OrderBy(s => s.LineId)
             .ThenBy(s => s.NodeId)
             .ToList();
 
-        // Prune histories for sensors no longer in scope
         var activeIds = sensors.Select(s => s.SensorId).ToHashSet();
         foreach (var id in _chartHistories.Keys.Where(k => !activeIds.Contains(k)).ToList())
             _chartHistories.Remove(id);
@@ -150,7 +188,7 @@ public sealed partial class SensorChartsPage : Page
             EmptyState.Visibility = Visibility.Visible;
             EmptyStateLabel.Text = _dataService.Sensors.Count == 0
                 ? "ĐANG KẾT NỐI VỚI BACKEND..."
-                : "CHỌN LOẠI CẢM BIẾN ĐỂ HIỂN THỊ";
+                : "KHÔNG CÓ DỮ LIỆU CẢM BIẾN";
             ChartCountBadge.Text = "0 biểu đồ";
             SensorCountText.Text = "0";
             SetConnectedStatus(_dataService.Sensors.Count > 0);
@@ -164,12 +202,7 @@ public sealed partial class SensorChartsPage : Page
 
         var columns = Math.Max(1, _columns);
         for (var i = 0; i < columns; i++)
-        {
-            ChartsHost.ColumnDefinitions.Add(new ColumnDefinition
-            {
-                Width = new GridLength(1, GridUnitType.Star)
-            });
-        }
+            ChartsHost.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
         for (var i = 0; i < sensors.Count; i++)
         {
@@ -179,16 +212,14 @@ public sealed partial class SensorChartsPage : Page
             _sensorStates[sensor.SensorId] = state;
 
             var row = i / columns;
-            var column = i % columns;
+            var col  = i % columns;
 
             while (ChartsHost.RowDefinitions.Count <= row)
-            {
                 ChartsHost.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            }
 
             state.Card.HorizontalAlignment = HorizontalAlignment.Stretch;
             Grid.SetRow(state.Card, row);
-            Grid.SetColumn(state.Card, column);
+            Grid.SetColumn(state.Card, col);
             ChartsHost.Children.Add(state.Card);
         }
     }
@@ -196,10 +227,9 @@ public sealed partial class SensorChartsPage : Page
     private SensorChartState CreateChartState(
         string sensorId, string sensorName, string type, double initialValue)
     {
-        var chartColor = ChartColor(type);
+        var chartColor  = ChartColor(type);
         var accentColor = AccentColor(type);
 
-        // Reuse existing history so data survives topology rebuilds
         if (!_chartHistories.TryGetValue(sensorId, out var chartValues))
         {
             chartValues = new ObservableCollection<double>(
@@ -211,74 +241,64 @@ public sealed partial class SensorChartsPage : Page
 
         if (type == "vibration")
         {
-            var fillColor = new SKColor(chartColor.Red, chartColor.Green, chartColor.Blue, 180);
             series = new ColumnSeries<double>
             {
-                Values = chartValues,
-                Fill = new SolidColorPaint(fillColor),
-                Stroke = new SolidColorPaint(SKColors.Transparent),
-                MaxBarWidth = 4,
+                Values    = chartValues,
+                Fill      = new SolidColorPaint(new SKColor(chartColor.Red, chartColor.Green, chartColor.Blue, 180)),
+                Stroke    = new SolidColorPaint(SKColors.Transparent),
+                MaxBarWidth       = 4,
                 IgnoresBarPosition = true
             };
         }
         else
         {
-            var fillColor = new SKColor(chartColor.Red, chartColor.Green, chartColor.Blue, 20);
             series = new LineSeries<double>
             {
-                Values = chartValues,
-                Fill = new SolidColorPaint(fillColor),
-                Stroke = new SolidColorPaint(chartColor) { StrokeThickness = 1.5f },
-                GeometrySize = 0,
-                LineSmoothness = 0.5
+                Values          = chartValues,
+                Fill            = new SolidColorPaint(new SKColor(chartColor.Red, chartColor.Green, chartColor.Blue, 18)),
+                Stroke          = new SolidColorPaint(chartColor) { StrokeThickness = 1.5f },
+                GeometrySize    = 0,
+                LineSmoothness  = 0.4
             };
         }
 
-        var axisLabelPaint = new SolidColorPaint(new SKColor(61, 96, 112));
-        var gridPaint = new SolidColorPaint(new SKColor(18, 38, 54, 200)) { StrokeThickness = 1 };
+        var axisLabelPaint = new SolidColorPaint(new SKColor(100, 110, 130));
+        var gridPaint      = new SolidColorPaint(new SKColor(30,  42,  68, 200)) { StrokeThickness = 1 };
 
         var chart = new CartesianChart
         {
-            Height = 150,
-            Series = new[] { series },
+            Height          = 140,
+            Series          = new[] { series },
             AnimationsSpeed = TimeSpan.Zero,
-            EasingFunction = null,
+            EasingFunction  = null,
             XAxes = new[] { new Axis { LabelsPaint = null, SeparatorsPaint = gridPaint, TextSize = 0 } },
-            YAxes = new[]
-            {
-                new Axis
-                {
-                    LabelsPaint = axisLabelPaint,
-                    SeparatorsPaint = gridPaint,
-                    TextSize = 9
-                }
-            }
+            YAxes = new[] { new Axis { LabelsPaint = axisLabelPaint, SeparatorsPaint = gridPaint, TextSize = 9 } }
         };
 
         var valueTb = new TextBlock
         {
-            Text = $"{initialValue:F1}",
-            FontSize = 24,
-            FontFamily = new FontFamily("Consolas"),
-            FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-            Foreground = new SolidColorBrush(Color.FromArgb(255, 192, 216, 234))
+            Text        = $"{initialValue:F1}",
+            FontSize    = 28,
+            FontFamily  = new FontFamily("Consolas"),
+            FontWeight  = Microsoft.UI.Text.FontWeights.Bold,
+            Foreground  = new SolidColorBrush(Color.FromArgb(255, 218, 226, 253))
         };
 
         var statusDot = new Border
         {
-            Width = 6,
-            Height = 6,
-            Background = new SolidColorBrush(Color.FromArgb(255, 0, 200, 138)),
-            CornerRadius = new CornerRadius(3),
-            VerticalAlignment = VerticalAlignment.Center
+            Width              = 6,
+            Height             = 6,
+            Background         = new SolidColorBrush(Color.FromArgb(255, 63, 207, 142)),
+            CornerRadius       = new CornerRadius(3),
+            VerticalAlignment  = VerticalAlignment.Center
         };
 
         var statusTb = new TextBlock
         {
-            Text = "NORMAL",
-            FontSize = 8,
-            FontFamily = new FontFamily("Consolas"),
-            Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 200, 138)),
+            Text              = "NORMAL",
+            FontSize          = 8,
+            FontFamily        = new FontFamily("Consolas"),
+            Foreground        = new SolidColorBrush(Color.FromArgb(255, 63, 207, 142)),
             VerticalAlignment = VerticalAlignment.Center
         };
 
@@ -286,12 +306,12 @@ public sealed partial class SensorChartsPage : Page
 
         return new SensorChartState
         {
-            Card = card,
+            Card        = card,
             ChartValues = chartValues,
-            ValueText = valueTb,
-            StatusDot = statusDot,
-            StatusText = statusTb,
-            LastValue = initialValue
+            ValueText   = valueTb,
+            StatusDot   = statusDot,
+            StatusText  = statusTb,
+            LastValue   = initialValue
         };
     }
 
@@ -299,56 +319,44 @@ public sealed partial class SensorChartsPage : Page
         string sensorName, string type, CartesianChart chart,
         TextBlock valueTb, Border statusDot, TextBlock statusTb, Color accent)
     {
+        // DkSurfaceBrush #171E33, DkBorderBrush #2D3238
         var card = new Border
         {
-            Background = new SolidColorBrush(Color.FromArgb(255, 10, 19, 32)),
-            CornerRadius = new CornerRadius(6),
-            BorderBrush = new SolidColorBrush(Color.FromArgb(255, 22, 45, 65)),
-            BorderThickness = new Thickness(1),
+            Background        = new SolidColorBrush(Color.FromArgb(255, 23, 30, 51)),
+            BorderBrush       = new SolidColorBrush(Color.FromArgb(255, 45, 50, 56)),
+            BorderThickness   = new Thickness(1),
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
-
-        var outer = new Grid();
-        outer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3) });
-        outer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-        var accentBar = new Border
-        {
-            Background = new SolidColorBrush(accent),
-            CornerRadius = new CornerRadius(5, 0, 0, 5)
-        };
-        Grid.SetColumn(accentBar, 0);
 
         var content = new Grid { Margin = new Thickness(12, 10, 12, 10) };
         content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        Grid.SetColumn(content, 1);
 
         // Row 0 — header
-        var headerGrid = new Grid { Margin = new Thickness(0, 0, 0, 8) };
+        var headerGrid = new Grid { Margin = new Thickness(0, 0, 0, 6) };
         headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
         var typeLabel = new TextBlock
         {
-            Text = SensorLabel(type),
-            FontSize = 9,
-            FontFamily = new FontFamily("Consolas"),
-            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-            Foreground = new SolidColorBrush(accent),
+            Text              = SensorLabel(type),
+            FontSize          = 10,
+            FontFamily        = new FontFamily("Consolas"),
+            FontWeight        = Microsoft.UI.Text.FontWeights.SemiBold,
+            Foreground        = new SolidColorBrush(accent),
             VerticalAlignment = VerticalAlignment.Center
         };
         Grid.SetColumn(typeLabel, 0);
 
         var nameLabel = new TextBlock
         {
-            Text = sensorName,
-            FontSize = 10,
-            Foreground = new SolidColorBrush(Color.FromArgb(255, 61, 96, 112)),
+            Text              = sensorName,
+            FontSize          = 10,
+            Foreground        = new SolidColorBrush(Color.FromArgb(80, 194, 198, 214)),
             VerticalAlignment = VerticalAlignment.Center,
-            TextTrimming = TextTrimming.CharacterEllipsis,
-            MaxWidth = 120
+            TextTrimming      = TextTrimming.CharacterEllipsis,
+            MaxWidth          = 150
         };
         Grid.SetColumn(nameLabel, 1);
 
@@ -356,7 +364,7 @@ public sealed partial class SensorChartsPage : Page
         headerGrid.Children.Add(nameLabel);
         Grid.SetRow(headerGrid, 0);
 
-        // Row 1 — chart
+        // Row 1 — chart (no extra wrapper border)
         Grid.SetRow(chart, 1);
 
         // Row 2 — value + status
@@ -366,26 +374,26 @@ public sealed partial class SensorChartsPage : Page
 
         var valueStack = new StackPanel
         {
-            Orientation = Orientation.Horizontal,
-            Spacing = 4,
+            Orientation       = Orientation.Horizontal,
+            Spacing           = 4,
             VerticalAlignment = VerticalAlignment.Bottom
         };
         valueStack.Children.Add(valueTb);
         valueStack.Children.Add(new TextBlock
         {
-            Text = SensorUnit(type),
-            FontSize = 10,
-            FontFamily = new FontFamily("Consolas"),
-            Foreground = new SolidColorBrush(accent),
+            Text              = SensorUnit(type),
+            FontSize          = 11,
+            FontFamily        = new FontFamily("Consolas"),
+            Foreground        = new SolidColorBrush(accent),
             VerticalAlignment = VerticalAlignment.Bottom,
-            Margin = new Thickness(2, 0, 0, 3)
+            Margin            = new Thickness(2, 0, 0, 4)
         });
         Grid.SetColumn(valueStack, 0);
 
         var statusStack = new StackPanel
         {
-            Orientation = Orientation.Horizontal,
-            Spacing = 5,
+            Orientation       = Orientation.Horizontal,
+            Spacing           = 5,
             VerticalAlignment = VerticalAlignment.Bottom
         };
         statusStack.Children.Add(statusDot);
@@ -399,10 +407,7 @@ public sealed partial class SensorChartsPage : Page
         content.Children.Add(headerGrid);
         content.Children.Add(chart);
         content.Children.Add(footer);
-
-        outer.Children.Add(accentBar);
-        outer.Children.Add(content);
-        card.Child = outer;
+        card.Child = content;
         return card;
     }
 
@@ -410,14 +415,14 @@ public sealed partial class SensorChartsPage : Page
     {
         if (connected)
         {
-            ConnectionDot.Fill = new SolidColorBrush(Color.FromArgb(255, 0, 255, 136));
-            ConnectionText.Text = "CONNECTED";
-            ConnectionText.Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 229, 255));
+            ConnectionDot.Fill       = new SolidColorBrush(Color.FromArgb(255, 63, 207, 142));
+            ConnectionText.Text      = "CONNECTED";
+            ConnectionText.Foreground = new SolidColorBrush(Color.FromArgb(255, 96, 165, 250));
         }
         else
         {
-            ConnectionDot.Fill = new SolidColorBrush(Color.FromArgb(255, 61, 96, 112));
-            ConnectionText.Text = "CONNECTING...";
+            ConnectionDot.Fill       = new SolidColorBrush(Color.FromArgb(255, 61, 96, 112));
+            ConnectionText.Text      = "CONNECTING...";
             ConnectionText.Foreground = new SolidColorBrush(Color.FromArgb(255, 61, 96, 112));
         }
     }
@@ -426,32 +431,32 @@ public sealed partial class SensorChartsPage : Page
 
     private static string SensorTypeString(Models.AlertCategory cat) => cat switch
     {
-        Models.AlertCategory.Temperature  => "temperature",
-        Models.AlertCategory.Humidity     => "humidity",
-        Models.AlertCategory.Light        => "light",
-        Models.AlertCategory.Infrared     => "infrared",
+        Models.AlertCategory.Temperature   => "temperature",
+        Models.AlertCategory.Humidity      => "humidity",
+        Models.AlertCategory.Light         => "light",
+        Models.AlertCategory.Infrared      => "infrared",
         Models.AlertCategory.Accelerometer => "vibration",
-        _                                 => "other"
+        _                                  => "other"
     };
 
     private static SKColor ChartColor(string type) => type switch
     {
-        "temperature" => new SKColor(255, 77, 77),
-        "humidity"    => new SKColor(0, 200, 255),
+        "temperature" => new SKColor(255, 77,  77),
+        "humidity"    => new SKColor(34,  211, 238),
         "light"       => new SKColor(255, 184, 0),
-        "vibration"   => new SKColor(255, 140, 0),
+        "vibration"   => new SKColor(132, 204, 22),
         "infrared"    => new SKColor(255, 105, 180),
-        _             => new SKColor(0, 229, 255)
+        _             => new SKColor(173, 198, 255)
     };
 
     private static Color AccentColor(string type) => type switch
     {
-        "temperature" => Color.FromArgb(255, 255, 77, 77),
-        "humidity"    => Color.FromArgb(255, 0, 200, 255),
+        "temperature" => Color.FromArgb(255, 255, 77,  77),
+        "humidity"    => Color.FromArgb(255, 34,  211, 238),
         "light"       => Color.FromArgb(255, 255, 184, 0),
-        "vibration"   => Color.FromArgb(255, 255, 140, 0),
+        "vibration"   => Color.FromArgb(255, 132, 204, 22),
         "infrared"    => Color.FromArgb(255, 255, 105, 180),
-        _             => Color.FromArgb(255, 0, 229, 255)
+        _             => Color.FromArgb(255, 173, 198, 255)
     };
 
     private static string SensorLabel(string type) => type switch
@@ -475,18 +480,6 @@ public sealed partial class SensorChartsPage : Page
     };
 
     // ─────────── Event handlers ───────────
-
-    private void Filter_Changed(object sender, RoutedEventArgs e)
-    {
-        if (!_isLoaded) return;
-        _enabledTypes.Clear();
-        if (ChkTemperature.IsChecked == true) _enabledTypes.Add("temperature");
-        if (ChkHumidity.IsChecked == true) _enabledTypes.Add("humidity");
-        if (ChkLight.IsChecked == true) _enabledTypes.Add("light");
-        if (ChkInfrared.IsChecked == true) _enabledTypes.Add("infrared");
-        if (ChkVibration.IsChecked == true) _enabledTypes.Add("vibration");
-        BuildCharts();
-    }
 
     private void Layout_Changed(object sender, RoutedEventArgs e)
     {
@@ -516,9 +509,7 @@ public sealed partial class SensorChartsPage : Page
         _totalUpdates = 0;
         TotalUpdatesText.Text = "0";
         foreach (var state in _sensorStates.Values)
-        {
             state.ChartValues.Clear();
-        }
     }
 
     // ─────────── Inner types ───────────

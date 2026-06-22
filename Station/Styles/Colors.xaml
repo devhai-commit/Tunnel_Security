@@ -275,9 +275,9 @@
             <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#2979FF"/>
             <SolidColorBrush x:Key="TextControlBorderBrushDisabled" Color="#2D3238"/>
             
-            <SolidColorBrush x:Key="TextControlBackground" Color="#171E33"/>
-            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#171E33"/>
-            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#171E33"/>
+            <SolidColorBrush x:Key="TextControlBackground" Color="#0B1020"/>
+            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#0B1020"/>
+            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#0B1020"/>
             <SolidColorBrush x:Key="TextControlBackgroundDisabled" Color="#060B17"/>
             
             <SolidColorBrush x:Key="TextControlForeground" Color="#E6EEF3"/>
@@ -351,36 +351,64 @@
     Dark UI Palette — dùng cho các trang monitoring (luôn dark, không phụ thuộc theme)
     ==================================== -->
 
-    <!-- Backgrounds -->
-    <SolidColorBrush x:Key="DkBgBrush"         Color="#111621"/>
-    <SolidColorBrush x:Key="DkSurfaceBrush"    Color="#1C222D"/>
+    <!-- Backgrounds — matched to MonitoringDashboard palette -->
+    <SolidColorBrush x:Key="DkBgBrush"         Color="#0F1526"/>
+    <SolidColorBrush x:Key="DkSurfaceBrush"    Color="#171E33"/>
     <SolidColorBrush x:Key="DkDeepBrush"       Color="#0F1526"/>
-    <SolidColorBrush x:Key="DkInputBgBrush"    Color="#111621"/>
+    <SolidColorBrush x:Key="DkInputBgBrush"    Color="#0B1020"/>
 
     <!-- Borders -->
-    <SolidColorBrush x:Key="DkBorderBrush"     Color="#2D3545"/>
-    <SolidColorBrush x:Key="DkBorderSubtleBrush" Color="#1F2937"/>
+    <SolidColorBrush x:Key="DkBorderBrush"     Color="#2D3238"/>
+    <SolidColorBrush x:Key="DkBorderSubtleBrush" Color="#1F2429"/>
 
     <!-- Text -->
-    <SolidColorBrush x:Key="DkTextPrimaryBrush"   Color="#F1F5F9"/>
-    <SolidColorBrush x:Key="DkTextSecondaryBrush" Color="#94A3B8"/>
-    <SolidColorBrush x:Key="DkTextMutedBrush"     Color="#64748B"/>
-    <SolidColorBrush x:Key="DkTextDimBrush"       Color="#475569"/>
+    <SolidColorBrush x:Key="DkTextPrimaryBrush"   Color="#E6EEF3"/>
+    <SolidColorBrush x:Key="DkTextSecondaryBrush" Color="#C4C8CF"/>
+    <SolidColorBrush x:Key="DkTextMutedBrush"     Color="#96A0B3"/>
+    <SolidColorBrush x:Key="DkTextDimBrush"       Color="#64748B"/>
 
     <!-- Accent Blue -->
-    <SolidColorBrush x:Key="DkBlueBrush"       Color="#3B82F6"/>
+    <SolidColorBrush x:Key="DkBlueBrush"       Color="#2979FF"/>
+    <SolidColorBrush x:Key="DkBlueMidBrush"    Color="#3B82F6"/>
+    <SolidColorBrush x:Key="DkBlueLightBrush"  Color="#60A5FA"/>
     <SolidColorBrush x:Key="DkBlueDarkBrush"   Color="#144BB8"/>
     <SolidColorBrush x:Key="DkBlueBgBrush"     Color="#0D1D3B"/>
     <SolidColorBrush x:Key="DkBlueBorderBrush" Color="#1D4ED8"/>
 
-    <!-- Status colors -->
-    <SolidColorBrush x:Key="DkGreenBrush"      Color="#22C55E"/>
+    <!-- Status colors — exact per DESIGN.md severity grammar -->
+    <SolidColorBrush x:Key="DkGreenBrush"      Color="#3FCF8E"/>
     <SolidColorBrush x:Key="DkGreenBgBrush"    Color="#0D2B1A"/>
-    <SolidColorBrush x:Key="DkYellowBrush"     Color="#F59E0B"/>
-    <SolidColorBrush x:Key="DkYellowBgBrush"   Color="#1C1407"/>
-    <SolidColorBrush x:Key="DkRedBrush"        Color="#EF4444"/>
-    <SolidColorBrush x:Key="DkRedBgBrush"      Color="#1F0E0E"/>
-    <SolidColorBrush x:Key="DkGrayBrush"       Color="#64748B"/>
+    <SolidColorBrush x:Key="DkYellowBrush"     Color="#FFD166"/>
+    <SolidColorBrush x:Key="DkYellowBgBrush"   Color="#3D2E14"/>
+    <SolidColorBrush x:Key="DkOrangeBrush"     Color="#FF8C42"/>
+    <SolidColorBrush x:Key="DkOrangeBgBrush"   Color="#3D2218"/>
+    <SolidColorBrush x:Key="DkRedBrush"        Color="#FF5252"/>
+    <SolidColorBrush x:Key="DkRedBgBrush"      Color="#3D1A1A"/>
+    <SolidColorBrush x:Key="DkGrayBrush"       Color="#7B7E85"/>
     <SolidColorBrush x:Key="DkGrayBgBrush"     Color="#1A1F2A"/>
+
+    <!-- Sensor-type visualization — sparklines in Data Monitoring panel -->
+    <!-- Encode sensor identity, NOT severity state. Hues chosen outside the severity grammar. -->
+    <SolidColorBrush x:Key="MonitoringSensorTempBrush"      Color="#FFB347"/>
+    <SolidColorBrush x:Key="MonitoringSensorHumidityBrush"  Color="#22D3EE"/>
+    <SolidColorBrush x:Key="MonitoringSensorVibrationBrush" Color="#84CC16"/>
+    <SolidColorBrush x:Key="MonitoringSensorPressureBrush"  Color="#818CF8"/>
+    <SolidColorBrush x:Key="MonitoringSensorGasBrush"       Color="#2DD4BF"/>
+
+    <!-- Semi-transparent overlay brushes — camera panel and critical alert surfaces -->
+    <SolidColorBrush x:Key="MonitoringCameraOverlayBrush"      Color="#B0000000"/>
+    <SolidColorBrush x:Key="MonitoringAlertFillBrush"          Color="#40FF5252"/>
+    <SolidColorBrush x:Key="MonitoringCameraAlertBannerBrush"  Color="#DCFF5252"/>
+
+    <!-- Alert notification badge state brushes -->
+    <SolidColorBrush x:Key="MonitoringAlertBadgeBgBrush"      Color="#991B1B"/>
+    <SolidColorBrush x:Key="MonitoringAlertBadgeHoverBrush"   Color="#B91C1C"/>
+    <SolidColorBrush x:Key="MonitoringAlertBadgePressedBrush" Color="#7F1D1D"/>
+
+    <!-- Join request badge state brushes -->
+    <SolidColorBrush x:Key="MonitoringJoinBadgeBgBrush"       Color="#78350F"/>
+    <SolidColorBrush x:Key="MonitoringJoinBadgeHoverBrush"    Color="#92400E"/>
+    <SolidColorBrush x:Key="MonitoringJoinBadgePressedBrush"  Color="#451A03"/>
+    <SolidColorBrush x:Key="MonitoringJoinBorderBrush"        Color="#F59E0B"/>
 
 </ResourceDictionary>

@@ -5,50 +5,20 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Station.Dialogs"
     RequestedTheme="Dark"
-    Background="#0F172A"
-    CornerRadius="16"
+    Background="{StaticResource DkBgBrush}"
     Padding="0">
 
     <ContentDialog.Resources>
-        <!-- Gradients & Accents -->
-        <LinearGradientBrush x:Key="CyberTitleGradient" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#00C6FF" Offset="0.0"/>
-            <GradientStop Color="#0072FF" Offset="1.0"/>
-        </LinearGradientBrush>
-
-        <LinearGradientBrush x:Key="ButtonGradient" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#00F2FE" Offset="0.0"/>
-            <GradientStop Color="#4FACFE" Offset="1.0"/>
-        </LinearGradientBrush>
-
-        <LinearGradientBrush x:Key="ChartBarGradient" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#00E5FF" Offset="0.0"/>
-            <GradientStop Color="#0072FF" Offset="1.0"/>
-        </LinearGradientBrush>
-
-        <SolidColorBrush x:Key="NeonAccent" Color="#00E5FF"/>
-
-        <!-- Glassmorphism Brushes -->
-        <SolidColorBrush x:Key="GlassBg" Color="#0AFFFFFF"/>
-        <SolidColorBrush x:Key="GlassBorder" Color="#1AFFFFFF"/>
-        <SolidColorBrush x:Key="CardBg" Color="#14FFFFFF"/>
-        <SolidColorBrush x:Key="HeaderBg" Color="#05FFFFFF"/>
-
-        <!-- Ghi đè Brush của Tab -->
-        <SolidColorBrush x:Key="DkBlueBrush" Color="#00E5FF"/>
-        <SolidColorBrush x:Key="DkTextMutedBrush" Color="#94A3B8"/>
-
         <!-- ======================= NÚT HIỂM HỌA (DANGER) ======================= -->
         <Style x:Key="DangerBtnStyle" TargetType="Button">
             <Setter Property="Background" Value="#1A991B1B"/>
             <Setter Property="BorderBrush" Value="#4CBE123C"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="16,10"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Root" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}">
+                        <Border x:Name="Root" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
                             <VisualStateManager.VisualStateGroups>
                                 <VisualStateGroup x:Name="CommonStates">
                                     <VisualState x:Name="Normal"/>
@@ -58,7 +28,7 @@
                                                 <DiscreteObjectKeyFrame KeyTime="0" Value="#33991B1B"/>
                                             </ObjectAnimationUsingKeyFrames>
                                             <ObjectAnimationUsingKeyFrames Storyboard.TargetName="Root" Storyboard.TargetProperty="BorderBrush">
-                                                <DiscreteObjectKeyFrame KeyTime="0" Value="#EF4444"/>
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource DkRedBrush}"/>
                                             </ObjectAnimationUsingKeyFrames>
                                         </Storyboard>
                                     </VisualState>
@@ -79,14 +49,14 @@
         </Style>
 
         <Style x:Key="DetailRowStyle" TargetType="Border">
-            <Setter Property="BorderBrush" Value="#1AFFFFFF"/>
+            <Setter Property="BorderBrush" Value="{StaticResource DkBorderSubtleBrush}"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
             <Setter Property="Padding" Value="0,12"/>
         </Style>
     </ContentDialog.Resources>
 
     <!-- Root -->
-    <Grid MinWidth="960" MaxWidth="1000" Height="820" CornerRadius="16">
+    <Grid MinWidth="960" MaxWidth="1000" Height="820">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <!-- Header -->
@@ -99,7 +69,7 @@
         </Grid.RowDefinitions>
 
         <!-- ═══════════════════════════ HEADER ═══════════════════════════ -->
-        <Border Grid.Row="0" Padding="24,20" Background="{StaticResource HeaderBg}" BorderBrush="{StaticResource GlassBorder}" BorderThickness="0,0,0,1" CornerRadius="16,16,0,0">
+        <Border Grid.Row="0" Padding="24,20" Background="{StaticResource DkDeepBrush}" BorderBrush="{StaticResource DkBorderSubtleBrush}" BorderThickness="0,0,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -107,43 +77,43 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Glow Node Icon -->
-                <Border Grid.Column="0" Width="48" Height="48" CornerRadius="12" Background="#1A00E5FF" BorderBrush="{StaticResource NeonAccent}" BorderThickness="1" Margin="0,0,16,0">
-                    <FontIcon Glyph="&#xE968;" FontSize="24" Foreground="{StaticResource NeonAccent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <!-- Node Icon -->
+                <Border Grid.Column="0" Width="48" Height="48" Background="{StaticResource DkBlueBgBrush}" BorderBrush="{StaticResource DkBlueLightBrush}" BorderThickness="1" Margin="0,0,16,0">
+                    <FontIcon Glyph="&#xE968;" FontSize="24" Foreground="{StaticResource DkBlueLightBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
 
                 <!-- Title -->
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
                     <StackPanel Orientation="Horizontal" Spacing="12">
-                        <TextBlock x:Name="DialogNodeName" FontSize="22" FontWeight="Black" Foreground="{StaticResource CyberTitleGradient}"/>
-                        <Border x:Name="DialogStatusBadge" CornerRadius="6" Padding="8,4" VerticalAlignment="Center" BorderThickness="1">
+                        <TextBlock x:Name="DialogNodeName" FontSize="22" FontWeight="Black" Foreground="{StaticResource DkTextPrimaryBrush}"/>
+                        <Border x:Name="DialogStatusBadge" Padding="8,4" VerticalAlignment="Center" BorderThickness="1">
                             <TextBlock x:Name="DialogStatusText" FontSize="11" FontWeight="Bold" CharacterSpacing="30"/>
                         </Border>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <FontIcon Glyph="&#xE707;" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="DialogNodeLocation" FontSize="13" Foreground="#94A3B8"/>
+                        <FontIcon Glyph="&#xE707;" FontSize="12" Foreground="{StaticResource DkTextMutedBrush}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="DialogNodeLocation" FontSize="13" Foreground="{StaticResource DkTextMutedBrush}"/>
                     </StackPanel>
                 </StackPanel>
 
                 <!-- Close -->
-                <Button Grid.Column="2" Background="Transparent" BorderThickness="0" Click="CloseButton_Click" Width="40" Height="40" CornerRadius="20">
-                    <FontIcon Glyph="&#xE711;" FontSize="14" Foreground="#94A3B8"/>
+                <Button Grid.Column="2" Background="Transparent" BorderThickness="0" Click="CloseButton_Click" Width="40" Height="40">
+                    <FontIcon Glyph="&#xE711;" FontSize="14" Foreground="{StaticResource DkTextMutedBrush}"/>
                 </Button>
             </Grid>
         </Border>
 
         <!-- ═══════════════════════════ TABS ═══════════════════════════ -->
-        <Border Grid.Row="1" Background="{StaticResource HeaderBg}" BorderBrush="{StaticResource GlassBorder}" BorderThickness="0,0,0,1" Padding="24,0">
+        <Border Grid.Row="1" Background="{StaticResource DkDeepBrush}" BorderBrush="{StaticResource DkBorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="24,0">
             <StackPanel Orientation="Horizontal" Spacing="8">
-                <Border x:Name="Tab1Border" Padding="16,0" BorderBrush="{StaticResource NeonAccent}" BorderThickness="0,0,0,2" Tapped="Tab_Tapped" Tag="0" IsHitTestVisible="True">
-                    <TextBlock x:Name="Tab1Text" Text="Thông tin chung" FontSize="14" FontWeight="Bold" Foreground="{StaticResource NeonAccent}" Padding="0,16"/>
+                <Border x:Name="Tab1Border" Padding="16,0" BorderBrush="{StaticResource DkBlueLightBrush}" BorderThickness="0,0,0,2" Tapped="Tab_Tapped" Tag="0" IsHitTestVisible="True">
+                    <TextBlock x:Name="Tab1Text" Text="Thông tin chung" FontSize="14" FontWeight="Bold" Foreground="{StaticResource DkBlueLightBrush}" Padding="0,16"/>
                 </Border>
                 <Border x:Name="Tab2Border" Padding="16,0" BorderBrush="Transparent" BorderThickness="0,0,0,2" Tapped="Tab_Tapped" Tag="1" IsHitTestVisible="True">
-                    <TextBlock x:Name="Tab2Text" Text="Cấu hình &amp; Cài đặt" FontSize="14" FontWeight="SemiBold" Foreground="#94A3B8" Padding="0,16"/>
+                    <TextBlock x:Name="Tab2Text" Text="Cấu hình &amp; Cài đặt" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource DkTextMutedBrush}" Padding="0,16"/>
                 </Border>
                 <Border x:Name="Tab3Border" Padding="16,0" BorderBrush="Transparent" BorderThickness="0,0,0,2" Tapped="Tab_Tapped" Tag="2" IsHitTestVisible="True">
-                    <TextBlock x:Name="Tab3Text" Text="Dữ liệu trực tiếp" FontSize="14" FontWeight="SemiBold" Foreground="#94A3B8" Padding="0,16"/>
+                    <TextBlock x:Name="Tab3Text" Text="Dữ liệu trực tiếp" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource DkTextMutedBrush}" Padding="0,16"/>
                 </Border>
             </StackPanel>
         </Border>
@@ -164,43 +134,43 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- Pin -->
-                        <Border Grid.Column="0" Padding="20" Background="{StaticResource GlassBg}" BorderBrush="{StaticResource GlassBorder}" BorderThickness="1" CornerRadius="12">
+                        <Border Grid.Column="0" Padding="20" Background="{StaticResource DkSurfaceBrush}" BorderBrush="{StaticResource DkBorderSubtleBrush}" BorderThickness="1">
                             <StackPanel Spacing="12">
                                 <Grid>
-                                    <TextBlock Text="Mức pin" FontSize="13" FontWeight="SemiBold" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                                    <FontIcon Glyph="&#xE83E;" FontSize="18" Foreground="#22C55E" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Mức pin" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource DkTextMutedBrush}" VerticalAlignment="Center"/>
+                                    <FontIcon Glyph="&#xE83E;" FontSize="18" Foreground="{StaticResource DkGreenBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                                 </Grid>
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
-                                    <TextBlock Text="85%" FontSize="28" FontWeight="Black" Foreground="White"/>
-                                    <TextBlock Text="+1.2% / ngày" FontSize="12" FontWeight="SemiBold" Foreground="#22C55E" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+                                    <TextBlock Text="85%" FontSize="28" FontWeight="Black" Foreground="{StaticResource DkTextPrimaryBrush}"/>
+                                    <TextBlock Text="+1.2% / ngày" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource DkGreenBrush}" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
                                 </StackPanel>
                             </StackPanel>
                         </Border>
 
                         <!-- Tín hiệu -->
-                        <Border Grid.Column="1" Padding="20" Background="{StaticResource GlassBg}" BorderBrush="{StaticResource GlassBorder}" BorderThickness="1" CornerRadius="12">
+                        <Border Grid.Column="1" Padding="20" Background="{StaticResource DkSurfaceBrush}" BorderBrush="{StaticResource DkBorderSubtleBrush}" BorderThickness="1">
                             <StackPanel Spacing="12">
                                 <Grid>
-                                    <TextBlock Text="Cường độ tín hiệu" FontSize="13" FontWeight="SemiBold" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                                    <FontIcon Glyph="&#xE701;" FontSize="18" Foreground="{StaticResource NeonAccent}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Cường độ tín hiệu" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource DkTextMutedBrush}" VerticalAlignment="Center"/>
+                                    <FontIcon Glyph="&#xE701;" FontSize="18" Foreground="{StaticResource DkBlueLightBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                                 </Grid>
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
-                                    <TextBlock Text="Mạnh" FontSize="28" FontWeight="Black" Foreground="White"/>
-                                    <TextBlock Text="-65 dBm" FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+                                    <TextBlock Text="Mạnh" FontSize="28" FontWeight="Black" Foreground="{StaticResource DkTextPrimaryBrush}"/>
+                                    <TextBlock Text="-65 dBm" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource DkTextMutedBrush}" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
                                 </StackPanel>
                             </StackPanel>
                         </Border>
 
                         <!-- Uptime -->
-                        <Border Grid.Column="2" Padding="20" Background="{StaticResource GlassBg}" BorderBrush="{StaticResource GlassBorder}" BorderThickness="1" CornerRadius="12">
+                        <Border Grid.Column="2" Padding="20" Background="{StaticResource DkSurfaceBrush}" BorderBrush="{StaticResource DkBorderSubtleBrush}" BorderThickness="1">
                             <StackPanel Spacing="12">
                                 <Grid>
-                                    <TextBlock Text="Thời gian hoạt động" FontSize="13" FontWeight="SemiBold" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                                    <FontIcon Glyph="&#xE121;" FontSize="18" Foreground="#EAB308" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Thời gian hoạt động" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource DkTextMutedBrush}" VerticalAlignment="Center"/>
+                                    <FontIcon Glyph="&#xE121;" FontSize="18" Foreground="{StaticResource DkYellowBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                                 </Grid>
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
-                                    <TextBlock Text="42 ngày" FontSize="28" FontWeight="Black" Foreground="White"/>
-                                    <TextBlock Text="liên tục" FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+                                    <TextBlock Text="42 ngày" FontSize="28" FontWeight="Black" Foreground="{StaticResource DkTextPrimaryBrush}"/>
+                                    <TextBlock Text="liên tục" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource DkTextMutedBrush}" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
                                 </StackPanel>
                             </StackPanel>
                         </Border>
@@ -214,16 +184,16 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- Detail list -->
-                        <Border Grid.Column="0" Padding="24" Background="{StaticResource GlassBg}" BorderBrush="{StaticResource GlassBorder}" BorderThickness="1" CornerRadius="12">
+                        <Border Grid.Column="0" Padding="24" Background="{StaticResource DkSurfaceBrush}" BorderBrush="{StaticResource DkBorderSubtleBrush}" BorderThickness="1">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
-                                    <FontIcon Glyph="&#xE946;" FontSize="14" Foreground="{StaticResource NeonAccent}"/>
-                                    <TextBlock Text="THÔNG TIN CHI TIẾT" FontSize="12" FontWeight="Bold" CharacterSpacing="50" Foreground="{StaticResource NeonAccent}"/>
+                                    <FontIcon Glyph="&#xE946;" FontSize="14" Foreground="{StaticResource DkBlueLightBrush}"/>
+                                    <TextBlock Text="THÔNG TIN CHI TIẾT" FontSize="12" FontWeight="Bold" CharacterSpacing="50" Foreground="{StaticResource DkBlueLightBrush}"/>
                                 </StackPanel>
 
                                 <Border Style="{StaticResource DetailRowStyle}">
                                     <Grid>
-                                        <TextBlock Text="Trạng thái" FontSize="14" Foreground="#94A3B8"/>
+                                        <TextBlock Text="Trạng thái" FontSize="14" Foreground="{StaticResource DkTextMutedBrush}"/>
                                         <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
                                             <Ellipse x:Name="DetailStatusDot" Width="8" Height="8" VerticalAlignment="Center"/>
                                             <TextBlock x:Name="DetailStatusText" FontSize="14" FontWeight="Bold"/>
@@ -233,51 +203,51 @@
 
                                 <Border Style="{StaticResource DetailRowStyle}">
                                     <Grid>
-                                        <TextBlock Text="Tuyến" FontSize="14" Foreground="#94A3B8"/>
-                                        <TextBlock x:Name="DetailLineText" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" MaxWidth="220"/>
+                                        <TextBlock Text="Tuyến" FontSize="14" Foreground="{StaticResource DkTextMutedBrush}"/>
+                                        <TextBlock x:Name="DetailLineText" FontSize="14" FontWeight="Bold" Foreground="{StaticResource DkTextPrimaryBrush}" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" MaxWidth="220"/>
                                     </Grid>
                                 </Border>
 
                                 <Border Style="{StaticResource DetailRowStyle}">
                                     <Grid>
-                                        <TextBlock Text="Ngày lắp đặt" FontSize="14" Foreground="#94A3B8"/>
-                                        <TextBlock Text="15/03/2023" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Right"/>
+                                        <TextBlock Text="Ngày lắp đặt" FontSize="14" Foreground="{StaticResource DkTextMutedBrush}"/>
+                                        <TextBlock Text="15/03/2023" FontSize="14" FontWeight="Bold" Foreground="{StaticResource DkTextPrimaryBrush}" HorizontalAlignment="Right"/>
                                     </Grid>
                                 </Border>
 
                                 <Border Style="{StaticResource DetailRowStyle}">
                                     <Grid>
-                                        <TextBlock Text="Số cảm biến" FontSize="14" Foreground="#94A3B8"/>
-                                        <TextBlock x:Name="DetailSensorCountText" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Right"/>
+                                        <TextBlock Text="Số cảm biến" FontSize="14" Foreground="{StaticResource DkTextMutedBrush}"/>
+                                        <TextBlock x:Name="DetailSensorCountText" FontSize="14" FontWeight="Bold" Foreground="{StaticResource DkTextPrimaryBrush}" HorizontalAlignment="Right"/>
                                     </Grid>
                                 </Border>
 
                                 <Border Padding="0,12,0,0">
                                     <Grid>
-                                        <TextBlock Text="Nhân viên bảo trì" FontSize="14" Foreground="#94A3B8"/>
-                                        <TextBlock Text="Nguyễn Văn A" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Right"/>
+                                        <TextBlock Text="Nhân viên bảo trì" FontSize="14" Foreground="{StaticResource DkTextMutedBrush}"/>
+                                        <TextBlock Text="Nguyễn Văn A" FontSize="14" FontWeight="Bold" Foreground="{StaticResource DkTextPrimaryBrush}" HorizontalAlignment="Right"/>
                                     </Grid>
                                 </Border>
                             </StackPanel>
                         </Border>
 
                         <!-- Map Placeholder -->
-                        <Border Grid.Column="1" Padding="24" Background="{StaticResource GlassBg}" BorderBrush="{StaticResource GlassBorder}" BorderThickness="1" CornerRadius="12">
+                        <Border Grid.Column="1" Padding="24" Background="{StaticResource DkSurfaceBrush}" BorderBrush="{StaticResource DkBorderSubtleBrush}" BorderThickness="1">
                             <StackPanel Spacing="16">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE707;" FontSize="14" Foreground="{StaticResource NeonAccent}"/>
-                                    <TextBlock Text="VỊ TRÍ TRÊN BẢN ĐỒ" FontSize="12" FontWeight="Bold" CharacterSpacing="50" Foreground="{StaticResource NeonAccent}"/>
+                                    <FontIcon Glyph="&#xE707;" FontSize="14" Foreground="{StaticResource DkBlueLightBrush}"/>
+                                    <TextBlock Text="VỊ TRÍ TRÊN BẢN ĐỒ" FontSize="12" FontWeight="Bold" CharacterSpacing="50" Foreground="{StaticResource DkBlueLightBrush}"/>
                                 </StackPanel>
 
-                                <Border Background="#05FFFFFF" BorderBrush="{StaticResource GlassBorder}" BorderThickness="1" CornerRadius="8" MinHeight="185">
+                                <Border Background="{StaticResource DkInputBgBrush}" BorderBrush="{StaticResource DkBorderSubtleBrush}" BorderThickness="1" MinHeight="185">
                                     <Grid>
-                                        <Path Data="M 0,90 L 400,90 M 200,0 L 200,185" Stroke="#1A00E5FF" StrokeThickness="1"/>
-                                        <Ellipse Width="100" Height="100" Stroke="#1A00E5FF" StrokeThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <Path Data="M 0,90 L 400,90 M 200,0 L 200,185" Stroke="{StaticResource DkBorderBrush}" StrokeThickness="1"/>
+                                        <Ellipse Width="100" Height="100" Stroke="{StaticResource DkBorderBrush}" StrokeThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
                                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
-                                            <FontIcon Glyph="&#xE707;" FontSize="36" Foreground="{StaticResource NeonAccent}" HorizontalAlignment="Center"/>
-                                            <TextBlock x:Name="MapLocationText" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Text="Bản đồ đang phát triển" FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                                            <FontIcon Glyph="&#xE707;" FontSize="36" Foreground="{StaticResource DkBlueLightBrush}" HorizontalAlignment="Center"/>
+                                            <TextBlock x:Name="MapLocationText" FontSize="14" FontWeight="Bold" Foreground="{StaticResource DkTextPrimaryBrush}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="Bản đồ đang phát triển" FontSize="12" Foreground="{StaticResource DkTextMutedBrush}" HorizontalAlignment="Center"/>
                                         </StackPanel>
                                     </Grid>
                                 </Border>
@@ -286,11 +256,11 @@
                     </Grid>
 
                     <!-- Sensor Grid -->
-                    <Border Padding="24" Background="{StaticResource GlassBg}" BorderBrush="{StaticResource GlassBorder}" BorderThickness="1" CornerRadius="12">
+                    <Border Padding="24" Background="{StaticResource DkSurfaceBrush}" BorderBrush="{StaticResource DkBorderSubtleBrush}" BorderThickness="1">
                         <StackPanel Spacing="16">
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon Glyph="&#xE9CA;" FontSize="14" Foreground="{StaticResource NeonAccent}" VerticalAlignment="Center"/>
-                                <TextBlock Text="THÔNG SỐ CẢM BIẾN TRỰC TIẾP" FontSize="12" FontWeight="Bold" CharacterSpacing="50" Foreground="{StaticResource NeonAccent}" VerticalAlignment="Center"/>
+                                <FontIcon Glyph="&#xE9CA;" FontSize="14" Foreground="{StaticResource DkBlueLightBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="THÔNG SỐ CẢM BIẾN TRỰC TIẾP" FontSize="12" FontWeight="Bold" CharacterSpacing="50" Foreground="{StaticResource DkBlueLightBrush}" VerticalAlignment="Center"/>
                             </StackPanel>
 
                             <ItemsRepeater x:Name="SensorReadingsRepeater">
@@ -299,15 +269,15 @@
                                 </ItemsRepeater.Layout>
                                 <ItemsRepeater.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="#05FFFFFF" BorderBrush="{StaticResource GlassBorder}" BorderThickness="1" CornerRadius="8" Padding="12,10">
+                                        <Border Background="{StaticResource DkInputBgBrush}" BorderBrush="{StaticResource DkBorderSubtleBrush}" BorderThickness="1" Padding="12,10">
                                             <StackPanel Spacing="6">
                                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <FontIcon Glyph="{Binding TypeIcon}" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                                                    <TextBlock Text="{Binding SensorTypeDisplay}" FontSize="10" FontWeight="Bold" CharacterSpacing="20" TextTrimming="CharacterEllipsis" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                                                    <FontIcon Glyph="{Binding TypeIcon}" FontSize="12" Foreground="{StaticResource DkTextMutedBrush}" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding SensorTypeDisplay}" FontSize="10" FontWeight="Bold" CharacterSpacing="20" TextTrimming="CharacterEllipsis" Foreground="{StaticResource DkTextMutedBrush}" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                                 <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Bottom">
                                                     <TextBlock Text="{Binding CurrentValue}" FontSize="20" FontWeight="Black" Foreground="{Binding SensorStatusColor}" TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Text="{Binding Unit}" FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8" VerticalAlignment="Bottom" Margin="0,0,0,3"/>
+                                                    <TextBlock Text="{Binding Unit}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource DkTextMutedBrush}" VerticalAlignment="Bottom" Margin="0,0,0,3"/>
                                                 </StackPanel>
                                             </StackPanel>
                                         </Border>
@@ -319,11 +289,11 @@
                 </StackPanel>
 
                 <!-- ── TAB 2: CẤU HÌNH ── -->
-                <Border x:Name="Tab2Panel" Visibility="Collapsed" Padding="40" Background="{StaticResource GlassBg}" BorderBrush="{StaticResource GlassBorder}" BorderThickness="1" CornerRadius="12" MinHeight="450">
+                <Border x:Name="Tab2Panel" Visibility="Collapsed" Padding="40" Background="{StaticResource DkSurfaceBrush}" BorderBrush="{StaticResource DkBorderSubtleBrush}" BorderThickness="1" MinHeight="450">
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
-                        <FontIcon Glyph="&#xE713;" FontSize="56" Foreground="#33FFFFFF" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Cấu hình đang phát triển" FontSize="18" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Tính năng này sẽ được cập nhật trong phiên bản tiếp theo của hệ thống." FontSize="14" Foreground="#94A3B8" HorizontalAlignment="Center" TextWrapping="Wrap" MaxWidth="300" TextAlignment="Center"/>
+                        <FontIcon Glyph="&#xE713;" FontSize="56" Foreground="{StaticResource DkBorderBrush}" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Cấu hình đang phát triển" FontSize="18" FontWeight="Bold" Foreground="{StaticResource DkTextPrimaryBrush}" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Tính năng này sẽ được cập nhật trong phiên bản tiếp theo của hệ thống." FontSize="14" Foreground="{StaticResource DkTextMutedBrush}" HorizontalAlignment="Center" TextWrapping="Wrap" MaxWidth="300" TextAlignment="Center"/>
                     </StackPanel>
                 </Border>
 
@@ -335,26 +305,26 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Chart Card -->
-                    <Border Grid.Column="0" Padding="24" Background="{StaticResource GlassBg}" BorderBrush="{StaticResource GlassBorder}" BorderThickness="1" CornerRadius="12">
+                    <Border Grid.Column="0" Padding="24" Background="{StaticResource DkSurfaceBrush}" BorderBrush="{StaticResource DkBorderSubtleBrush}" BorderThickness="1">
                         <StackPanel Spacing="16">
                             <Grid>
-                                <TextBlock Text="Lưu lượng nước (Radar)" FontSize="15" FontWeight="Bold" Foreground="White"/>
-                                <TextBlock Text="Cập nhật 10 giây trước" FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                <TextBlock Text="Lưu lượng nước (Radar)" FontSize="15" FontWeight="Bold" Foreground="{StaticResource DkTextPrimaryBrush}"/>
+                                <TextBlock Text="Cập nhật 10 giây trước" FontSize="12" Foreground="{StaticResource DkTextMutedBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                             </Grid>
 
-                            <!-- Gradient Bar Chart -->
-                            <Border Background="#05FFFFFF" BorderBrush="{StaticResource GlassBorder}" BorderThickness="1" CornerRadius="8" Height="180" Padding="16,12">
+                            <!-- Bar Chart -->
+                            <Border Background="{StaticResource DkInputBgBrush}" BorderBrush="{StaticResource DkBorderSubtleBrush}" BorderThickness="1" Height="180" Padding="16,12">
                                 <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Bottom" HorizontalAlignment="Center">
-                                    <Border Background="{StaticResource ChartBarGradient}" Opacity="0.5" Width="18" Height="70" CornerRadius="4,4,0,0"/>
-                                    <Border Background="{StaticResource ChartBarGradient}" Opacity="0.6" Width="18" Height="90" CornerRadius="4,4,0,0"/>
-                                    <Border Background="{StaticResource ChartBarGradient}" Opacity="0.8" Width="18" Height="120" CornerRadius="4,4,0,0"/>
-                                    <Border Background="{StaticResource ChartBarGradient}" Opacity="0.6" Width="18" Height="100" CornerRadius="4,4,0,0"/>
-                                    <Border Background="{StaticResource ChartBarGradient}" Opacity="1.0" Width="18" Height="150" CornerRadius="4,4,0,0"/>
-                                    <Border Background="{StaticResource ChartBarGradient}" Opacity="0.6" Width="18" Height="80" CornerRadius="4,4,0,0"/>
-                                    <Border Background="{StaticResource ChartBarGradient}" Opacity="0.4" Width="18" Height="50" CornerRadius="4,4,0,0"/>
-                                    <Border Background="{StaticResource ChartBarGradient}" Opacity="1.0" Width="18" Height="160" CornerRadius="4,4,0,0"/>
-                                    <Border Background="{StaticResource ChartBarGradient}" Opacity="0.5" Width="18" Height="85" CornerRadius="4,4,0,0"/>
-                                    <Border Background="{StaticResource ChartBarGradient}" Opacity="0.4" Width="18" Height="60" CornerRadius="4,4,0,0"/>
+                                    <Border Background="{StaticResource DkBlueMidBrush}" Opacity="0.5" Width="18" Height="70"/>
+                                    <Border Background="{StaticResource DkBlueMidBrush}" Opacity="0.6" Width="18" Height="90"/>
+                                    <Border Background="{StaticResource DkBlueMidBrush}" Opacity="0.8" Width="18" Height="120"/>
+                                    <Border Background="{StaticResource DkBlueMidBrush}" Opacity="0.6" Width="18" Height="100"/>
+                                    <Border Background="{StaticResource DkBlueMidBrush}" Opacity="1.0" Width="18" Height="150"/>
+                                    <Border Background="{StaticResource DkBlueMidBrush}" Opacity="0.6" Width="18" Height="80"/>
+                                    <Border Background="{StaticResource DkBlueMidBrush}" Opacity="0.4" Width="18" Height="50"/>
+                                    <Border Background="{StaticResource DkBlueMidBrush}" Opacity="1.0" Width="18" Height="160"/>
+                                    <Border Background="{StaticResource DkBlueMidBrush}" Opacity="0.5" Width="18" Height="85"/>
+                                    <Border Background="{StaticResource DkBlueMidBrush}" Opacity="0.4" Width="18" Height="60"/>
                                 </StackPanel>
                             </Border>
 
@@ -365,36 +335,36 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
-                                    <TextBlock Text="Thấp nhất" FontSize="11" Foreground="#94A3B8"/>
-                                    <TextBlock Text="12%" FontSize="18" FontWeight="Black" Foreground="White" Margin="0,2,0,0"/>
+                                    <TextBlock Text="Thấp nhất" FontSize="11" Foreground="{StaticResource DkTextMutedBrush}"/>
+                                    <TextBlock Text="12%" FontSize="18" FontWeight="Black" Foreground="{StaticResource DkTextPrimaryBrush}" Margin="0,2,0,0"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" HorizontalAlignment="Center">
-                                    <TextBlock Text="Trung bình" FontSize="11" Foreground="#94A3B8"/>
-                                    <TextBlock Text="45%" FontSize="18" FontWeight="Black" Foreground="{StaticResource NeonAccent}" Margin="0,2,0,0"/>
+                                    <TextBlock Text="Trung bình" FontSize="11" Foreground="{StaticResource DkTextMutedBrush}"/>
+                                    <TextBlock Text="45%" FontSize="18" FontWeight="Black" Foreground="{StaticResource DkBlueLightBrush}" Margin="0,2,0,0"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" HorizontalAlignment="Right">
-                                    <TextBlock Text="Cao nhất" FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Right"/>
-                                    <TextBlock Text="89%" FontSize="18" FontWeight="Black" Foreground="#EF4444" Margin="0,2,0,0" HorizontalAlignment="Right"/>
+                                    <TextBlock Text="Cao nhất" FontSize="11" Foreground="{StaticResource DkTextMutedBrush}" HorizontalAlignment="Right"/>
+                                    <TextBlock Text="89%" FontSize="18" FontWeight="Black" Foreground="{StaticResource DkRedBrush}" Margin="0,2,0,0" HorizontalAlignment="Right"/>
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
                     </Border>
 
                     <!-- Camera Live Feed -->
-                    <Border Grid.Column="1" Padding="24" Background="{StaticResource GlassBg}" BorderBrush="{StaticResource GlassBorder}" BorderThickness="1" CornerRadius="12">
+                    <Border Grid.Column="1" Padding="24" Background="{StaticResource DkSurfaceBrush}" BorderBrush="{StaticResource DkBorderSubtleBrush}" BorderThickness="1">
                         <StackPanel Spacing="16">
                             <Grid>
-                                <TextBlock Text="Camera trực tiếp" FontSize="15" FontWeight="Bold" Foreground="White"/>
+                                <TextBlock Text="Camera trực tiếp" FontSize="15" FontWeight="Bold" Foreground="{StaticResource DkTextPrimaryBrush}"/>
                                 <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                    <Ellipse Width="8" Height="8" Fill="#EF4444"/>
-                                    <TextBlock Text="LIVE" FontSize="12" FontWeight="Black" Foreground="#EF4444" CharacterSpacing="30"/>
+                                    <Ellipse Width="8" Height="8" Fill="{StaticResource DkRedBrush}"/>
+                                    <TextBlock Text="LIVE" FontSize="12" FontWeight="Black" Foreground="{StaticResource DkRedBrush}" CharacterSpacing="30"/>
                                 </StackPanel>
                             </Grid>
 
                             <!-- Monitor Screen -->
-                            <Border Background="#050505" BorderBrush="#1AFFFFFF" BorderThickness="2" CornerRadius="8" Height="180">
+                            <Border Background="{StaticResource DkInputBgBrush}" BorderBrush="{StaticResource DkBorderSubtleBrush}" BorderThickness="2" Height="180">
                                 <Grid>
-                                    <FontIcon Glyph="&#xE890;" FontSize="48" Foreground="#1AFFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <FontIcon Glyph="&#xE890;" FontSize="48" Foreground="{StaticResource DkBorderSubtleBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
                                     <!-- OSD Overlay -->
                                     <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="12,0,0,12" Spacing="4">
@@ -406,16 +376,15 @@
 
                             <StackPanel Spacing="10" Margin="0,8,0,0">
                                 <Grid>
-                                    <TextBlock Text="Mã định danh (Camera ID)" FontSize="13" Foreground="#94A3B8"/>
-                                    <TextBlock x:Name="CamIdDetail" FontSize="13" FontWeight="Bold" Foreground="White" HorizontalAlignment="Right"/>
+                                    <TextBlock Text="Mã định danh (Camera ID)" FontSize="13" Foreground="{StaticResource DkTextMutedBrush}"/>
+                                    <TextBlock x:Name="CamIdDetail" FontSize="13" FontWeight="Bold" Foreground="{StaticResource DkTextPrimaryBrush}" HorizontalAlignment="Right"/>
                                 </Grid>
                                 <Grid>
-                                    <TextBlock Text="Trạng thái kết nối" FontSize="13" Foreground="#94A3B8"/>
-                                    <TextBlock x:Name="CamStatusDetail" Text="Đang truyền phát" FontSize="13" FontWeight="Bold" Foreground="#22C55E" HorizontalAlignment="Right"/>
+                                    <TextBlock Text="Trạng thái kết nối" FontSize="13" Foreground="{StaticResource DkTextMutedBrush}"/>
+                                    <TextBlock x:Name="CamStatusDetail" Text="Đang truyền phát" FontSize="13" FontWeight="Bold" Foreground="{StaticResource DkGreenBrush}" HorizontalAlignment="Right"/>
                                 </Grid>
                             </StackPanel>
                         </StackPanel>
-                        <!-- Đây là thẻ đóng đã được thêm vào -->
                     </Border>
                 </Grid>
 
@@ -423,7 +392,7 @@
         </ScrollViewer>
 
         <!-- ═══════════════════════════ FOOTER ═══════════════════════════ -->
-        <Border Grid.Row="3" Background="{StaticResource HeaderBg}" BorderBrush="{StaticResource GlassBorder}" BorderThickness="0,1,0,0" Padding="24,16" CornerRadius="0,0,16,16">
+        <Border Grid.Row="3" Background="{StaticResource DkDeepBrush}" BorderBrush="{StaticResource DkBorderSubtleBrush}" BorderThickness="0,1,0,0" Padding="24,16">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -432,16 +401,16 @@
 
                 <!-- Left -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
-                    <Button Background="#1AFFFFFF" BorderBrush="{StaticResource GlassBorder}" BorderThickness="1" CornerRadius="8" Padding="16,10">
+                    <Button Background="{StaticResource DkSurfaceBrush}" BorderBrush="{StaticResource DkBorderSubtleBrush}" BorderThickness="1" Padding="16,10">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE81C;" FontSize="14" Foreground="White"/>
-                            <TextBlock Text="Lịch sử log" FontSize="14" FontWeight="SemiBold" Foreground="White"/>
+                            <FontIcon Glyph="&#xE81C;" FontSize="14" Foreground="{StaticResource DkTextPrimaryBrush}"/>
+                            <TextBlock Text="Lịch sử log" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource DkTextPrimaryBrush}"/>
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource DangerBtnStyle}" Click="RestartButton_Click">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE72C;" FontSize="14" Foreground="#EF4444"/>
-                            <TextBlock Text="Khởi động lại" FontSize="14" FontWeight="Bold" Foreground="#EF4444"/>
+                            <FontIcon Glyph="&#xE72C;" FontSize="14" Foreground="{StaticResource DkRedBrush}"/>
+                            <TextBlock Text="Khởi động lại" FontSize="14" FontWeight="Bold" Foreground="{StaticResource DkRedBrush}"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -449,9 +418,9 @@
                 <!-- Right -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
                     <Button Background="Transparent" BorderThickness="0" Click="CloseButton_Click" Padding="16,10">
-                        <TextBlock Text="Đóng" FontSize="14" FontWeight="Bold" Foreground="#94A3B8"/>
+                        <TextBlock Text="Đóng" FontSize="14" FontWeight="Bold" Foreground="{StaticResource DkTextMutedBrush}"/>
                     </Button>
-                    <Button Background="{StaticResource ButtonGradient}" CornerRadius="8" Padding="24,10" BorderThickness="0">
+                    <Button Background="{StaticResource DkBlueBrush}" Padding="24,10" BorderThickness="0">
                         <TextBlock Text="LƯU THAY ĐỔI" FontSize="14" FontWeight="Bold" Foreground="White" CharacterSpacing="20"/>
                     </Button>
                 </StackPanel>

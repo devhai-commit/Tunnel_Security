@@ -791,7 +791,7 @@
         <Setter Property="Background"      Value="{StaticResource DkBlueDarkBrush}"/>
         <Setter Property="Foreground"      Value="White"/>
         <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="CornerRadius"    Value="8"/>
+        <Setter Property="CornerRadius"    Value="0"/>
         <Setter Property="Padding"         Value="16,9"/>
         <Setter Property="FontSize"        Value="13"/>
         <Setter Property="FontWeight"      Value="SemiBold"/>
@@ -837,7 +837,7 @@
         <Setter Property="Foreground"      Value="{StaticResource DkTextSecondaryBrush}"/>
         <Setter Property="BorderBrush"     Value="{StaticResource DkBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius"    Value="8"/>
+        <Setter Property="CornerRadius"    Value="0"/>
         <Setter Property="Padding"         Value="16,9"/>
         <Setter Property="FontSize"        Value="13"/>
         <Setter Property="Template">
@@ -881,7 +881,7 @@
     <Style x:Key="DkIconButtonStyle" TargetType="Button">
         <Setter Property="Background"      Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="CornerRadius"    Value="6"/>
+        <Setter Property="CornerRadius"    Value="0"/>
         <Setter Property="Width"           Value="34"/>
         <Setter Property="Height"          Value="34"/>
         <Setter Property="Padding"         Value="0"/>
@@ -956,7 +956,7 @@
         <Setter Property="BorderBrush"         Value="{StaticResource DkBorderBrush}"/>
         <Setter Property="Foreground"          Value="#E2E8F0"/>
         <Setter Property="FontSize"            Value="13"/>
-        <Setter Property="CornerRadius"        Value="8"/>
+        <Setter Property="CornerRadius"        Value="0"/>
         <Setter Property="Padding"             Value="12,8"/>
         <Setter Property="MinHeight"           Value="36"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
@@ -968,7 +968,7 @@
         <Setter Property="BorderBrush"           Value="{StaticResource DkBorderBrush}"/>
         <Setter Property="Foreground"            Value="#E2E8F0"/>
         <Setter Property="FontSize"              Value="13"/>
-        <Setter Property="CornerRadius"          Value="8"/>
+        <Setter Property="CornerRadius"          Value="0"/>
         <Setter Property="Padding"               Value="36,8,8,8"/>
         <Setter Property="MinHeight"             Value="36"/>
         <Setter Property="PlaceholderForeground" Value="{StaticResource DkTextMutedBrush}"/>

@@ -101,8 +101,55 @@ namespace Station.ViewModels
         public ObservableCollection<DeviceItemViewModel> AllDevices { get; } = new();
         public ObservableCollection<DeviceItemViewModel> FilteredDevices { get; } = new();
         public ObservableCollection<NodeItemViewModel> FilteredNodes { get; } = new();
+        public ObservableCollection<NodeItemViewModel> PagedFilteredNodes { get; } = new();
         public ObservableCollection<string> StatusFilters { get; } = new();
         public ObservableCollection<string> LineFilters { get; } = new();
+
+        // Pagination
+        private const int PageSize = 6;
+        private int _currentPage = 1;
+        public int CurrentPage => _currentPage;
+        public int TotalPages => Math.Max(1, (int)Math.Ceiling(FilteredNodes.Count / (double)PageSize));
+        public bool CanGoPrevPage => _currentPage > 1;
+        public bool CanGoNextPage => _currentPage < TotalPages;
+        public string PageFooterText => FilteredNodes.Count == 0
+            ? "Không có thiết bị nào"
+            : $"Hiển thị {(_currentPage - 1) * PageSize + 1}–{Math.Min(_currentPage * PageSize, FilteredNodes.Count)} trong {FilteredNodes.Count} thiết bị";
+
+        [RelayCommand]
+        private void PrevPage()
+        {
+            if (!CanGoPrevPage) return;
+            _currentPage--;
+            NotifyPaginationChanged();
+            RefreshPagedNodes();
+        }
+
+        [RelayCommand]
+        private void NextPage()
+        {
+            if (!CanGoNextPage) return;
+            _currentPage++;
+            NotifyPaginationChanged();
+            RefreshPagedNodes();
+        }
+
+        private void NotifyPaginationChanged()
+        {
+            OnPropertyChanged(nameof(CurrentPage));
+            OnPropertyChanged(nameof(TotalPages));
+            OnPropertyChanged(nameof(CanGoPrevPage));
+            OnPropertyChanged(nameof(CanGoNextPage));
+            OnPropertyChanged(nameof(PageFooterText));
+        }
+
+        private void RefreshPagedNodes()
+        {
+            PagedFilteredNodes.Clear();
+            var skip = (_currentPage - 1) * PageSize;
+            foreach (var node in FilteredNodes.Skip(skip).Take(PageSize))
+                PagedFilteredNodes.Add(node);
+        }
 
         // Pending join requests from hardware devices
         public ObservableCollection<JoinRequestItemViewModel> PendingJoinRequests { get; } = new();
@@ -553,6 +600,9 @@ namespace Station.ViewModels
             }
 
             UpdateStatistics();
+            _currentPage = 1;
+            NotifyPaginationChanged();
+            RefreshPagedNodes();
         }
 
         private void UpdateStatistics()
@@ -576,6 +626,8 @@ namespace Station.ViewModels
             if (NodePassesCurrentFilters(node))
                 FilteredNodes.Add(node);
             UpdateStatistics();
+            NotifyPaginationChanged();
+            RefreshPagedNodes();
         }
 
         public void DeleteNode(NodeItemViewModel node)
@@ -583,6 +635,9 @@ namespace Station.ViewModels
             _userAddedNodes.Remove(node.Location);
             FilteredNodes.Remove(node);
             UpdateStatistics();
+            if (_currentPage > TotalPages) _currentPage = TotalPages;
+            NotifyPaginationChanged();
+            RefreshPagedNodes();
         }
 
         public void UpdateNode(NodeItemViewModel node, string newName, string newLineName, string newLocation)
@@ -741,11 +796,11 @@ namespace Station.ViewModels
         {
             get => Status switch
             {
-                DeviceStatus.Online => new SolidColorBrush(Color.FromArgb(255, 34, 197, 94)), // #22C55E - Green
-                DeviceStatus.Offline => new SolidColorBrush(Color.FromArgb(255, 148, 163, 184)), // #94A3B8 - Gray
-                DeviceStatus.Fault => new SolidColorBrush(Color.FromArgb(255, 239, 68, 68)), // #EF4444 - Red
-                DeviceStatus.Disabled => new SolidColorBrush(Color.FromArgb(255, 100, 116, 139)), // #64748B - Slate
-                _ => new SolidColorBrush(Color.FromArgb(255, 148, 163, 184))
+                DeviceStatus.Online   => new SolidColorBrush(Color.FromArgb(255, 63, 207, 142)),  // #3FCF8E
+                DeviceStatus.Offline  => new SolidColorBrush(Color.FromArgb(255, 123, 126, 133)), // #7B7E85
+                DeviceStatus.Fault    => new SolidColorBrush(Color.FromArgb(255, 255, 82, 82)),   // #FF5252
+                DeviceStatus.Disabled => new SolidColorBrush(Color.FromArgb(255, 100, 116, 139)), // #64748B
+                _ => new SolidColorBrush(Color.FromArgb(255, 123, 126, 133))
             };
         }
 
@@ -753,11 +808,11 @@ namespace Station.ViewModels
         {
             get => Status switch
             {
-                DeviceStatus.Online => new SolidColorBrush(Color.FromArgb(255, 220, 252, 231)), // #DCFCE7 - Light Green
-                DeviceStatus.Offline => new SolidColorBrush(Color.FromArgb(255, 241, 245, 249)), // #F1F5F9 - Light Gray
-                DeviceStatus.Fault => new SolidColorBrush(Color.FromArgb(255, 254, 226, 226)), // #FEE2E2 - Light Red
-                DeviceStatus.Disabled => new SolidColorBrush(Color.FromArgb(255, 226, 232, 240)), // #E2E8F0 - Light Slate
-                _ => new SolidColorBrush(Color.FromArgb(255, 241, 245, 249))
+                DeviceStatus.Online   => new SolidColorBrush(Color.FromArgb(255, 26, 58, 46)),  // #1A3A2E
+                DeviceStatus.Offline  => new SolidColorBrush(Color.FromArgb(255, 26, 31, 42)),  // #1A1F2A
+                DeviceStatus.Fault    => new SolidColorBrush(Color.FromArgb(255, 61, 26, 26)),  // #3D1A1A
+                DeviceStatus.Disabled => new SolidColorBrush(Color.FromArgb(255, 26, 31, 42)),  // #1A1F2A
+                _ => new SolidColorBrush(Color.FromArgb(255, 26, 31, 42))
             };
         }
 
@@ -958,6 +1013,25 @@ namespace Station.ViewModels
         }
 
         public string SensorCountText => $"{Sensors.Count} cảm biến";
+
+        public string DeviceType
+        {
+            get
+            {
+                if (Sensors.Count == 0) return "Chưa cấu hình";
+                bool hasCamera  = Sensors.Any(s => s.SensorType == "Camera");
+                int  sensorCnt  = Sensors.Count(s => s.SensorType != "Camera");
+                return (hasCamera, sensorCnt) switch
+                {
+                    (true, > 0) => $"Camera + {sensorCnt} cảm biến",
+                    (true, 0)   => "Camera",
+                    _           => $"{sensorCnt} cảm biến"
+                };
+            }
+        }
+
+        public string LastTelemetry =>
+            Sensors.FirstOrDefault()?.LastUpdateText ?? "Chưa cập nhật";
     }
 
     /// <summary>ViewModel cho một yêu cầu gia nhập chờ phê duyệt.</summary>

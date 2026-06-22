@@ -72,7 +72,7 @@
                         Command="{x:Bind ViewModel.ShowMostCriticalAlertCommand}"
                         VerticalAlignment="Center"
                         Background="#EF4444" BorderThickness="0"
-                        CornerRadius="8" Height="36" Padding="16,0">
+                        CornerRadius="4" Height="36" Padding="16,0">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE7EF;" FontSize="14" Foreground="White"/>
                         <TextBlock Text="Xem ngay" FontSize="13" FontWeight="SemiBold" Foreground="White"/>
@@ -87,116 +87,144 @@
              ═══════════════════════════════════════════════════ -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="280"/>
+                <ColumnDefinition x:Name="SidebarColumn" Width="280" MinWidth="48"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
             <!-- ─── Sidebar: Camera List ─── -->
             <Border Grid.Column="0" Background="{StaticResource BackgroundPrimaryBrush}"
                     BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,1,0">
-                <Grid Padding="16,20">
+                <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Sidebar header -->
-                    <StackPanel Grid.Row="0" Margin="0,0,0,16">
-                        <TextBlock Text="Danh sách Camera" FontSize="18" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}"/>
-                        <TextBlock Text="Chọn camera để hiển thị" FontSize="12"
-                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
-                    </StackPanel>
+                    <!-- Sidebar header (always visible) -->
+                    <Grid x:Name="SidebarHeaderGrid" Grid.Row="0" Padding="16,13,10,13"
+                          BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                    <!-- Alert summary chip (shown only when alerts) -->
-                    <Border Grid.Row="1"
-                            Visibility="{x:Bind ViewModel.HasActiveAlerts, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
-                            Background="#1F0E0E" BorderBrush="#7F1D1D" BorderThickness="1"
-                            CornerRadius="8" Padding="12,8" Margin="0,0,0,12">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Ellipse Width="8" Height="8" Fill="#EF4444" VerticalAlignment="Center"/>
-                            <TextBlock FontSize="12" Foreground="#FCA5A5" VerticalAlignment="Center">
-                                <Run Text="{x:Bind ViewModel.ActiveAlertCount, Mode=OneWay}" FontWeight="Bold"/>
-                                <Run Text=" cảnh báo đang hoạt động"/>
-                            </TextBlock>
+                        <StackPanel x:Name="SidebarTitlePanel" Grid.Column="0"
+                                    VerticalAlignment="Center">
+                            <TextBlock Text="Camera" FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Text="Chọn camera để hiển thị" FontSize="11"
+                                       Foreground="{StaticResource TextSecondaryBrush}" Margin="0,1,0,0"/>
                         </StackPanel>
-                    </Border>
 
-                    <!-- Select/Deselect actions -->
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
-                        <Button x:Name="SelectAllButton" Content="Chọn tất cả"
-                                Click="SelectAll_Click"
-                                Style="{StaticResource SecondaryButtonStyle}"
-                                FontSize="12" Padding="10,6" MinHeight="30" Width="120"/>
-                        <Button x:Name="DeselectAllButton" Content="Bỏ chọn"
-                                Click="DeselectAll_Click"
-                                Style="{StaticResource SecondaryButtonStyle}"
-                                FontSize="12" Padding="10,6" MinHeight="30" Width="120"/>
-                    </StackPanel>
+                        <Button x:Name="SidebarToggleButton"
+                                Grid.Column="1"
+                                Click="SidebarToggle_Click"
+                                Background="Transparent" BorderThickness="0"
+                                Width="32" Height="32" Padding="0"
+                                VerticalAlignment="Center"
+                                ToolTipService.ToolTip="Thu gọn danh sách">
+                            <FontIcon x:Name="SidebarToggleIcon"
+                                      Glyph="&#xE76B;"
+                                      FontSize="13"
+                                      Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </Button>
+                    </Grid>
 
-                    <!-- Camera list -->
-                    <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Padding="0,0,8,0">
-                        <ItemsControl ItemsSource="{x:Bind ViewModel.CameraStreams, Mode=OneWay}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="viewmodels:CameraStreamViewModel">
-                                    <!-- Alert border blinks on HasAlert cameras -->
-                                    <Border CornerRadius="8" Margin="0,0,0,4" Padding="1">
-                                        <Border.Background>
-                                            <SolidColorBrush Color="Transparent"/>
-                                        </Border.Background>
+                    <!-- Collapsible content (hidden when sidebar collapsed) -->
+                    <Grid x:Name="SidebarCollapsibleContent" Grid.Row="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Alert summary chip -->
+                        <Border Grid.Row="0"
+                                Visibility="{x:Bind ViewModel.HasActiveAlerts, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+                                Background="#1F0E0E" BorderBrush="#7F1D1D" BorderThickness="0,0,0,1"
+                                Padding="16,8">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Ellipse Width="7" Height="7" Fill="#EF4444" VerticalAlignment="Center"/>
+                                <TextBlock FontSize="12" Foreground="#FCA5A5" VerticalAlignment="Center">
+                                    <Run Text="{x:Bind ViewModel.ActiveAlertCount, Mode=OneWay}" FontWeight="Bold"/>
+                                    <Run Text=" cảnh báo đang hoạt động"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Camera list -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0">
+                            <ItemsControl ItemsSource="{x:Bind ViewModel.CameraStreams, Mode=OneWay}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="viewmodels:CameraStreamViewModel">
                                         <Grid>
-                                            <!-- Alert highlight outline (blinks) -->
-                                            <Border CornerRadius="8" BorderThickness="2" Padding="10,8"
-                                                    Visibility="{x:Bind HasAlert, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                <Border.BorderBrush>
-                                                    <SolidColorBrush Color="#EF4444"
-                                                        Opacity="{x:Bind AlertBorderOpacity, Mode=OneWay}"/>
-                                                </Border.BorderBrush>
-                                                <Border.Background>
-                                                    <SolidColorBrush Color="#1F0E0E"/>
-                                                </Border.Background>
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <Ellipse Width="7" Height="7" Fill="#EF4444"
-                                                             VerticalAlignment="Center"/>
-                                                    <StackPanel>
+                                            <!-- Bottom divider -->
+                                            <Rectangle Height="1" VerticalAlignment="Bottom"
+                                                       Fill="{StaticResource BorderLightBrush}" Opacity="0.22"/>
+
+                                            <!-- Alert state row -->
+                                            <Grid Background="#120808"
+                                                  Visibility="{x:Bind HasAlert, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <Rectangle Width="3" HorizontalAlignment="Left"
+                                                           VerticalAlignment="Stretch"
+                                                           Fill="#EF4444"
+                                                           Opacity="{x:Bind AlertBorderOpacity, Mode=OneWay}"/>
+                                                <Grid Padding="14,10,16,10" Margin="3,0,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Spacing="2" VerticalAlignment="Center">
                                                         <TextBlock Text="{x:Bind CameraName}"
-                                                                   FontSize="12" FontWeight="SemiBold"
+                                                                   FontSize="13" FontWeight="SemiBold"
                                                                    Foreground="#F1F5F9"/>
                                                         <TextBlock Text="{x:Bind AlertTitle}"
                                                                    FontSize="11" Foreground="#FCA5A5"
-                                                                   TextTrimming="CharacterEllipsis" MaxWidth="170"/>
+                                                                   TextTrimming="CharacterEllipsis" MaxWidth="160"/>
                                                     </StackPanel>
-                                                </StackPanel>
-                                            </Border>
+                                                    <Ellipse Grid.Column="1" Width="7" Height="7"
+                                                             Fill="#EF4444" VerticalAlignment="Center"
+                                                             Opacity="{x:Bind AlertBorderOpacity, Mode=OneWay}"/>
+                                                </Grid>
+                                            </Grid>
 
-                                            <!-- Normal state (no alert) -->
-                                            <Border CornerRadius="8" Padding="10,8"
-                                                    Visibility="{x:Bind HasAlert, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}"
-                                                    Background="Transparent">
-                                                <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}" Padding="10,0,0,0">
-                                                    <StackPanel Orientation="Horizontal" Spacing="10">
-                                                        <Border Width="7" Height="7" CornerRadius="4"
-                                                                Background="{x:Bind StatusColor, Mode=OneWay}"
-                                                                VerticalAlignment="Center"/>
-                                                        <StackPanel>
-                                                            <TextBlock Text="{x:Bind CameraName}"
-                                                                       FontSize="12" FontWeight="SemiBold"
-                                                                       Foreground="{StaticResource TextPrimaryBrush}"/>
-                                                            <TextBlock Text="{x:Bind CameraId}"
-                                                                       FontSize="11"
-                                                                       Foreground="{StaticResource TextTertiaryBrush}"/>
-                                                        </StackPanel>
-                                                    </StackPanel>
-                                                </CheckBox>
-                                            </Border>
+                                            <!-- Normal state row with CheckBox -->
+                                            <Grid Padding="14,10,16,10"
+                                                  Visibility="{x:Bind HasAlert, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="10"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="10"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <CheckBox Grid.Column="0"
+                                                          IsChecked="{x:Bind IsSelected, Mode=TwoWay}"
+                                                          Checked="CameraCheckBox_Changed"
+                                                          Unchecked="CameraCheckBox_Changed"
+                                                          MinWidth="0" Padding="0"
+                                                          VerticalAlignment="Center"/>
+
+                                                <Ellipse Grid.Column="2" Width="7" Height="7"
+                                                         Fill="{x:Bind StatusColor, Mode=OneWay}"
+                                                         VerticalAlignment="Center"/>
+
+                                                <StackPanel Grid.Column="4" Spacing="2"
+                                                            VerticalAlignment="Center">
+                                                    <TextBlock Text="{x:Bind CameraName}"
+                                                               FontSize="13" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                    <TextBlock Text="{x:Bind CameraId}"
+                                                               FontSize="11"
+                                                               Foreground="{StaticResource TextTertiaryBrush}"/>
+                                                </StackPanel>
+                                            </Grid>
                                         </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
                 </Grid>
             </Border>
 
@@ -217,7 +245,7 @@
                     <StackPanel Grid.Column="0">
                         <TextBlock Text="Giám sát Trực tiếp" Style="{StaticResource TitleTextBlockStyle}" Margin="0,0,0,6"/>
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <Border Background="{StaticResource BackgroundPrimaryBrush}" CornerRadius="20" Padding="10,5"
+                            <Border Background="{StaticResource BackgroundPrimaryBrush}" CornerRadius="4" Padding="10,5"
                                     BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <FontIcon Glyph="&#xE714;" FontSize="11" Foreground="{StaticResource SeverityLowBrush}"/>
@@ -229,7 +257,7 @@
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
-                            <Border Background="{StaticResource BackgroundPrimaryBrush}" CornerRadius="20" Padding="10,5"
+                            <Border Background="{StaticResource BackgroundPrimaryBrush}" CornerRadius="4" Padding="10,5"
                                     BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <FontIcon Glyph="&#xE80A;" FontSize="11" Foreground="{StaticResource PrimaryMediumBrush}"/>
@@ -303,7 +331,7 @@
                                     <Border Visibility="{x:Bind HasAlert, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}"
                                             Background="{StaticResource BackgroundPrimaryBrush}"
                                             BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
-                                            CornerRadius="12" Shadow="{StaticResource CommonShadow}">
+                                            CornerRadius="4" Shadow="{StaticResource CommonShadow}">
                                         <Grid>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
@@ -361,7 +389,7 @@
                                             <!-- Card footer -->
                                             <Grid Grid.Row="2" Padding="10,7"
                                                   Background="{StaticResource BackgroundSecondaryBrush}"
-                                                  CornerRadius="0,0,12,12">
+                                                  CornerRadius="0,0,4,4">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
@@ -431,7 +459,7 @@
                                     <!-- ── ALERT CARD (blinks red border) ── -->
                                     <Border Visibility="{x:Bind HasAlert, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
                                             Background="#0F0505"
-                                            CornerRadius="12" Shadow="{StaticResource CommonShadow}"
+                                            CornerRadius="4" Shadow="{StaticResource CommonShadow}"
                                             BorderThickness="2">
                                         <Border.BorderBrush>
                                             <SolidColorBrush Color="#EF4444"
@@ -446,7 +474,7 @@
 
                                             <!-- Alert card header -->
                                             <Grid Grid.Row="0" Padding="12,9" Background="#1A0808"
-                                                  CornerRadius="10,10,0,0">
+                                                  CornerRadius="3,3,0,0">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
@@ -511,7 +539,7 @@
                                             </Grid>
 
                                             <!-- Alert card footer: action button -->
-                                            <Border Grid.Row="2" Background="#1A0808" Padding="10,8" CornerRadius="0,0,10,10">
+                                            <Border Grid.Row="2" Background="#1A0808" Padding="10,8" CornerRadius="0,0,3,3">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*"/>

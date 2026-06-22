@@ -27,18 +27,19 @@ namespace Station.Views
 
         private void SetActiveTab(bool isJoinRequestsTab)
         {
-            var activeBg = (SolidColorBrush)Application.Current.Resources["DkBlueBrush"];
-            var mutedFg  = (SolidColorBrush)Application.Current.Resources["DkTextSecondaryBrush"];
-            var whiteFg  = new SolidColorBrush(Microsoft.UI.Colors.White);
-            var transparent = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            var activeBg   = (SolidColorBrush)Application.Current.Resources["DkBlueBgBrush"];
+            var activeFg   = (SolidColorBrush)Application.Current.Resources["DkBlueBrush"];
+            var inactiveBg = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            var inactiveFg = (SolidColorBrush)Application.Current.Resources["DkTextSecondaryBrush"];
 
             if (isJoinRequestsTab)
             {
                 JoinRequestsTabBtn.Background = activeBg;
-                JoinRequestsTabBtn.Foreground = whiteFg;
-                DevicesTabBtn.Background = transparent;
-                DevicesTabBtn.Foreground = mutedFg;
+                JoinRequestsTabBtn.Foreground = activeFg;
+                DevicesTabBtn.Background = inactiveBg;
+                DevicesTabBtn.Foreground = inactiveFg;
 
+                StatsPanel.Visibility = Visibility.Collapsed;
                 DeviceFilterPanel.Visibility = Visibility.Collapsed;
                 DeviceTabContent.Visibility = Visibility.Collapsed;
                 JoinTabContent.Visibility = Visibility.Visible;
@@ -46,10 +47,11 @@ namespace Station.Views
             else
             {
                 DevicesTabBtn.Background = activeBg;
-                DevicesTabBtn.Foreground = whiteFg;
-                JoinRequestsTabBtn.Background = transparent;
-                JoinRequestsTabBtn.Foreground = mutedFg;
+                DevicesTabBtn.Foreground = activeFg;
+                JoinRequestsTabBtn.Background = inactiveBg;
+                JoinRequestsTabBtn.Foreground = inactiveFg;
 
+                StatsPanel.Visibility = Visibility.Visible;
                 DeviceFilterPanel.Visibility = Visibility.Visible;
                 DeviceTabContent.Visibility = Visibility.Visible;
                 JoinTabContent.Visibility = Visibility.Collapsed;

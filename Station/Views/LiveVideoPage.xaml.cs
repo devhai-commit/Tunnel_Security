@@ -52,18 +52,37 @@ namespace Station.Views
             await dialog.ShowAsync();
         }
 
-        private void SelectAll_Click(object sender, RoutedEventArgs e)
+        private void CameraCheckBox_Changed(object sender, RoutedEventArgs e)
         {
-            foreach (var camera in ViewModel.CameraStreams)
-                camera.IsSelected = true;
             ViewModel.UpdateActiveCameras();
         }
 
-        private void DeselectAll_Click(object sender, RoutedEventArgs e)
+        private bool _sidebarExpanded = true;
+
+        private void SidebarToggle_Click(object sender, RoutedEventArgs e)
         {
-            foreach (var camera in ViewModel.CameraStreams)
-                camera.IsSelected = false;
-            ViewModel.UpdateActiveCameras();
+            _sidebarExpanded = !_sidebarExpanded;
+
+            if (_sidebarExpanded)
+            {
+                SidebarColumn.Width = new GridLength(280);
+                SidebarHeaderGrid.Padding = new Thickness(16, 13, 10, 13);
+                SidebarCollapsibleContent.Visibility = Visibility.Visible;
+                SidebarTitlePanel.Visibility = Visibility.Visible;
+                SidebarToggleIcon.Glyph = "";
+                ToolTipService.SetToolTip(SidebarToggleButton, "Thu gọn danh sách");
+            }
+            else
+            {
+                SidebarColumn.Width = new GridLength(48);
+                SidebarHeaderGrid.Padding = new Thickness(8, 13, 8, 13);
+                SidebarCollapsibleContent.Visibility = Visibility.Collapsed;
+                SidebarTitlePanel.Visibility = Visibility.Collapsed;
+                SidebarToggleIcon.Glyph = "";
+                ToolTipService.SetToolTip(SidebarToggleButton, "Mở rộng danh sách");
+            }
+
+            UpdateCameraItemSize();
         }
 
         private void VideoGridContainer_SizeChanged(object sender, SizeChangedEventArgs e)

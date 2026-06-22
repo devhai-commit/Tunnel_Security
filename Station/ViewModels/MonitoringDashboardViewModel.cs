@@ -491,12 +491,12 @@ namespace Station.ViewModels
             _          => new SolidColorBrush(Color.FromArgb(255, 154, 166, 178))
         };
 
-        public string SeverityIcon => Severity switch
+        public string SeverityLabel => Severity switch
         {
-            "critical" => "🔴",
-            "high"     => "⚠️",
-            "warning"  => "⚡",
-            _          => "ℹ️"
+            "critical" => "KHẨN CẤP",
+            "high"     => "CAO",
+            "warning"  => "TRUNG BÌNH",
+            _          => "THẤP"
         };
     }
 

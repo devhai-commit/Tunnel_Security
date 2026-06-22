@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Timers;
 using Station.Models;
 
@@ -113,11 +114,13 @@ namespace Station.Services
         public event EventHandler<SensorTickEventArgs>? SensorTick;
         public event EventHandler<AlertGeneratedEventArgs>? AlertGenerated;
         public event EventHandler? TopologyLoaded;
+        public event EventHandler<JoinRequestNotification>? NewJoinRequest;
 
         // ── Public state ───────────────────────────────────────────────
         public IReadOnlyList<SimulatedSensor> Sensors { get; }
         public IReadOnlyList<SimulatedCamera> Cameras { get; }
         public IReadOnlyList<TunnelLine> Lines { get; }
+        public IReadOnlyList<TunnelNode> Nodes { get; }
         public ObservableCollection<Alert> ActiveAlerts { get; } = new();
         public ObservableCollection<Alert> AlertHistory { get; } = new();
 
@@ -140,6 +143,7 @@ namespace Station.Services
             Sensors = BuildSensors();
             Cameras = BuildCameras();
             Lines = BuildLines();
+            Nodes = Lines.SelectMany(l => l.Nodes).ToList();
 
             // Sensor tick: every 1s — updates readings & fires SensorTick
             _sensorTimer = new Timer(1000);
@@ -164,6 +168,16 @@ namespace Station.Services
             _sensorTimer.Stop();
             _alertTimer.Stop();
         }
+
+        // ── Join-request stubs (mock always returns empty / false) ─────
+        public Task<IReadOnlyList<JoinRequestNotification>> GetPendingJoinRequestsAsync()
+            => Task.FromResult<IReadOnlyList<JoinRequestNotification>>(Array.Empty<JoinRequestNotification>());
+
+        public Task<bool> ApproveJoinRequestAsync(int requestId, byte nodeByteId)
+            => Task.FromResult(false);
+
+        public Task<bool> RejectJoinRequestAsync(int requestId, string? reason = null)
+            => Task.FromResult(false);
 
         // ══════════════════════════════════════════════════════════════
         //  Sensor tick — random walk all sensor values

@@ -5,7 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Background="#08111B">
+    Background="{StaticResource DkBgBrush}">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -14,13 +14,13 @@
         </Grid.RowDefinitions>
 
         <!-- ══════════════════ HEADER ══════════════════ -->
-        <Border Grid.Row="0" Background="#060D17" BorderBrush="#1A3548"
+        <Border Grid.Row="0" Background="{StaticResource DkBgBrush}"
+                BorderBrush="{StaticResource DkBorderBrush}"
                 BorderThickness="0,0,0,1" Padding="20,10">
             <Grid>
                 <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
 
-                    <!-- Connection badge -->
-                    <Border Background="#0A1E2E" CornerRadius="4" Padding="10,5">
+                    <Border Background="{StaticResource DkSurfaceBrush}" Padding="10,5">
                         <StackPanel Orientation="Horizontal" Spacing="7">
                             <Ellipse x:Name="ConnectionDot" Width="6" Height="6"
                                      Fill="#3D6070" VerticalAlignment="Center"/>
@@ -30,174 +30,153 @@
                         </StackPanel>
                     </Border>
 
-                    <Rectangle Width="1" Height="18" Fill="#1A3548"/>
+                    <Rectangle Width="1" Height="18" Fill="{StaticResource DkBorderBrush}"/>
 
-                    <!-- Sensor count -->
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <TextBlock Text="SENSORS" FontSize="8" FontFamily="Consolas"
-                                   Foreground="#3D6070" VerticalAlignment="Center"/>
+                                   Foreground="{StaticResource DkTextDimBrush}" VerticalAlignment="Center"/>
                         <TextBlock x:Name="SensorCountText" Text="0" FontSize="15"
                                    FontFamily="Consolas" FontWeight="Bold"
-                                   Foreground="#C0D8E8" VerticalAlignment="Center"/>
+                                   Foreground="{StaticResource DkTextPrimaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
 
-                    <!-- Total updates counter -->
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <TextBlock Text="UPDATES" FontSize="8" FontFamily="Consolas"
-                                   Foreground="#3D6070" VerticalAlignment="Center"/>
+                                   Foreground="{StaticResource DkTextDimBrush}" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TotalUpdatesText" Text="0" FontSize="15"
                                    FontFamily="Consolas" FontWeight="Bold"
-                                   Foreground="#C0D8E8" VerticalAlignment="Center"/>
+                                   Foreground="{StaticResource DkTextPrimaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
 
                 </StackPanel>
 
-                <!-- Clear button -->
                 <Button Click="ClearHistory_Click" HorizontalAlignment="Right"
-                        Padding="12,6" Background="#0D1B2A"
-                        BorderBrush="#1A3548" BorderThickness="1" CornerRadius="4">
+                        Padding="12,6" Background="{StaticResource DkSurfaceBrush}"
+                        BorderBrush="{StaticResource DkBorderBrush}" BorderThickness="1">
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <FontIcon Glyph="&#xE74D;" FontSize="11" Foreground="#7AA8C0"/>
-                        <TextBlock Text="CLEAR" FontFamily="Consolas" FontSize="10" Foreground="#7AA8C0"/>
+                        <FontIcon Glyph="&#xE74D;" FontSize="11" Foreground="{StaticResource DkTextMutedBrush}"/>
+                        <TextBlock Text="CLEAR" FontFamily="Consolas" FontSize="10"
+                                   Foreground="{StaticResource DkTextMutedBrush}"/>
                     </StackPanel>
                 </Button>
             </Grid>
         </Border>
 
         <!-- ══════════════════ BODY ══════════════════ -->
-        <Grid Grid.Row="1" Margin="16,12,16,16">
+        <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="260"/>
+                <ColumnDefinition Width="200"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
             <!-- ─────────── SIDEBAR ─────────── -->
-            <Border Grid.Column="0" Background="#060D17" BorderBrush="#1A3548"
-                    BorderThickness="1" CornerRadius="6" Margin="0,0,16,0">
+            <!-- Only right border separator, no box around sidebar -->
+            <Border Grid.Column="0" Background="{StaticResource DkBgBrush}"
+                    BorderBrush="{StaticResource DkBorderBrush}" BorderThickness="0,0,1,0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Padding="14" Spacing="14">
+                    <StackPanel>
 
-                        <!-- Sensor types -->
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="LOẠI CẢM BIẾN" FontSize="9" FontFamily="Consolas"
-                                       FontWeight="SemiBold" Foreground="#3D6070" Margin="2,0,0,0"/>
+                        <!-- Section: Loại cảm biến -->
+                        <TextBlock Text="LOẠI CẢM BIẾN" FontSize="9" FontFamily="Consolas"
+                                   FontWeight="SemiBold" Foreground="{StaticResource DkTextDimBrush}"
+                                   CharacterSpacing="80" Margin="16,18,16,8"/>
 
-                            <Border Background="#0D1B2A" CornerRadius="5" Padding="10,8">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Border Width="3" Height="14" Background="#FF4D4D"
-                                            CornerRadius="2" Margin="0,0,10,0"/>
-                                    <CheckBox Grid.Column="1" x:Name="ChkTemperature"
-                                              Content="NHIỆT ĐỘ" IsChecked="True" Tag="temperature"
-                                              FontSize="11" FontFamily="Consolas"
-                                              Checked="Filter_Changed" Unchecked="Filter_Changed"/>
-                                </Grid>
-                            </Border>
+                        <!-- Single-select sensor type items (tappable) -->
+                        <Border x:Name="BtnTemp" Tag="temperature" IsTapEnabled="True"
+                                Tapped="SensorType_Tapped" Padding="16,11"
+                                Background="{StaticResource DkBlueBgBrush}"
+                                BorderBrush="{StaticResource DkBlueLightBrush}"
+                                BorderThickness="0,0,3,0">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Rectangle Width="3" Height="14" Fill="#FF4D4D" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="LblTemp" Text="NHIỆT ĐỘ" FontSize="11"
+                                           FontFamily="Consolas" VerticalAlignment="Center"
+                                           Foreground="{StaticResource DkBlueLightBrush}"/>
+                            </StackPanel>
+                        </Border>
 
-                            <Border Background="#0D1B2A" CornerRadius="5" Padding="10,8">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Border Width="3" Height="14" Background="#00C8FF"
-                                            CornerRadius="2" Margin="0,0,10,0"/>
-                                    <CheckBox Grid.Column="1" x:Name="ChkHumidity"
-                                              Content="ĐỘ ẨM" IsChecked="True" Tag="humidity"
-                                              FontSize="11" FontFamily="Consolas"
-                                              Checked="Filter_Changed" Unchecked="Filter_Changed"/>
-                                </Grid>
-                            </Border>
+                        <Border x:Name="BtnHumidity" Tag="humidity" IsTapEnabled="True"
+                                Tapped="SensorType_Tapped" Padding="16,11"
+                                Background="Transparent" BorderThickness="0,0,3,0"
+                                BorderBrush="Transparent">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Rectangle Width="3" Height="14" Fill="#22D3EE" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="LblHumidity" Text="ĐỘ ẨM" FontSize="11"
+                                           FontFamily="Consolas" VerticalAlignment="Center"
+                                           Foreground="{StaticResource DkTextMutedBrush}"/>
+                            </StackPanel>
+                        </Border>
 
-                            <Border Background="#0D1B2A" CornerRadius="5" Padding="10,8">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Border Width="3" Height="14" Background="#FFB800"
-                                            CornerRadius="2" Margin="0,0,10,0"/>
-                                    <CheckBox Grid.Column="1" x:Name="ChkLight"
-                                              Content="ÁNH SÁNG" IsChecked="True" Tag="light"
-                                              FontSize="11" FontFamily="Consolas"
-                                              Checked="Filter_Changed" Unchecked="Filter_Changed"/>
-                                </Grid>
-                            </Border>
+                        <Border x:Name="BtnLight" Tag="light" IsTapEnabled="True"
+                                Tapped="SensorType_Tapped" Padding="16,11"
+                                Background="Transparent" BorderThickness="0,0,3,0"
+                                BorderBrush="Transparent">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Rectangle Width="3" Height="14" Fill="#FFB800" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="LblLight" Text="ÁNH SÁNG" FontSize="11"
+                                           FontFamily="Consolas" VerticalAlignment="Center"
+                                           Foreground="{StaticResource DkTextMutedBrush}"/>
+                            </StackPanel>
+                        </Border>
 
-                            <Border Background="#0D1B2A" CornerRadius="5" Padding="10,8">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Border Width="3" Height="14" Background="#FF69B4"
-                                            CornerRadius="2" Margin="0,0,10,0"/>
-                                    <CheckBox Grid.Column="1" x:Name="ChkInfrared"
-                                              Content="HỒNG NGOẠI" IsChecked="True" Tag="infrared"
-                                              FontSize="11" FontFamily="Consolas"
-                                              Checked="Filter_Changed" Unchecked="Filter_Changed"/>
-                                </Grid>
-                            </Border>
+                        <Border x:Name="BtnInfrared" Tag="infrared" IsTapEnabled="True"
+                                Tapped="SensorType_Tapped" Padding="16,11"
+                                Background="Transparent" BorderThickness="0,0,3,0"
+                                BorderBrush="Transparent">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Rectangle Width="3" Height="14" Fill="#FF69B4" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="LblInfrared" Text="HỒNG NGOẠI" FontSize="11"
+                                           FontFamily="Consolas" VerticalAlignment="Center"
+                                           Foreground="{StaticResource DkTextMutedBrush}"/>
+                            </StackPanel>
+                        </Border>
 
-                            <Border Background="#0D1B2A" CornerRadius="5" Padding="10,8">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Border Width="3" Height="14" Background="#FF8C00"
-                                            CornerRadius="2" Margin="0,0,10,0"/>
-                                    <CheckBox Grid.Column="1" x:Name="ChkVibration"
-                                              Content="RUNG ĐỘNG" IsChecked="True" Tag="vibration"
-                                              FontSize="11" FontFamily="Consolas"
-                                              Checked="Filter_Changed" Unchecked="Filter_Changed"/>
-                                </Grid>
-                            </Border>
+                        <Border x:Name="BtnVibration" Tag="vibration" IsTapEnabled="True"
+                                Tapped="SensorType_Tapped" Padding="16,11"
+                                Background="Transparent" BorderThickness="0,0,3,0"
+                                BorderBrush="Transparent">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Rectangle Width="3" Height="14" Fill="#84CC16" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="LblVibration" Text="RUNG ĐỘNG" FontSize="11"
+                                           FontFamily="Consolas" VerticalAlignment="Center"
+                                           Foreground="{StaticResource DkTextMutedBrush}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Rectangle Height="1" Fill="{StaticResource DkBorderSubtleBrush}" Margin="0,10"/>
+
+                        <!-- Section: Bố cục -->
+                        <TextBlock Text="BỐ CỤC" FontSize="9" FontFamily="Consolas"
+                                   FontWeight="SemiBold" Foreground="{StaticResource DkTextDimBrush}"
+                                   CharacterSpacing="80" Margin="16,0,16,10"/>
+                        <StackPanel Margin="16,0" Spacing="8">
+                            <RadioButton x:Name="Layout1Col" Content="1 CỘT"
+                                         GroupName="ChartLayout" FontSize="11" FontFamily="Consolas"
+                                         Checked="Layout_Changed"/>
+                            <RadioButton x:Name="Layout2Col" Content="2 CỘT"
+                                         GroupName="ChartLayout" FontSize="11" FontFamily="Consolas"
+                                         IsChecked="True" Checked="Layout_Changed"/>
+                            <RadioButton x:Name="Layout3Col" Content="3 CỘT"
+                                         GroupName="ChartLayout" FontSize="11" FontFamily="Consolas"
+                                         Checked="Layout_Changed"/>
                         </StackPanel>
 
-                        <Rectangle Height="1" Fill="#1A3548"/>
+                        <Rectangle Height="1" Fill="{StaticResource DkBorderSubtleBrush}" Margin="0,10"/>
 
-                        <!-- Layout options -->
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="BỐ CỤC" FontSize="9" FontFamily="Consolas"
-                                       FontWeight="SemiBold" Foreground="#3D6070" Margin="2,0,0,0"/>
-                            <Border Background="#0D1B2A" CornerRadius="5" Padding="10,10">
-                                <StackPanel Spacing="8">
-                                    <RadioButton x:Name="Layout1Col" Content="1 CỘT"
-                                                 GroupName="ChartLayout" FontSize="11" FontFamily="Consolas"
-                                                 Checked="Layout_Changed"/>
-                                    <RadioButton x:Name="Layout2Col" Content="2 CỘT"
-                                                 GroupName="ChartLayout" FontSize="11" FontFamily="Consolas"
-                                                 IsChecked="True" Checked="Layout_Changed"/>
-                                    <RadioButton x:Name="Layout3Col" Content="3 CỘT"
-                                                 GroupName="ChartLayout" FontSize="11" FontFamily="Consolas"
-                                                 Checked="Layout_Changed"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-
-                        <Rectangle Height="1" Fill="#1A3548"/>
-
-                        <!-- History size -->
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="LỊCH SỬ DỮ LIỆU" FontSize="9" FontFamily="Consolas"
-                                       FontWeight="SemiBold" Foreground="#3D6070" Margin="2,0,0,0"/>
-                            <Border Background="#0D1B2A" CornerRadius="5" Padding="10,10">
-                                <StackPanel Spacing="8">
-                                    <RadioButton x:Name="History30" Content="30 mẫu"
-                                                 GroupName="HistLen" FontSize="11" FontFamily="Consolas"
-                                                 Checked="HistoryLength_Changed"/>
-                                    <RadioButton x:Name="History60" Content="60 mẫu"
-                                                 GroupName="HistLen" FontSize="11" FontFamily="Consolas"
-                                                 IsChecked="True" Checked="HistoryLength_Changed"/>
-                                    <RadioButton x:Name="History100" Content="100 mẫu"
-                                                 GroupName="HistLen" FontSize="11" FontFamily="Consolas"
-                                                 Checked="HistoryLength_Changed"/>
-                                </StackPanel>
-                            </Border>
+                        <!-- Section: Lịch sử -->
+                        <TextBlock Text="LỊCH SỬ DỮ LIỆU" FontSize="9" FontFamily="Consolas"
+                                   FontWeight="SemiBold" Foreground="{StaticResource DkTextDimBrush}"
+                                   CharacterSpacing="80" Margin="16,0,16,10"/>
+                        <StackPanel Margin="16,0" Spacing="8">
+                            <RadioButton x:Name="History30" Content="30 mẫu"
+                                         GroupName="HistLen" FontSize="11" FontFamily="Consolas"
+                                         Checked="HistoryLength_Changed"/>
+                            <RadioButton x:Name="History60" Content="60 mẫu"
+                                         GroupName="HistLen" FontSize="11" FontFamily="Consolas"
+                                         IsChecked="True" Checked="HistoryLength_Changed"/>
+                            <RadioButton x:Name="History100" Content="100 mẫu"
+                                         GroupName="HistLen" FontSize="11" FontFamily="Consolas"
+                                         Checked="HistoryLength_Changed"/>
                         </StackPanel>
 
                     </StackPanel>
@@ -205,52 +184,52 @@
             </Border>
 
             <!-- ─────────── CHARTS AREA ─────────── -->
-            <Border Grid.Column="1" Background="#060D17" BorderBrush="#1A3548"
-                    BorderThickness="1" CornerRadius="6">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+            <!-- No outer border — background contrast provides the separation -->
+            <Grid Grid.Column="1" Background="{StaticResource DkBgBrush}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-                    <!-- Charts header -->
-                    <Border Grid.Row="0" Padding="16,10" BorderBrush="#1A3548"
-                            BorderThickness="0,0,0,1">
-                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                            <TextBlock Text="SENSOR·CHARTS" FontSize="11" FontFamily="Consolas"
-                                       FontWeight="SemiBold" Foreground="#00E5FF"/>
-                            <Border Background="#0D1B2A" CornerRadius="10" Padding="8,3">
-                                <TextBlock x:Name="ChartCountBadge" Text="0 biểu đồ"
-                                           FontSize="10" FontFamily="Consolas" Foreground="#3D6070"/>
-                            </Border>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Scrollable charts container -->
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Disabled" Padding="14">
-                        <Grid x:Name="ChartsHost" RowSpacing="12" ColumnSpacing="12"/>
-                    </ScrollViewer>
-
-                    <!-- Empty state overlay -->
-                    <StackPanel x:Name="EmptyState" Grid.Row="1"
-                                VerticalAlignment="Center" HorizontalAlignment="Center"
-                                Spacing="16" Visibility="Visible">
-                        <Border Width="64" Height="64" Background="#0D1B2A"
-                                CornerRadius="32" HorizontalAlignment="Center">
-                            <FontIcon Glyph="&#xE9D9;" FontSize="28" Foreground="#1A3548"
-                                      VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                <!-- Charts header -->
+                <Border Grid.Row="0" Padding="16,10"
+                        BorderBrush="{StaticResource DkBorderBrush}" BorderThickness="0,0,0,1">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock Text="SENSOR · CHARTS" FontSize="11" FontFamily="Consolas"
+                                   FontWeight="SemiBold" Foreground="{StaticResource DkBlueLightBrush}"
+                                   CharacterSpacing="40"/>
+                        <Border Background="{StaticResource DkSurfaceBrush}" Padding="8,3">
+                            <TextBlock x:Name="ChartCountBadge" Text="0 biểu đồ"
+                                       FontSize="10" FontFamily="Consolas"
+                                       Foreground="{StaticResource DkTextDimBrush}"/>
                         </Border>
-                        <StackPanel Spacing="6" HorizontalAlignment="Center">
-                            <TextBlock x:Name="EmptyStateLabel" Text="ĐANG KẾT NỐI..."
-                                       FontFamily="Consolas" FontSize="12" FontWeight="SemiBold"
-                                       Foreground="#3D6070" TextAlignment="Center"/>
-                            <TextBlock Text="Waiting for bit-simulator data stream"
-                                       FontSize="10" Foreground="#1A3548" TextAlignment="Center"/>
-                        </StackPanel>
                     </StackPanel>
-                </Grid>
-            </Border>
+                </Border>
+
+                <!-- Scrollable charts -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled" Padding="14">
+                    <Grid x:Name="ChartsHost" RowSpacing="10" ColumnSpacing="10"/>
+                </ScrollViewer>
+
+                <!-- Empty state -->
+                <StackPanel x:Name="EmptyState" Grid.Row="1"
+                            VerticalAlignment="Center" HorizontalAlignment="Center"
+                            Spacing="16" Visibility="Visible">
+                    <Border Width="56" Height="56" Background="{StaticResource DkSurfaceBrush}"
+                            HorizontalAlignment="Center">
+                        <FontIcon Glyph="&#xE9D9;" FontSize="24" Foreground="{StaticResource DkTextDimBrush}"
+                                  VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Spacing="4" HorizontalAlignment="Center">
+                        <TextBlock x:Name="EmptyStateLabel" Text="ĐANG KẾT NỐI..."
+                                   FontFamily="Consolas" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{StaticResource DkTextMutedBrush}" TextAlignment="Center"/>
+                        <TextBlock Text="Waiting for sensor data stream" FontSize="10"
+                                   Foreground="{StaticResource DkTextDimBrush}" TextAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
 
         </Grid>
     </Grid>
