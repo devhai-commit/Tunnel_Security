@@ -235,8 +235,9 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- Header -->
-                <Grid Grid.Row="0" Margin="0,0,0,16">
+                <!-- Header (hidden while a camera is focused fullscreen) -->
+                <Grid Grid.Row="0" Margin="0,0,0,16"
+                      Visibility="{x:Bind ViewModel.IsCameraFocused, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -305,8 +306,9 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- ─── Camera Grid ─── -->
+                <!-- ─── Camera Grid (collapsed while fullscreen overlay is active) ─── -->
                 <ScrollViewer Grid.Row="1" x:Name="VideoGridContainer"
+                              Visibility="{x:Bind ViewModel.IsCameraFocused, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}"
                               SizeChanged="VideoGridContainer_SizeChanged"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
@@ -363,7 +365,8 @@
                                                 <controls:CameraVideoControl
                                                     StreamUrl="{x:Bind StreamUrl, Mode=OneWay}"
                                                     IsOnline="{x:Bind IsOnline, Mode=OneWay}"
-                                                    IsStreamEnabled="{x:Bind IsStreamEnabled, Mode=OneWay}"/>
+                                                    IsStreamEnabled="{x:Bind IsStreamEnabled, Mode=OneWay}"
+                                                    SelectedResolution="{x:Bind Resolution, Mode=OneWay}"/>
                                                 <!-- Online overlays -->
                                                 <StackPanel VerticalAlignment="Top" HorizontalAlignment="Right" Margin="6"
                                                             Orientation="Horizontal" Spacing="4"
@@ -395,12 +398,32 @@
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                                    <Border Background="{StaticResource BackgroundPrimaryBrush}" CornerRadius="4" Padding="4,2"
-                                                            BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
-                                                        <TextBlock Text="{x:Bind Resolution}" FontSize="10"
-                                                                   Foreground="{StaticResource TextSecondaryBrush}" MaxWidth="70"
-                                                                   TextTrimming="CharacterEllipsis"/>
-                                                    </Border>
+                                                    <!-- Resolution chip — click to open selector flyout -->
+                                                    <Button Padding="4,2" Height="22" CornerRadius="4"
+                                                            Background="{StaticResource BackgroundPrimaryBrush}"
+                                                            BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
+                                                            ToolTipService.ToolTip="Chọn độ phân giải">
+                                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                                            <TextBlock Text="{x:Bind Resolution, Mode=OneWay}" FontSize="10"
+                                                                       Foreground="{StaticResource TextSecondaryBrush}" MaxWidth="70"
+                                                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                            <FontIcon Glyph="&#xE70D;" FontSize="7"
+                                                                      Foreground="{StaticResource TextTertiaryBrush}" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                        <Button.Flyout>
+                                                            <MenuFlyout Placement="Top">
+                                                                <MenuFlyoutItem Text="320×240 — SD"
+                                                                                Command="{x:Bind SetResolutionCommand}"
+                                                                                CommandParameter="320×240"/>
+                                                                <MenuFlyoutItem Text="640×480 — VGA"
+                                                                                Command="{x:Bind SetResolutionCommand}"
+                                                                                CommandParameter="640×480"/>
+                                                                <MenuFlyoutItem Text="1280×720 — HD"
+                                                                                Command="{x:Bind SetResolutionCommand}"
+                                                                                CommandParameter="1280×720"/>
+                                                            </MenuFlyout>
+                                                        </Button.Flyout>
+                                                    </Button>
                                                     <Border Background="{StaticResource BackgroundPrimaryBrush}" CornerRadius="4" Padding="4,2"
                                                             BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
                                                         <TextBlock FontSize="10" Foreground="{StaticResource TextSecondaryBrush}">
@@ -450,6 +473,13 @@
                                                             Command="{Binding ElementName=PageRoot, Path=ViewModel.TakeSnapshotCommand}"
                                                             CommandParameter="{Binding}" ToolTipService.ToolTip="Chụp ảnh">
                                                         <FontIcon Glyph="&#xE722;" FontSize="12"/>
+                                                    </Button>
+                                                    <!-- Fullscreen / expand camera -->
+                                                    <Button Style="{StaticResource IconButtonStyle}" Width="26" Height="26" Padding="4"
+                                                            Command="{Binding ElementName=PageRoot, Path=ViewModel.FocusCameraCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            ToolTipService.ToolTip="Phóng to">
+                                                        <FontIcon Glyph="&#xE740;" FontSize="12"/>
                                                     </Button>
                                                 </StackPanel>
                                             </Grid>
@@ -573,6 +603,87 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
+
+                <!-- ─── Fullscreen Overlay (YouTube-style) ─── -->
+                <!-- AFTER ScrollViewer → correct z-order. ScrollViewer is collapsed
+                     when this is visible to prevent WebView2 HWND bleed-through. -->
+                <Grid Grid.Row="0" Grid.RowSpan="2" Margin="-20"
+                      Visibility="{x:Bind ViewModel.IsCameraFocused, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+                      Background="Black">
+
+                    <!-- Video: full bleed -->
+                    <controls:CameraVideoControl
+                        StreamUrl="{x:Bind ViewModel.FocusedCamera.StreamUrl, Mode=OneWay}"
+                        IsOnline="{x:Bind ViewModel.FocusedCamera.IsOnline, Mode=OneWay}"
+                        IsStreamEnabled="{x:Bind ViewModel.FocusedCamera.IsStreamEnabled, Mode=OneWay}"
+                        SelectedResolution="{x:Bind ViewModel.FocusedCamera.Resolution, Mode=OneWay}"/>
+
+                    <!-- Top floating bar: camera name + LIVE badge -->
+                    <Border VerticalAlignment="Top" HorizontalAlignment="Stretch"
+                            Background="#CC000000" Padding="20,12">
+                        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                            <Border Background="#CC1A0000" CornerRadius="3" Padding="6,2"
+                                    Visibility="{x:Bind ViewModel.FocusedCamera.IsOnline, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <TextBlock Text="LIVE" FontSize="10" FontWeight="Bold" Foreground="#EF4444"/>
+                            </Border>
+                            <TextBlock Text="{x:Bind ViewModel.FocusedCamera.CameraName, Mode=OneWay}"
+                                       FontSize="14" FontWeight="SemiBold" Foreground="White"/>
+                            <TextBlock Text="{x:Bind ViewModel.FocusedCamera.CameraId, Mode=OneWay}"
+                                       FontSize="11" Foreground="#99FFFFFF" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Bottom floating bar: resolution + exit-fullscreen toggle button -->
+                    <Border VerticalAlignment="Bottom" HorizontalAlignment="Stretch"
+                            Background="#CC000000" Padding="16,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <TextBlock Text="Độ phân giải:" FontSize="11" Foreground="#AAFFFFFF"
+                                           VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <Button x:Name="FsRes320" Click="FullscreenResolution_Click" Tag="320×240"
+                                        Background="#44FFFFFF" BorderThickness="0"
+                                        CornerRadius="4" Height="28" Padding="10,0">
+                                    <TextBlock Text="SD" FontSize="11" Foreground="White"/>
+                                </Button>
+                                <Button x:Name="FsRes640" Click="FullscreenResolution_Click" Tag="640×480"
+                                        Background="#44FFFFFF" BorderThickness="0"
+                                        CornerRadius="4" Height="28" Padding="10,0">
+                                    <TextBlock Text="VGA" FontSize="11" Foreground="White"/>
+                                </Button>
+                                <Button x:Name="FsRes1280" Click="FullscreenResolution_Click" Tag="1280×720"
+                                        Background="#44FFFFFF" BorderThickness="0"
+                                        CornerRadius="4" Height="28" Padding="10,0">
+                                    <TextBlock Text="HD" FontSize="11" Foreground="White"/>
+                                </Button>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock FontSize="11" Foreground="#88FFFFFF">
+                                    <Run Text="{x:Bind ViewModel.FocusedCamera.Resolution, Mode=OneWay}"/>
+                                    <Run Text=" · "/>
+                                    <Run Text="{x:Bind ViewModel.FocusedCamera.Fps, Mode=OneWay}"/>
+                                    <Run Text=" FPS · "/>
+                                    <Run Text="{x:Bind ViewModel.FocusedCamera.BitrateDisplay, Mode=OneWay}"/>
+                                </TextBlock>
+                            </StackPanel>
+
+                            <!-- Exit fullscreen — paired with the ⛶ expand button on each card -->
+                            <Button Grid.Column="2"
+                                    Command="{x:Bind ViewModel.ExitFocusCommand}"
+                                    Background="Transparent" BorderThickness="0"
+                                    Width="36" Height="36" Padding="0"
+                                    ToolTipService.ToolTip="Thu nhỏ">
+                                <FontIcon Glyph="&#xE73F;" FontSize="16" Foreground="White"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
             </Grid>
         </Grid>
     </Grid>

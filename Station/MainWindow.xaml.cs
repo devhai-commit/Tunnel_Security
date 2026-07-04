@@ -253,7 +253,7 @@ namespace Station
                 app.m_window = loginWindow;
             }
 
-            App.ConfigureLoginWindow(loginWindow);
+            MaximizeWindow(loginWindow);
             loginWindow.Activate();
 
             await System.Threading.Tasks.Task.Yield();

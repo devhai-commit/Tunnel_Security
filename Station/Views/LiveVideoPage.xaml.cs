@@ -174,6 +174,12 @@ namespace Station.Views
             }
         }
 
+        private void FullscreenResolution_Click(object sender, RoutedEventArgs e)
+        {
+            if (((FrameworkElement)sender).Tag is string res && ViewModel.FocusedCamera != null)
+                ViewModel.FocusedCamera.Resolution = res;
+        }
+
         private async System.Threading.Tasks.Task ShowErrorDialog(string filePath, string detail)
         {
             var dlg = new ContentDialog

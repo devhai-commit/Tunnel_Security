@@ -11,7 +11,7 @@ namespace Station
 {
     public partial class App : Application
     {
-        public Window? m_window { get; private set; }
+        public Window? m_window { get; set; }
         private SimulationApiServer? _simServer;
 
         public App()
@@ -58,8 +58,13 @@ namespace Station
                 Task.Run(() => _simServer.StartAsync());
             }
 
-            m_window = new MainWindow();
-            m_window.Activate();
+            // Mở trang login trước; MainWindow được tạo sau khi đăng nhập thành công
+            var loginWindow = new Microsoft.UI.Xaml.Window();
+            var frame = new Microsoft.UI.Xaml.Controls.Frame();
+            frame.Navigate(typeof(Station.Views.LoginPage));
+            loginWindow.Content = frame;
+            m_window = loginWindow;
+            loginWindow.Activate();
         }
     }
 }

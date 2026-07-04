@@ -36,6 +36,10 @@ public sealed partial class CameraVideoControl : UserControl
         DependencyProperty.Register(nameof(IsStreamEnabled), typeof(bool), typeof(CameraVideoControl),
             new PropertyMetadata(true, (d, _) => ((CameraVideoControl)d).UpdateContent()));
 
+    public static readonly DependencyProperty SelectedResolutionProperty =
+        DependencyProperty.Register(nameof(SelectedResolution), typeof(string), typeof(CameraVideoControl),
+            new PropertyMetadata("320×240", (d, _) => ((CameraVideoControl)d).UpdateContent()));
+
     public string? StreamUrl
     {
         get => (string?)GetValue(StreamUrlProperty);
@@ -52,6 +56,12 @@ public sealed partial class CameraVideoControl : UserControl
     {
         get => (bool)GetValue(IsStreamEnabledProperty);
         set => SetValue(IsStreamEnabledProperty, value);
+    }
+
+    public string SelectedResolution
+    {
+        get => (string)GetValue(SelectedResolutionProperty);
+        set => SetValue(SelectedResolutionProperty, value);
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -88,21 +98,13 @@ public sealed partial class CameraVideoControl : UserControl
     {
         if (!_webViewReady) return;
 
-        if (!IsStreamEnabled)
-        {
-            Navigate("paused", BuildPausedPage());
-            return;
-        }
-
-        if (!IsOnline)
-        {
-            Navigate("offline", BuildOfflinePage());
-            return;
-        }
+        if (!IsStreamEnabled) { Navigate("paused", BuildPausedPage()); return; }
+        if (!IsOnline) { Navigate("offline", BuildOfflinePage()); return; }
 
         if (!string.IsNullOrEmpty(StreamUrl))
         {
-            Navigate($"stream:{StreamUrl}", BuildStreamPage(StreamUrl));
+            var res = SelectedResolution ?? "320×240";
+            Navigate($"stream:{StreamUrl}:{res}", BuildStreamPage(StreamUrl, res));
             return;
         }
 
@@ -141,12 +143,55 @@ public sealed partial class CameraVideoControl : UserControl
   <div style='color:#374151;font-size:9px;letter-spacing:.06em'>Bấm ▶ để bật lại</div>
 </body></html>";
 
-    private static string BuildStreamPage(string streamUrl) =>
-        $@"<!DOCTYPE html><html>
-<body style='margin:0;background:#000;overflow:hidden'>
-  <img src='{streamUrl}'
-       style='width:100%;height:100%;object-fit:cover;display:block'
-       onerror=""this.style.display='none'"" />
+    // Use /frame (single-JPEG poll) instead of /stream (MJPEG) to bypass
+    // Chromium's internal MJPEG buffer: it accumulates frames then flushes
+    // in a burst, which is the root cause of the "frame jump" artifact.
+    // The resolution string (e.g. "640×480") is forwarded as ?w=&h= query params
+    // so the backend can resize frames before returning them.
+    private static string BuildStreamPage(string streamUrl, string resolution)
+    {
+        var slashStream = streamUrl.LastIndexOf("/stream");
+        var frameUrl    = (slashStream >= 0 ? streamUrl[..slashStream] : streamUrl) + "/frame";
+
+        // Build resolution query segment — split on Unicode multiplication sign ×
+        string resQuery = "";
+        var parts = resolution.Split('×');
+        if (parts.Length == 2
+            && int.TryParse(parts[0].Trim(), out int rw)
+            && int.TryParse(parts[1].Trim(), out int rh))
+            resQuery = $"&w={rw}&h={rh}";
+
+        return $@"<!DOCTYPE html><html>
+<body style='margin:0;background:#000;overflow:hidden;width:100vw;height:100vh'>
+  <canvas id='cv' style='position:absolute;inset:0;width:100%;height:100%'></canvas>
+  <img id='buf' style='display:none'>
+  <script>
+    var cv  = document.getElementById('cv');
+    var ctx = cv.getContext('2d');
+    var img = document.getElementById('buf');
+    var url = '{frameUrl}';
+    var on  = true;
+
+    function resize() {{ cv.width = innerWidth || 320; cv.height = innerHeight || 240; }}
+    resize();
+    window.onresize = resize;
+
+    img.onload = function() {{
+      ctx.drawImage(img, 0, 0, cv.width, cv.height);
+      if (on) setTimeout(poll, 20);
+    }};
+    img.onerror = function() {{
+      if (on) setTimeout(poll, 500);
+    }};
+
+    function poll() {{
+      img.src = url + '?_=' + Date.now() + '{resQuery}';
+    }}
+
+    poll();
+    window.addEventListener('beforeunload', function() {{ on = false; }});
+  </script>
 </body></html>";
+    }
 
 }

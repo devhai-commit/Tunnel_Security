@@ -1,7 +1,11 @@
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Processing;
 using Backend.Data;
 using Backend.Models;
 using Backend.Services;
@@ -162,14 +166,41 @@ public class CamerasController : ControllerBase
 
     private static readonly ConcurrentDictionary<string, long> _frameCounters = new();
 
-    // GET /api/cameras/{id}/frame — single JPEG (synthetic, for polling)
+    // GET /api/cameras/{id}/frame?w=640&h=480 — single JPEG snapshot used by the canvas polling loop.
+    // Optional w/h query params request a specific output resolution; the frame is resized
+    // before returning so higher-resolution cameras can be downscaled for bandwidth savings.
     [HttpGet("{id}/frame")]
-    public IActionResult GetFrame(string id)
+    public IActionResult GetFrame(string id, [FromQuery] int? w, [FromQuery] int? h)
     {
-        var frameIndex = _frameCounters.AddOrUpdate(id, 0, (_, v) => v + 1);
-        var jpegBytes = CameraFrameGenerator.GenerateFrame(id, frameIndex);
         Response.Headers["Cache-Control"] = "no-cache, no-store";
-        return File(jpegBytes, "image/jpeg");
+
+        byte[] frame;
+
+        // Priority 1 — pushed frame from simulator
+        if (_frameBuffer.TryGetLatest(id, out var pushed))
+            frame = pushed!;
+        else
+        {
+            // Priority 2 — synthetic fallback
+            var frameIndex = _frameCounters.AddOrUpdate(id, 0, (_, v) => v + 1);
+            frame = CameraFrameGenerator.GenerateFrame(id, frameIndex);
+        }
+
+        if (w is > 0 && h is > 0)
+            frame = ResizeJpeg(frame, w.Value, h.Value);
+
+        return File(frame, "image/jpeg");
+    }
+
+    private static byte[] ResizeJpeg(byte[] jpeg, int width, int height)
+    {
+        using var image = Image.Load(jpeg);
+        if (image.Width == width && image.Height == height)
+            return jpeg;
+        image.Mutate(ctx => ctx.Resize(width, height));
+        using var ms = new MemoryStream();
+        image.SaveAsJpeg(ms, new JpegEncoder { Quality = 80 });
+        return ms.ToArray();
     }
 
     // GET /api/cameras/{id}/stream — MJPEG stream
@@ -186,16 +217,28 @@ public class CamerasController : ControllerBase
         Response.Headers["Connection"] = "keep-alive";
 
         long syntheticIndex = 0;
+        long lastPushedMs   = 0; // timestamp of the last pushed frame we already sent
 
         while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
-                // Priority 1 — fresh pushed frame from simulator
-                if (_frameBuffer.TryGetLatest(id, out var pushed))
+                // Priority 1 — pushed frame from simulator.
+                // TryGetLatestSince only returns true when a NEW frame has arrived
+                // (newer than lastPushedMs), preventing the same frame being sent
+                // multiple times and causing the "frame jump" artifact.
+                if (_frameBuffer.TryGetLatestSince(id, lastPushedMs, out var pushed, out long frameMs))
                 {
+                    lastPushedMs = frameMs;
                     await WriteFrameAsync(pushed!, cancellationToken);
-                    await Task.Delay(100, cancellationToken);
+                    await Task.Delay(5, cancellationToken); // tight poll — next frame arrives soon
+                    continue;
+                }
+
+                // Simulator is connected but no new frame yet — spin-wait cheaply
+                if (_frameBuffer.Has(id))
+                {
+                    await Task.Delay(5, cancellationToken);
                     continue;
                 }
 
@@ -203,20 +246,18 @@ public class CamerasController : ControllerBase
                 var videoPath = _videoSources.Get(id);
                 if (videoPath != null)
                 {
-                    // Delegate to FFMpeg reader for the duration of this video source
                     await foreach (var jpeg in VideoFrameReader.ReadFramesAsync(videoPath, cancellationToken))
                     {
                         await WriteFrameAsync(jpeg, cancellationToken);
-                        // Re-check pushed frames between every FFMpeg frame
-                        if (_frameBuffer.TryGetLatest(id, out _)) break;
+                        if (_frameBuffer.TryGetLatestSince(id, lastPushedMs, out _, out _)) break;
                     }
                     continue;
                 }
 
-                // Priority 3 — synthetic fallback
+                // Priority 3 — synthetic fallback (~30 fps)
                 var synth = CameraFrameGenerator.GenerateFrame(id, syntheticIndex++);
                 await WriteFrameAsync(synth, cancellationToken);
-                await Task.Delay(100, cancellationToken);
+                await Task.Delay(33, cancellationToken);
             }
             catch (OperationCanceledException) { break; }
         }
@@ -269,12 +310,25 @@ public class CamerasController : ControllerBase
 
     private async Task WriteFrameAsync(byte[] jpeg, CancellationToken ct)
     {
-        var header = Encoding.ASCII.GetBytes(
+        var headerBytes = Encoding.ASCII.GetBytes(
             $"--frame\r\nContent-Type: image/jpeg\r\nContent-Length: {jpeg.Length}\r\n\r\n");
-        await Response.Body.WriteAsync(header, ct);
-        await Response.Body.WriteAsync(jpeg, ct);
-        await Response.Body.WriteAsync("\r\n"u8.ToArray(), ct);
-        await Response.Body.FlushAsync(ct);
+        int totalLen = headerBytes.Length + jpeg.Length + 2;
+
+        // Rent from shared pool to avoid per-frame heap allocation and GC pressure
+        var packet = ArrayPool<byte>.Shared.Rent(totalLen);
+        try
+        {
+            headerBytes.CopyTo(packet, 0);
+            jpeg.CopyTo(packet, headerBytes.Length);
+            packet[headerBytes.Length + jpeg.Length]     = (byte)'\r';
+            packet[headerBytes.Length + jpeg.Length + 1] = (byte)'\n';
+            await Response.Body.WriteAsync(packet.AsMemory(0, totalLen), ct);
+            await Response.Body.FlushAsync(ct);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(packet);
+        }
     }
 
     public class TriggerClipRequest  { public string? Reason { get; set; } }

@@ -135,7 +135,7 @@ namespace Station.ViewModels
                     CameraId = simCam.CameraId,
                     CameraName = $"{simCam.CameraName} · {simCam.Location}",
                     StreamUrl = simCam.StreamUrl ?? $"{apiBaseUrl}/api/cameras/{simCam.CameraId}/stream",
-                    Resolution = "1280×720",
+                    Resolution = "320×240",
                     IrStatus = "ON",
                     HdrStatus = "AUTO",
                     IsOnline = simCam.IsOnline,
@@ -243,6 +243,26 @@ namespace Station.ViewModels
 
         [RelayCommand]
         private void ShowCameraSettings(CameraStreamViewModel? camera) { }
+
+        [ObservableProperty]
+        private CameraStreamViewModel? _focusedCamera;
+
+        [ObservableProperty]
+        private bool _isCameraFocused = false;
+
+        [RelayCommand]
+        private void FocusCamera(CameraStreamViewModel? camera)
+        {
+            FocusedCamera = camera;
+            IsCameraFocused = camera != null;
+        }
+
+        [RelayCommand]
+        private void ExitFocus()
+        {
+            FocusedCamera = null;
+            IsCameraFocused = false;
+        }
     }
 
     public partial class CameraStreamViewModel : ObservableObject
@@ -396,6 +416,12 @@ namespace Station.ViewModels
             AlertBorderOpacity = 0.0;
             AlertTitle = string.Empty;
             AlertDescription = string.Empty;
+        }
+
+        [RelayCommand]
+        private void SetResolution(string? res)
+        {
+            if (!string.IsNullOrEmpty(res)) Resolution = res;
         }
     }
 }

@@ -1,49 +1,42 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Options;
+using NodeSim.Config;
 
-namespace Backend.Services;
+namespace NodeSim.Services;
 
 /// <summary>
-/// Spawns an FFMpeg process to decode a video file and yields JPEG frames
-/// extracted from the resulting MJPEG pipe output.
-/// FFMpeg must be available in PATH or at a known location (see FindFfmpeg).
-/// Set the FFMPEG_PATH environment variable to override.
+/// Spawns an FFMpeg process to capture a video source (a looped local file, or a real
+/// webcam via FFMpeg's platform capture input) and yields JPEG frames extracted from
+/// the resulting MJPEG pipe output. FFMpeg must be available in PATH, or set FFMPEG_PATH.
 /// </summary>
-public static class VideoFrameReader
+public sealed class FfmpegCameraSource
 {
-    private const int Width     = 640;
-    private const int Height    = 480;
-    private const int OutputFps = 25;
+    private readonly CameraOptions _opts;
+    private readonly ILogger<FfmpegCameraSource> _logger;
 
-    /// <summary>
-    /// Yields JPEG frames from <paramref name="videoPath"/> in a real-time loop.
-    /// The video loops indefinitely until <paramref name="ct"/> is cancelled.
-    /// </summary>
-    public static async IAsyncEnumerable<byte[]> ReadFramesAsync(
-        string videoPath,
+    public FfmpegCameraSource(IOptions<CameraOptions> opts, ILogger<FfmpegCameraSource> logger)
+    {
+        _opts = opts.Value;
+        _logger = logger;
+    }
+
+    public async IAsyncEnumerable<byte[]> ReadFramesAsync(
         [EnumeratorCancellation] CancellationToken ct = default)
     {
         var ffmpeg = FindFfmpeg();
-        // -stream_loop -1   : loop the input indefinitely
-        // -re               : read at native frame rate (real-time)
-        // -vf scale=WxH     : normalize frame size
-        // -vcodec mjpeg     : encode each frame as JPEG
-        // -q:v 3            : JPEG quality (1=best … 31=worst; 3 ≈ 90%)
-        // -r OutputFps      : output frame rate
-        // -f mjpeg pipe:1   : write raw JPEG sequence to stdout
-        var args = $"-stream_loop -1 -re -i \"{videoPath}\" " +
-                   $"-vf \"scale={Width}:{Height}\" " +
-                   $"-vcodec mjpeg -q:v 3 -r {OutputFps} -f mjpeg pipe:1 " +
-                   "-loglevel warning -nostdin";
+        var args = BuildArgs();
+
+        _logger.LogInformation("Starting FFMpeg capture: {Ffmpeg} {Args}", ffmpeg, args);
 
         using var proc = new Process
         {
             StartInfo = new ProcessStartInfo(ffmpeg, args)
             {
-                UseShellExecute        = false,
+                UseShellExecute = false,
                 RedirectStandardOutput = true,
-                RedirectStandardError  = false,
-                CreateNoWindow         = true,
+                RedirectStandardError = false,
+                CreateNoWindow = true,
             }
         };
 
@@ -63,13 +56,30 @@ public static class VideoFrameReader
         }
     }
 
-    // ── JPEG frame parser ─────────────────────────────────────────────────────
+    private string BuildArgs()
+    {
+        var scale = $"scale={_opts.Width}:{_opts.Height}";
+
+        return _opts.Source switch
+        {
+            CameraSourceKind.Webcam => OperatingSystem.IsWindows()
+                ? $"-f dshow -i video=\"{_opts.WebcamDeviceName}\" " +
+                  $"-vf \"{scale}\" -vcodec mjpeg -q:v 3 -r {_opts.OutputFps} -f mjpeg pipe:1 -loglevel warning -nostdin"
+                : $"-f v4l2 -i \"{_opts.WebcamDeviceName}\" " +
+                  $"-vf \"{scale}\" -vcodec mjpeg -q:v 3 -r {_opts.OutputFps} -f mjpeg pipe:1 -loglevel warning -nostdin",
+
+            _ => $"-stream_loop -1 -re -i \"{_opts.VideoFilePath}\" " +
+                 $"-vf \"{scale}\" -vcodec mjpeg -q:v 3 -r {_opts.OutputFps} -f mjpeg pipe:1 -loglevel warning -nostdin",
+        };
+    }
+
+    // ── JPEG frame parser — splits a raw MJPEG byte stream on SOI/EOI markers ───
 
     private static async IAsyncEnumerable<byte[]> ParseJpegFramesAsync(
         Stream stream,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        var readBuf  = new byte[65536];
+        var readBuf = new byte[65536];
         var frameBuf = new MemoryStream(128 * 1024);
         int prevByte = -1;
         bool inFrame = false;
@@ -88,7 +98,6 @@ public static class VideoFrameReader
 
                 if (prevByte == 0xFF && b == 0xD8)
                 {
-                    // SOI — start (or restart) a frame
                     frameBuf.SetLength(0);
                     frameBuf.WriteByte(0xFF);
                     frameBuf.WriteByte(0xD8);
@@ -100,7 +109,6 @@ public static class VideoFrameReader
 
                     if (prevByte == 0xFF && b == 0xD9)
                     {
-                        // EOI — complete frame
                         yield return frameBuf.ToArray();
                         frameBuf.SetLength(0);
                         inFrame = false;
@@ -112,12 +120,9 @@ public static class VideoFrameReader
         }
     }
 
-    // ── FFMpeg discovery ──────────────────────────────────────────────────────
+    // ── FFMpeg discovery ─────────────────────────────────────────────────────
 
     public static bool IsAvailable() => File.Exists(FindFfmpeg()) || ExistsInPath("ffmpeg");
-
-    /// <summary>Returns the resolved FFmpeg executable path (full path or "ffmpeg" if only in PATH).</summary>
-    public static string GetFfmpegPath() => FindFfmpeg();
 
     private static string FindFfmpeg()
     {
@@ -139,7 +144,7 @@ public static class VideoFrameReader
     private static bool ExistsInPath(string name)
     {
         var paths = (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator);
-        var exts  = (Environment.GetEnvironmentVariable("PATHEXT") ?? ".exe").Split(';');
+        var exts = (Environment.GetEnvironmentVariable("PATHEXT") ?? ".exe").Split(';');
         return paths.Any(dir =>
             exts.Any(ext => File.Exists(Path.Combine(dir.Trim(), name + ext))));
     }

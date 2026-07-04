@@ -4,14 +4,52 @@ using Backend.Models;
 using Backend.Models.TimeSeries;
 using Backend.Services;
 using Backend.Services.Caching;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Npgsql;
+using System.Text;
+using TunnelSecurity.Auth;
+using TunnelSecurity.Data.Auth;
+using TunnelSecurity.Data.Auth.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
+
+// ── Auth configuration ────────────────────────────────────────────────────────
+builder.Services.Configure<TunnelSecurity.Auth.JwtSettings>(
+    builder.Configuration.GetSection("Jwt"));
+builder.Services.Configure<TunnelSecurity.Auth.LoginSecuritySettings>(
+    builder.Configuration.GetSection("LoginSecurity"));
+
+var jwtSecret = builder.Configuration["Jwt:Secret"]
+    ?? throw new InvalidOperationException("Jwt:Secret is not configured.");
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer           = true,
+            ValidateAudience         = true,
+            ValidateLifetime         = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer              = builder.Configuration["Jwt:Issuer"],
+            ValidAudience            = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+        };
+    });
+builder.Services.AddAuthorization();
+
+// ── Auth DbContext ────────────────────────────────────────────────────────────
+builder.Services.AddDbContext<AuthDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<IPasswordHasher<TunnelSecurity.Data.Auth.Models.User>, PasswordHasher<TunnelSecurity.Data.Auth.Models.User>>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // ── SQL Server (relational topology) ──────────────────────────────────────────
 builder.Services.AddDbContext<TunnelDbContext>(options =>
@@ -118,6 +156,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowAll");
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseStaticFiles();
 app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(30) });
 

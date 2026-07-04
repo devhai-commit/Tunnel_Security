@@ -36,6 +36,31 @@ public sealed class CameraFrameBuffer
         return false;
     }
 
+    /// <summary>
+    /// Returns the latest pushed frame only when it is strictly newer than
+    /// <paramref name="afterMs"/> — i.e. a frame the caller has not yet sent.
+    /// Use this in the MJPEG stream loop to avoid sending the same frame multiple times.
+    /// </summary>
+    public bool TryGetLatestSince(string cameraId, long afterMs,
+        out byte[]? frame, out long frameMs)
+    {
+        if (_slots.TryGetValue(cameraId, out var slot))
+        {
+            var (f, tickMs) = slot.GetLatest();
+            if (f != null
+                && Environment.TickCount64 - tickMs < StalenessTicks
+                && tickMs > afterMs)
+            {
+                frame   = f;
+                frameMs = tickMs;
+                return true;
+            }
+        }
+        frame   = null;
+        frameMs = 0;
+        return false;
+    }
+
     public bool Has(string cameraId)
         => _slots.TryGetValue(cameraId, out var s) && s.Latest != null;
 

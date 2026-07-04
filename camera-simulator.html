@@ -480,11 +480,11 @@ function onStreamError(i) {
 //  Stop everything
 // ══════════════════════════════════════════════════════════════════════════════
 function stopAll() {
-  if (rafId)     { cancelAnimationFrame(rafId); rafId = null; }
-  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-  if (pushTimer) { clearInterval(pushTimer); pushTimer = null; }
+  if (rafId)         { cancelAnimationFrame(rafId); rafId = null; }
+  if (pollTimer)     { clearInterval(pollTimer);     pollTimer = null; }
+  if (pushTimer)     { clearInterval(pushTimer);     pushTimer = null; }
   if (pushKbpsTimer) { clearInterval(pushKbpsTimer); pushKbpsTimer = null; }
-  pushTickRunning = false;
+  cameras.forEach(cam => { cam._pushing = false; });
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -542,14 +542,15 @@ function onVideoFileSelected(i, file) {
 let pushTimer = null;
 let pushOk = 0, pushErr = 0, pushBytes = 0;
 let pushKbpsTimer = null, pushBytesInWindow = 0;
-let pushTickRunning = false;
 
 function startPushMode() {
-  document.getElementById('statFps').textContent   = '10';
+  document.getElementById('statFps').textContent   = '25';
   document.getElementById('pushStatsRow').style.display = '';
   document.getElementById('pushKbpsRow').style.display  = '';
   pushOk = pushErr = pushBytes = 0;
-  pushTickRunning = false;
+
+  // Per-camera push guard — a slow camera's HTTP round-trip won't block others
+  cameras.forEach(cam => { cam._pushing = false; });
 
   // Cảnh báo nếu đang dùng ID mặc định (không khớp với CSDL thực)
   const usingDefaults = cameras.some(c => DEFAULT_IDS.includes(c.id));
@@ -564,61 +565,51 @@ function startPushMode() {
     pushBytesInWindow = 0;
   }, 1000);
 
-  // Draw + push loop at ~10 FPS
-  pushTimer = setInterval(async () => {
-    if (pushTickRunning) return;
-    pushTickRunning = true;
-
+  // Draw + push loop at ~25 FPS.
+  // Each camera runs independently so a slow HTTP push won't delay other cameras.
+  pushTimer = setInterval(() => {
     globalFrame++;
     document.getElementById('statFrame').textContent = globalFrame;
 
     const base = getApiBase();
-    try {
-      await Promise.allSettled(cameras.map(async (cam, i) => {
+    cameras.forEach(async (cam, i) => {
+      if (cam._pushing) return;  // previous push still in-flight for this camera
+      cam._pushing = true;
+
+      try {
         const cv = document.getElementById(`cv-${i}`);
         if (!cv) return;
 
-        // Render frame locally
         drawFrame(cv, cam, globalFrame);
         updateFooterTs(i);
-
         if (!cam.online) return;
 
-        // Convert canvas → JPEG blob and push
-        const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.72));
+        const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.75));
         if (!blob) return;
 
-        const timeoutCtrl = new AbortController();
-        const timeoutId = setTimeout(() => timeoutCtrl.abort(), 3000);
-
-        try {
-          const resp = await fetch(`${base}/api/cameras/${cam.id}/push-frame`, {
-            method:  'POST',
-            headers: { 'Content-Type': 'image/jpeg' },
-            body:    blob,
-            signal:  timeoutCtrl.signal
-          });
-          if (resp.ok) {
-            pushOk++;
-            pushBytesInWindow += blob.size;
-          } else {
-            pushErr++;
-            if (pushErr <= 3) log(`[PUSH] ${cam.id} → HTTP ${resp.status}`);
-          }
-        } catch (e) {
+        const resp = await fetch(`${base}/api/cameras/${cam.id}/push-frame`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'image/jpeg' },
+          body:    blob,
+          signal:  AbortSignal.timeout(2000),
+        });
+        if (resp.ok) {
+          pushOk++;
+          pushBytesInWindow += blob.size;
+        } else {
           pushErr++;
-          if (pushErr <= 3) log(`[PUSH] ${cam.id} → ${e?.message || 'network error'}`);
-        } finally {
-          clearTimeout(timeoutId);
+          if (pushErr <= 5) log(`[PUSH] ${cam.id} → HTTP ${resp.status}`);
         }
-
+      } catch (e) {
+        pushErr++;
+        if (pushErr <= 5) log(`[PUSH] ${cam.id} → ${e?.message || 'network error'}`);
+      } finally {
+        cam._pushing = false;
         document.getElementById('statPushOk').textContent  = pushOk;
         document.getElementById('statPushErr').textContent = pushErr;
-      }));
-    } finally {
-      pushTickRunning = false;
-    }
-  }, 100); // 100ms = 10 FPS target
+      }
+    });
+  }, 40); // 40ms ≈ 25 FPS target
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
