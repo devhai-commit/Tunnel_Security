@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>SensorHub Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
+</head>
+<body>
+    <h1>SensorHub - Realtime Test</h1>
+    <p id="status">Đang kết nối...</p>
+
+    <ul id="readings"></ul>
+
+    <script>
+        const statusEl = document.getElementById("status");
+        const listEl = document.getElementById("readings");
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/hubs/sensor")
+            .build();
+
+        connection.on("NewReading", (reading) => {
+            const item = document.createElement("li");
+            item.textContent = `[${reading.timestamp}] SensorId=${reading.sensorId} Value=${reading.value}`;
+            listEl.prepend(item);
+        });
+
+        connection.start()
+            .then(() => {
+                statusEl.textContent = "Đã kết nối tới /hubs/sensor";
+            })
+            .catch((err) => {
+                statusEl.textContent = "Lỗi kết nối: " + err;
+                console.error(err);
+            });
+    </script>
+</body>
+</html>
