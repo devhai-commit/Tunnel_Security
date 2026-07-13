@@ -56,7 +56,7 @@ namespace BackendV2.Services
                 }
 
                 using var scope = _scopeFactory.CreateScope();
-                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var db = scope.ServiceProvider.GetRequiredService<TimeSeriesDbContext>();
 
                 db.Readings.Add(reading);
                 await db.SaveChangesAsync();

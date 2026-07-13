@@ -11,10 +11,10 @@ namespace BackendV2.Controllers
     [Route("api/[controller]")]
     public class ReadingController : ControllerBase
     {
-        private readonly AppDbContext _db;
+        private readonly TimeSeriesDbContext _db;
         private readonly IHubContext<SensorHub> _hub;
 
-        public ReadingController(AppDbContext db, IHubContext<SensorHub> hub)
+        public ReadingController(TimeSeriesDbContext db, IHubContext<SensorHub> hub)
         {
             _db = db;
             _hub = hub;
@@ -30,7 +30,9 @@ namespace BackendV2.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Reading>> GetById(int id)
         {
-            var reading = await _db.Readings.FindAsync(id);
+            // Reading's PK is composite (Id, Timestamp) — TimescaleDB requires the
+            // partition column in every key — so FindAsync(id) alone can't resolve it.
+            var reading = await _db.Readings.FirstOrDefaultAsync(r => r.Id == id);
             if (reading is null)
             {
                 return NotFound();

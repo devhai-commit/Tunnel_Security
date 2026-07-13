@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Camera Relay Test</title>
+</head>
+<body>
+    <h1>Camera Relay - Test</h1>
+
+    <label>Camera ID: <input id="cameraId" value="cam1"></label>
+    <hr>
+
+    <h2>Giả lập Node (gửi frame)</h2>
+    <input type="file" id="fileInput" accept="image/jpeg">
+    <button id="sendBtn">Gửi frame</button>
+    <p id="ingestStatus">Chưa gửi</p>
+
+    <hr>
+
+    <h2>Giả lập Station (xem camera)</h2>
+    <button id="viewBtn">Kết nối xem</button>
+    <p id="viewStatus">Chưa kết nối</p>
+    <img id="frame" style="max-width: 480px; border: 1px solid #ccc;">
+
+    <script>
+        const cameraIdInput = document.getElementById("cameraId");
+        const wsBase = `ws://${location.host}/ws/camera`;
+
+        const ingestStatus = document.getElementById("ingestStatus");
+        document.getElementById("sendBtn").addEventListener("click", () => {
+            const file = document.getElementById("fileInput").files[0];
+            if (!file) {
+                ingestStatus.textContent = "Chưa chọn file";
+                return;
+            }
+
+            const cameraId = cameraIdInput.value;
+            const socket = new WebSocket(`${wsBase}/${cameraId}/ingest`);
+            socket.binaryType = "arraybuffer";
+
+            socket.onopen = async () => {
+                const buffer = await file.arrayBuffer();
+                socket.send(buffer);
+                ingestStatus.textContent = `Đã gửi ${buffer.byteLength} bytes`;
+                socket.close();
+            };
+
+            socket.onerror = (err) => {
+                ingestStatus.textContent = "Lỗi ingest: " + err;
+                console.error(err);
+            };
+        });
+
+        const viewStatus = document.getElementById("viewStatus");
+        const frameEl = document.getElementById("frame");
+        document.getElementById("viewBtn").addEventListener("click", () => {
+            const cameraId = cameraIdInput.value;
+            const socket = new WebSocket(`${wsBase}/${cameraId}/view`);
+            socket.binaryType = "blob";
+
+            socket.onopen = () => {
+                viewStatus.textContent = "Đã kết nối tới " + socket.url;
+            };
+
+            socket.onmessage = (event) => {
+                const url = URL.createObjectURL(event.data);
+                frameEl.src = url;
+            };
+
+            socket.onerror = (err) => {
+                viewStatus.textContent = "Lỗi view: " + err;
+                console.error(err);
+            };
+
+            socket.onclose = () => {
+                viewStatus.textContent = "Đã ngắt kết nối";
+            };
+        });
+    </script>
+</body>
+</html>

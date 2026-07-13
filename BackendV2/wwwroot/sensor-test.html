@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Sensor Flow Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+</head>
+<body>
+    <h1>Luồng Sensor - Test</h1>
+
+    <h2>Giả lập Node (gửi Reading)</h2>
+    <label>Sensor ID: <input id="sensorId" value="SEN-01"></label><br><br>
+    <label>Value: <input id="value" type="number" step="0.1" value="23.5"></label><br><br>
+    <label>Description: <input id="description" value=""></label><br><br>
+    <button id="sendBtn">Gửi Reading</button>
+    <p id="sendStatus">Chưa gửi</p>
+
+    <hr>
+
+    <h2>Giả lập Station (lắng nghe NewReading)</h2>
+    <button id="connectBtn">Kết nối</button>
+    <button id="disconnectBtn">Ngắt kết nối</button>
+    <button id="reloadBtn">Tải lại toàn bộ Reading</button>
+    <p id="connStatus">Chưa kết nối</p>
+    <ul id="log"></ul>
+
+    <script>
+        const MAX_LOG_LINES = 50;
+        const sendStatus = document.getElementById("sendStatus");
+        const connStatus = document.getElementById("connStatus");
+        const logEl = document.getElementById("log");
+
+        document.getElementById("sendBtn").addEventListener("click", async () => {
+            const sensorId = document.getElementById("sensorId").value;
+            const value = parseFloat(document.getElementById("value").value);
+            const description = document.getElementById("description").value;
+
+            const body = {
+                sensorId,
+                timestamp: new Date().toISOString(),
+                value,
+                description
+            };
+
+            try {
+                const res = await fetch("/api/Reading", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body)
+                });
+                const text = await res.text();
+                sendStatus.textContent = `${res.status} ${res.statusText}: ${text}`;
+            } catch (err) {
+                sendStatus.textContent = "Lỗi gửi: " + err;
+                console.error(err);
+            }
+        });
+
+        function appendLog(reading) {
+            const li = document.createElement("li");
+            li.textContent = `Id=${reading.id} SensorId=${reading.sensorId} Value=${reading.value} Timestamp=${reading.timestamp} Description=${reading.description ?? ""}`;
+            logEl.prepend(li);
+            while (logEl.children.length > MAX_LOG_LINES) {
+                logEl.removeChild(logEl.lastChild);
+            }
+        }
+
+        let connection = null;
+
+        document.getElementById("connectBtn").addEventListener("click", async () => {
+            if (connection) {
+                connStatus.textContent = "Đã kết nối rồi";
+                return;
+            }
+
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl("/hubs/sensor")
+                .build();
+
+            connection.on("NewReading", appendLog);
+
+            connection.onclose(() => {
+                connStatus.textContent = "Mất kết nối";
+                connection = null;
+            });
+
+            try {
+                await connection.start();
+                connStatus.textContent = "Đã kết nối";
+            } catch (err) {
+                connStatus.textContent = "Lỗi kết nối: " + err;
+                console.error(err);
+                connection = null;
+            }
+        });
+
+        document.getElementById("disconnectBtn").addEventListener("click", async () => {
+            if (!connection) {
+                connStatus.textContent = "Chưa kết nối";
+                return;
+            }
+            await connection.stop();
+            connection = null;
+            connStatus.textContent = "Đã ngắt kết nối";
+        });
+
+        document.getElementById("reloadBtn").addEventListener("click", async () => {
+            try {
+                const res = await fetch("/api/Reading");
+                const readings = await res.json();
+                logEl.innerHTML = "";
+                readings.forEach(appendLog);
+            } catch (err) {
+                console.error(err);
+            }
+        });
+    </script>
+</body>
+</html>

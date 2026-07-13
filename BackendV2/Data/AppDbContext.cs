@@ -10,7 +10,6 @@ public class AppDbContext : DbContext
     public DbSet<Node> Nodes => Set<Node>();
     public DbSet<Camera> Cameras => Set<Camera>();
     public DbSet<Sensor> Sensors => Set<Sensor>();
-    public DbSet<Reading> Readings => Set<Reading>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -29,13 +28,6 @@ public class AppDbContext : DbContext
         {
             e.HasKey(x => x.Id);
             e.HasOne<Node>().WithMany().HasForeignKey(x => x.NodeId);
-        });
-
-        modelBuilder.Entity<Reading>(e =>
-        {
-            e.HasKey(x => x.Id);
-            e.HasOne<Sensor>().WithMany().HasForeignKey(x => x.SensorId);
-            e.HasIndex(x => new { x.SensorId, x.Timestamp });
         });
     }
 }
