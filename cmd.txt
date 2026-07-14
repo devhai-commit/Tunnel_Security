@@ -1,0 +1,12 @@
+while true; do
+    VALUE=$(awk -v min=20 -v max=35 'BEGIN{srand(); printf "%.1f", min+rand()*(max-min)}')
+    TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    mosquitto_pub \
+        -h localhost \
+        -p 1883 \
+        -t "sensors/s1/reading" \
+        -m "{\"SensorId\":\"s1\",\"NodeId\":\"1\",\"Timestamp\":\"$TIMESTAMP\",\"Value\":$VALUE,\"Level\":0,\"Crc8Ok\":true,\"Description\":\"hello\"}"
+
+    sleep 1
+done

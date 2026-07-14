@@ -9,7 +9,7 @@ Tài liệu mô tả 2 luồng dữ liệu chính trong `BackendV2`: **Sensor (M
 ### Thành phần liên quan
 - `MqttSubscriberService` (`BackgroundService`, singleton hosted service) — subscribe topic `sensors/+/reading` trên broker Mosquitto (`localhost:1883`)
 - `AppDbContext` — lưu `Reading` vào DB (tạo `IServiceScopeFactory` scope mới mỗi message vì `DbContext` là scoped, không thể inject thẳng vào service singleton)
-- `SensorHub` (`Hub`, rỗng — chỉ dùng làm kênh broadcast) — map tại `/hubs/sensor`
+- `SensorHub` (`Hub`, rỗng — chỉ dùng làm kênh broadcast) — map tại `/hubs/sensors`
 - `IHubContext<SensorHub>` — dùng để đẩy dữ liệu tới toàn bộ client đang kết nối SignalR
 
 ### Sequence diagram

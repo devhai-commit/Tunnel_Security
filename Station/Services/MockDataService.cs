@@ -96,6 +96,19 @@ namespace Station.Services
         public bool IsOnline { get; set; } = true;
         /// <summary>RTSP/HLS stream URL — null khi dùng mock</summary>
         public string? StreamUrl { get; set; }
+
+        // BackendV2 enrichment (khớp BackendV2.Models.Camera) — mock để mặc định,
+        // RealDataService/BackendV2 data service map từ CameraDto vào các field này.
+        public string? Description { get; set; }
+        public int Protocol { get; set; }   // 0=RTSP, 1=HTTP, 2=WebSocket
+        public int Status { get; set; }     // 0=Online, 1=Offline, 2=Error
+        public string? Resolution { get; set; }
+        public int? Fps { get; set; }
+        public string? Codec { get; set; }
+        public bool IrEnabled { get; set; }
+        public bool HdrEnabled { get; set; }
+        public bool IsRecording { get; set; }
+        public DateTime? LastFrameTime { get; set; }
     }
 
     // ═══════════════════════════════════════════════════════════════════

@@ -16,7 +16,7 @@
         const listEl = document.getElementById("readings");
 
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/hubs/sensor")
+            .withUrl("/hubs/sensors")
             .build();
 
         connection.on("NewReading", (reading) => {
@@ -27,7 +27,7 @@
 
         connection.start()
             .then(() => {
-                statusEl.textContent = "Đã kết nối tới /hubs/sensor";
+                statusEl.textContent = "Đã kết nối tới /hubs/sensors";
             })
             .catch((err) => {
                 statusEl.textContent = "Lỗi kết nối: " + err;

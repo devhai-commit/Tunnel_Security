@@ -1,5 +1,6 @@
 using BackendV2.Data;
 using BackendV2.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
@@ -9,6 +10,7 @@ namespace BackendV2.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ReadingController : ControllerBase
     {
         private readonly TimeSeriesDbContext _db;

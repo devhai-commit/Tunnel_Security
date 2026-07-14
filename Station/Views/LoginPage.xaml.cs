@@ -100,11 +100,12 @@ namespace Station.Views
                 Encoding.UTF8,
                 "application/json");
 
-            System.Diagnostics.Debug.WriteLine("CALLING API: http://localhost:5280/api/Auth/login");
+            var baseUrl = Environment.GetEnvironmentVariable("BACKENDV2_BASE_URL") ?? "http://localhost:5080";
+            System.Diagnostics.Debug.WriteLine($"CALLING API: {baseUrl}/api/Auth/login");
             System.Diagnostics.Debug.WriteLine("REQUEST BODY: " + json);
 
             var response = await client.PostAsync(
-                "http://localhost:5280/api/Auth/login",
+                $"{baseUrl}/api/Auth/login",
                 content);
 
             var result = await response.Content.ReadAsStringAsync();

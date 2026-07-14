@@ -3,6 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using BackendV2.Hubs;
 using BackendV2.Services;
 using BackendV2.Middlewares;
+using BackendV2.Auth;
+using BackendV2.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +22,48 @@ builder.Services.AddSignalR();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
+
+// ── Auth (JWT bearer + roles/permissions) ─────────────────────────────────────
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
+builder.Services.Configure<LoginSecuritySettings>(builder.Configuration.GetSection("LoginSecurity"));
+
+var jwtSecret = builder.Configuration["Jwt:Secret"]
+    ?? throw new InvalidOperationException("Jwt:Secret is not configured.");
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+        };
+
+        // SignalR WebSocket connections can't set an Authorization header, so accept
+        // the access token via query string for the hub path.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    context.HttpContext.Request.Path.StartsWithSegments("/hubs/sensors"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
+    });
+builder.Services.AddAuthorization();
+
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // ── TimescaleDB / PostgreSQL (time-series Readings) ───────────────────────────
 // Enabled by TimeSeries:Enabled flag. App starts fine without TimescaleDB running;
@@ -51,6 +99,14 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+// Auth — seed standard roles/permissions and bootstrap the initial admin user
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
+    await AuthSeeder.SeedAsync(db, passwordHasher, app.Configuration);
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -61,6 +117,7 @@ else
     app.UseHttpsRedirection();
 }
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseStaticFiles();
@@ -70,6 +127,6 @@ app.UseMiddleware<CameraViewMiddleware>();
 
 app.MapControllers();
 
-app.MapHub<SensorHub>("/hubs/sensor");
+app.MapHub<SensorHub>("/hubs/sensors");
 
 app.Run();

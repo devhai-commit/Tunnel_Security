@@ -1,11 +1,12 @@
 using System;
+using Station.ServicesV2;
 
 namespace Station.Services;
 
 /// <summary>
 /// Static accessor trả về IDataService phù hợp dựa vào env var DATA_SOURCE.
-/// DATA_SOURCE=mock  → MockDataService (mặc định, backward compat)
-/// DATA_SOURCE=api   → RealDataService (kết nối Backend thực)
+/// DATA_SOURCE=mock  → MockDataService (dev/demo, không cần backend)
+/// DATA_SOURCE=api   → DataService (mặc định — kết nối BackendV2)
 /// </summary>
 public static class DataServiceLocator
 {
@@ -24,7 +25,7 @@ public static class DataServiceLocator
         var source = Environment.GetEnvironmentVariable("DATA_SOURCE")?.ToLower() ?? "api";
 
         _instance = source == "api"
-            ? new RealDataService()
+            ? new DataService()
             : MockDataService.Instance;
 
         return _instance;
