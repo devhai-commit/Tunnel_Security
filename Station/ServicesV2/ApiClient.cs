@@ -138,8 +138,8 @@ namespace Station.ServicesV2
         public string Name { get; set; } = string.Empty;
         public int Type { get; set; } = 0; // 0=Analog, 1=Digital, 2=Temperature, 3=Humidity, 4=Pressure, 5=Light, 6=Sound, 7=Gas, 8=Motion, 9=Other
         public string Unit { get; set; } = string.Empty;
-        public double? MinValue { get; set; }
-        public double? MaxValue { get; set; }
+        public double? WarningThreshold { get; set; }
+        public double? CriticalThreshold { get; set; }
         public bool IsActive { get; set; }
         public string Description { get; set; } = string.Empty;
         public double? CurrentValue { get; set; }

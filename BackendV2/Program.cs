@@ -105,6 +105,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
     await AuthSeeder.SeedAsync(db, passwordHasher, app.Configuration);
+    await TopologySeeder.SeedAsync(db);
 }
 
 // Configure the HTTP request pipeline.

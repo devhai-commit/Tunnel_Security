@@ -152,14 +152,25 @@
                                 </StackPanel>
                             </Grid>
 
-                            <!-- Hidden types (Radar + Camera — disabled) -->
-                            <Border Visibility="Collapsed">
-                                <CheckBox x:Name="ChkRadar" Tag="radar" IsChecked="False"
-                                          Checked="ChartType_CheckChanged" Unchecked="ChartType_CheckChanged"/>
-                            </Border>
+                            <!-- Hidden types (Camera — disabled, has its own panel) -->
                             <Border Visibility="Collapsed">
                                 <CheckBox x:Name="ChkCamera" Tag="camera" IsChecked="False"
                                           Checked="ChartType_CheckChanged" Unchecked="ChartType_CheckChanged"/>
+                            </Border>
+
+                            <!-- Radar -->
+                            <Border Background="#0D1B2A" CornerRadius="5" Padding="10,8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="3" Height="14" Background="#00FF88" CornerRadius="2" Margin="0,0,10,0"/>
+                                    <CheckBox Grid.Column="1" x:Name="ChkRadar" Content="RADAR"
+                                              IsChecked="True" Tag="radar"
+                                              FontSize="11" FontFamily="Consolas"
+                                              Checked="ChartType_CheckChanged" Unchecked="ChartType_CheckChanged"/>
+                                </Grid>
                             </Border>
 
                             <!-- Temperature -->
@@ -207,31 +218,16 @@
                                 </Grid>
                             </Border>
 
-                            <!-- Infrared -->
+                            <!-- Water Level -->
                             <Border Background="#0D1B2A" CornerRadius="5" Padding="10,8">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <Border Width="3" Height="14" Background="#FF69B4" CornerRadius="2" Margin="0,0,10,0"/>
-                                    <CheckBox Grid.Column="1" x:Name="ChkInfrared" Content="HỒNG NGOẠI"
-                                              IsChecked="True" Tag="infrared"
-                                              FontSize="11" FontFamily="Consolas"
-                                              Checked="ChartType_CheckChanged" Unchecked="ChartType_CheckChanged"/>
-                                </Grid>
-                            </Border>
-
-                            <!-- Vibration -->
-                            <Border Background="#0D1B2A" CornerRadius="5" Padding="10,8">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Border Width="3" Height="14" Background="#FF8C00" CornerRadius="2" Margin="0,0,10,0"/>
-                                    <CheckBox Grid.Column="1" x:Name="ChkVibration" Content="RUNG ĐỘNG"
-                                              IsChecked="True" Tag="vibration"
+                                    <Border Width="3" Height="14" Background="#50A0FF" CornerRadius="2" Margin="0,0,10,0"/>
+                                    <CheckBox Grid.Column="1" x:Name="ChkWaterLevel" Content="MỰC NƯỚC"
+                                              IsChecked="True" Tag="waterlevel"
                                               FontSize="11" FontFamily="Consolas"
                                               Checked="ChartType_CheckChanged" Unchecked="ChartType_CheckChanged"/>
                                 </Grid>

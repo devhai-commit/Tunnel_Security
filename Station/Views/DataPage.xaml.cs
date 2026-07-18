@@ -24,7 +24,7 @@ namespace Station.Views
         private string _selectedStatus = "all";
         private string _searchText = "";
         private HashSet<string> _selectedNodeIds = new();
-        private HashSet<string> _selectedTypes = new() { "infrared", "temperature", "humidity", "light", "vibration" };
+        private HashSet<string> _selectedTypes = new() { "temperature", "humidity", "light", "waterlevel", "radar" };
         private int _columnsPerRow = 2;
         private readonly Random _random = new();
 
@@ -248,6 +248,7 @@ namespace Station.Views
             Station.Models.AlertCategory.Temperature => "temperature",
             Station.Models.AlertCategory.Humidity => "humidity",
             Station.Models.AlertCategory.Light => "light",
+            Station.Models.AlertCategory.WaterLevel => "waterlevel",
             Station.Models.AlertCategory.Accelerometer => "vibration",
             Station.Models.AlertCategory.Intrusion => "camera",
             _ => "other"
@@ -316,7 +317,7 @@ namespace Station.Views
             UpdateHeaderStats();
 
             var filtered = GetFilteredSensors();
-            var chartSensors = filtered.Where(s => s.Type != "camera" && s.Type != "radar").ToList();
+            var chartSensors = filtered.Where(s => s.Type != "camera").ToList();
             var cameraSensors = filtered.Where(s => s.Type == "camera").ToList();
 
             // Charts
@@ -827,7 +828,7 @@ namespace Station.Views
             ChkTemperature.IsChecked = true;
             ChkHumidity.IsChecked = true;
             ChkLight.IsChecked = true;
-            ChkVibration.IsChecked = true;
+            ChkWaterLevel.IsChecked = true;
         }
 
         private void ClearAll_Click(object sender, RoutedEventArgs e)
@@ -837,8 +838,7 @@ namespace Station.Views
             ChkTemperature.IsChecked = false;
             ChkHumidity.IsChecked = false;
             ChkLight.IsChecked = false;
-            ChkInfrared.IsChecked = false;
-            ChkVibration.IsChecked = false;
+            ChkWaterLevel.IsChecked = false;
         }
 
         private void DisplayOption_Changed(object sender, RoutedEventArgs e) => LoadChartsForAllNodes();

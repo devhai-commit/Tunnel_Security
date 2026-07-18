@@ -20,9 +20,6 @@ namespace Station.ServicesV2
     /// - BackendV2 chưa có luồng device-join (JOIN_REQUEST) như Backend v1 — các API
     ///   GetPendingJoinRequestsAsync/ApproveJoinRequestAsync/RejectJoinRequestAsync luôn
     ///   trả về rỗng/false, event NewJoinRequest không bao giờ raise.
-    /// - SensorDto.MinValue/MaxValue trong ApiClient.cs vẫn sai tên field (phải là
-    ///   WarningThreshold/CriticalThreshold) nên luôn null → sensor dùng ngưỡng mặc định
-    ///   30/50 thay vì ngưỡng thật cấu hình trên backend, cho tới khi ApiClient.cs được sửa.
     /// </summary>
     public class DataService : IDataService, IAsyncDisposable
     {
@@ -177,8 +174,8 @@ namespace Station.ServicesV2
         private static SimulatedSensor MapSensor(SensorDto s, Dictionary<string, TunnelNode> nodeIndex)
         {
             nodeIndex.TryGetValue(s.NodeId, out var node);
-            var warn = s.MinValue ?? 30.0;
-            var crit = s.MaxValue ?? 50.0;
+            var warn = s.WarningThreshold ?? 30.0;
+            var crit = s.CriticalThreshold ?? 50.0;
 
             return new SimulatedSensor
             {
@@ -207,15 +204,17 @@ namespace Station.ServicesV2
         }
 
         // BackendV2.Models.SensorType: 0=Radar,1=Vibration,2=SmokeFire,3=Temperature,
-        // 4=Humidity,5=Gas,6=Pressure,7=WaterLevel,8=Motion — không có tương ứng 1-1 cho
-        // SmokeFire/Gas/Pressure/WaterLevel trong AlertCategory nên gộp vào Other.
+        // 4=Humidity,5=Gas,6=Pressure,7=WaterLevel,8=Motion,9=Light — không có tương ứng 1-1 cho
+        // SmokeFire/Gas/Pressure trong AlertCategory nên gộp vào Other.
         private static AlertCategory MapCategory(int sensorType) => sensorType switch
         {
             0 => AlertCategory.Radar,
             1 => AlertCategory.Accelerometer,
             3 => AlertCategory.Temperature,
             4 => AlertCategory.Humidity,
+            7 => AlertCategory.WaterLevel,
             8 => AlertCategory.Infrared,
+            9 => AlertCategory.Light,
             _ => AlertCategory.Other
         };
 

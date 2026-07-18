@@ -144,7 +144,9 @@ namespace BackendV2.Services
             byte nodeId, SensorTlvEntry entry, string suffix, DateTime timestamp, double value, string description) =>
             new()
             {
-                SensorId = $"node{nodeId}-{entry.TypeByte:X2}-{entry.Seq}-{suffix}",
+                // Không nhúng entry.Seq vào đây — Seq đổi mỗi lần publish nên sẽ không bao giờ
+                // khớp Sensor.Id tĩnh trong AppDbContext (xem TopologySeeder, seed "node-{id}-{suffix}").
+                SensorId = $"node-{nodeId}-{suffix}",
                 NodeId = nodeId.ToString(),
                 NodeByteId = nodeId,
                 SensorByteId = entry.TypeByte,

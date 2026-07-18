@@ -49,11 +49,11 @@ public sealed partial class SensorChartsPage : Page
     {
         _isLoaded = true;
 
-        _typeItems["temperature"] = new TypeItem(BtnTemp,     LblTemp);
-        _typeItems["humidity"]    = new TypeItem(BtnHumidity, LblHumidity);
-        _typeItems["light"]       = new TypeItem(BtnLight,    LblLight);
-        _typeItems["infrared"]    = new TypeItem(BtnInfrared, LblInfrared);
-        _typeItems["vibration"]   = new TypeItem(BtnVibration,LblVibration);
+        _typeItems["temperature"] = new TypeItem(BtnTemp,      LblTemp);
+        _typeItems["humidity"]    = new TypeItem(BtnHumidity,  LblHumidity);
+        _typeItems["light"]       = new TypeItem(BtnLight,     LblLight);
+        _typeItems["waterlevel"]  = new TypeItem(BtnWaterLevel,LblWaterLevel);
+        _typeItems["radar"]       = new TypeItem(BtnRadar,     LblRadar);
         UpdateTypeItemStates();
 
         _dataService.TopologyLoaded += OnTopologyLoaded;
@@ -434,6 +434,8 @@ public sealed partial class SensorChartsPage : Page
         Models.AlertCategory.Temperature   => "temperature",
         Models.AlertCategory.Humidity      => "humidity",
         Models.AlertCategory.Light         => "light",
+        Models.AlertCategory.WaterLevel    => "waterlevel",
+        Models.AlertCategory.Radar         => "radar",
         Models.AlertCategory.Infrared      => "infrared",
         Models.AlertCategory.Accelerometer => "vibration",
         _                                  => "other"
@@ -444,6 +446,8 @@ public sealed partial class SensorChartsPage : Page
         "temperature" => new SKColor(255, 77,  77),
         "humidity"    => new SKColor(34,  211, 238),
         "light"       => new SKColor(255, 184, 0),
+        "waterlevel"  => new SKColor(80,  160, 255),
+        "radar"       => new SKColor(0,   255, 136),
         "vibration"   => new SKColor(132, 204, 22),
         "infrared"    => new SKColor(255, 105, 180),
         _             => new SKColor(173, 198, 255)
@@ -454,6 +458,8 @@ public sealed partial class SensorChartsPage : Page
         "temperature" => Color.FromArgb(255, 255, 77,  77),
         "humidity"    => Color.FromArgb(255, 34,  211, 238),
         "light"       => Color.FromArgb(255, 255, 184, 0),
+        "waterlevel"  => Color.FromArgb(255, 80,  160, 255),
+        "radar"       => Color.FromArgb(255, 0,   255, 136),
         "vibration"   => Color.FromArgb(255, 132, 204, 22),
         "infrared"    => Color.FromArgb(255, 255, 105, 180),
         _             => Color.FromArgb(255, 173, 198, 255)
@@ -464,6 +470,8 @@ public sealed partial class SensorChartsPage : Page
         "temperature" => "NHIỆT ĐỘ",
         "humidity"    => "ĐỘ ẨM",
         "light"       => "ÁNH SÁNG",
+        "waterlevel"  => "MỰC NƯỚC",
+        "radar"       => "RADAR",
         "vibration"   => "RUNG ĐỘNG",
         "infrared"    => "HỒNG NGOẠI",
         _             => type.ToUpperInvariant()
@@ -474,6 +482,8 @@ public sealed partial class SensorChartsPage : Page
         "temperature" => "°C",
         "humidity"    => "%RH",
         "light"       => "lux",
+        "waterlevel"  => "mm",
+        "radar"       => "%",
         "infrared"    => "%",
         "vibration"   => "m/s²",
         _             => ""

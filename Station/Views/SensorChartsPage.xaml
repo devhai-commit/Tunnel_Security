@@ -119,25 +119,25 @@
                             </StackPanel>
                         </Border>
 
-                        <Border x:Name="BtnInfrared" Tag="infrared" IsTapEnabled="True"
+                        <Border x:Name="BtnWaterLevel" Tag="waterlevel" IsTapEnabled="True"
                                 Tapped="SensorType_Tapped" Padding="16,11"
                                 Background="Transparent" BorderThickness="0,0,3,0"
                                 BorderBrush="Transparent">
                             <StackPanel Orientation="Horizontal" Spacing="10">
-                                <Rectangle Width="3" Height="14" Fill="#FF69B4" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="LblInfrared" Text="HỒNG NGOẠI" FontSize="11"
+                                <Rectangle Width="3" Height="14" Fill="#50A0FF" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="LblWaterLevel" Text="MỰC NƯỚC" FontSize="11"
                                            FontFamily="Consolas" VerticalAlignment="Center"
                                            Foreground="{StaticResource DkTextMutedBrush}"/>
                             </StackPanel>
                         </Border>
 
-                        <Border x:Name="BtnVibration" Tag="vibration" IsTapEnabled="True"
+                        <Border x:Name="BtnRadar" Tag="radar" IsTapEnabled="True"
                                 Tapped="SensorType_Tapped" Padding="16,11"
                                 Background="Transparent" BorderThickness="0,0,3,0"
                                 BorderBrush="Transparent">
                             <StackPanel Orientation="Horizontal" Spacing="10">
-                                <Rectangle Width="3" Height="14" Fill="#84CC16" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="LblVibration" Text="RUNG ĐỘNG" FontSize="11"
+                                <Rectangle Width="3" Height="14" Fill="#00FF88" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="LblRadar" Text="RADAR" FontSize="11"
                                            FontFamily="Consolas" VerticalAlignment="Center"
                                            Foreground="{StaticResource DkTextMutedBrush}"/>
                             </StackPanel>

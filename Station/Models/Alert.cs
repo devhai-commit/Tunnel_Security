@@ -28,6 +28,7 @@ namespace Station.Models
         Infrared,        // Cảm biến hồng ngoại (PIR)
         Light,           // Cảm biến ánh sáng
         Accelerometer,   // Cảm biến gia tốc
+        WaterLevel,      // Mực nước
         Intrusion,       // Xâm nhập (camera AI)
         Equipment,       // Thiết bị
         Connection,      // Kết nối
