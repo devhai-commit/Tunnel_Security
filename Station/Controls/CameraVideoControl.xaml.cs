@@ -104,7 +104,10 @@ public sealed partial class CameraVideoControl : UserControl
         if (!string.IsNullOrEmpty(StreamUrl))
         {
             var res = SelectedResolution ?? "320×240";
-            Navigate($"stream:{StreamUrl}:{res}", BuildStreamPage(StreamUrl, res));
+            var isWebSocket = StreamUrl.StartsWith("ws://", StringComparison.OrdinalIgnoreCase)
+                           || StreamUrl.StartsWith("wss://", StringComparison.OrdinalIgnoreCase);
+            var html = isWebSocket ? BuildWebSocketStreamPage(StreamUrl) : BuildStreamPage(StreamUrl, res);
+            Navigate($"stream:{StreamUrl}:{res}", html);
             return;
         }
 
@@ -190,6 +193,53 @@ public sealed partial class CameraVideoControl : UserControl
 
     poll();
     window.addEventListener('beforeunload', function() {{ on = false; }});
+  </script>
+</body></html>";
+    }
+
+    // BackendV2's camera relay is a WebSocket push (/ws/camera/{id}/view) rather than a
+    // pollable HTTP endpoint: the browser WebSocket delivers one binary JPEG per message,
+    // which we turn into an object URL and draw to canvas on load — no server polling loop
+    // needed, and no MJPEG-buffer burst artifact since each message renders immediately.
+    private static string BuildWebSocketStreamPage(string wsUrl)
+    {
+        return $@"<!DOCTYPE html><html>
+<body style='margin:0;background:#000;overflow:hidden;width:100vw;height:100vh'>
+  <canvas id='cv' style='position:absolute;inset:0;width:100%;height:100%'></canvas>
+  <img id='buf' style='display:none'>
+  <script>
+    var cv  = document.getElementById('cv');
+    var ctx = cv.getContext('2d');
+    var img = document.getElementById('buf');
+    var url = '{wsUrl}';
+    var on  = true;
+    var ws  = null;
+    var currentBlobUrl = null;
+
+    function resize() {{ cv.width = innerWidth || 320; cv.height = innerHeight || 240; }}
+    resize();
+    window.onresize = resize;
+
+    img.onload = function() {{
+      ctx.drawImage(img, 0, 0, cv.width, cv.height);
+      if (currentBlobUrl) {{ URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; }}
+    }};
+
+    function connect() {{
+      if (!on) return;
+      ws = new WebSocket(url);
+      ws.binaryType = 'blob';
+      ws.onmessage = function(ev) {{
+        if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+        currentBlobUrl = URL.createObjectURL(ev.data);
+        img.src = currentBlobUrl;
+      }};
+      ws.onclose = function() {{ if (on) setTimeout(connect, 1000); }};
+      ws.onerror = function() {{ ws.close(); }};
+    }}
+
+    connect();
+    window.addEventListener('beforeunload', function() {{ on = false; if (ws) ws.close(); }});
   </script>
 </body></html>";
     }

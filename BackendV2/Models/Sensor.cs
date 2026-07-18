@@ -10,7 +10,8 @@ namespace BackendV2.Models
         Gas,            // Khí gas (ppm)
         Pressure,       // Áp suất
         WaterLevel,     // Mực nước
-        Motion          // Chuyển động
+        Motion,         // Chuyển động
+        Light           // Ánh sáng (lx)
     }
 
     public class Sensor

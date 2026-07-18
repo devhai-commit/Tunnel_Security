@@ -35,6 +35,11 @@ namespace BackendV2.Middlewares
             using var socket = await context.WebSockets.AcceptWebSocketAsync();
             _registry.AddViewer(cameraId, socket);
 
+            if (_registry.TryGetLatestFrame(cameraId, out var latestFrame))
+            {
+                await socket.SendAsync(latestFrame, WebSocketMessageType.Binary, endOfMessage: true, context.RequestAborted);
+            }
+
             var buffer = new byte[8192];
 
             try
