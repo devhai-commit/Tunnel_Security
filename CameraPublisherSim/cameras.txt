@@ -1,0 +1,19 @@
+# Danh sách camera giả lập — mỗi dòng 1 camera, dạng:
+#   cameraId=đường_dẫn_hoặc_link_video
+#   cameraId=đường_dẫn_hoặc_link_video,fps   (fps tùy chọn, mặc định lấy từ CAMERA_FPS hoặc 24)
+#
+# - cameraId phải khớp với Camera.Id đã seed trong BackendV2 (vd: CAM-HUB-01)
+# - Giá trị sau dấu "=" có thể là đường dẫn file local (D:\Videos\a.mp4)
+#   hoặc link mạng mà ffmpeg đọc được (http/https/rtsp/rtmp)
+# - Dòng bắt đầu bằng "#" hoặc để trống sẽ bị bỏ qua
+#
+# Ví dụ:
+# CAM-HUB-01=D:\Videos\camera1.mp4
+# CAM-HUB-02=D:\Videos\camera2.mp4,10
+# CAM-HUB-03=https://example.com/stream.mp4
+
+
+
+CAM-HUB-01=D:\Projects\Tunnel_Security\CameraPublisherSim\Videos\video1.mp4
+CAM-HUB-02=D:\Projects\Tunnel_Security\CameraPublisherSim\Videos\video2.mp4
+CAM-HUB-03=D:\Projects\Tunnel_Security\CameraPublisherSim\Videos\video3.mp4
