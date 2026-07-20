@@ -21,6 +21,8 @@
         <Grid.RowDefinitions>
             <!-- Alert Banner: only visible when alerts are active -->
             <RowDefinition Height="Auto"/>
+            <!-- Top title bar: spans full width above the sidebar/content split -->
+            <RowDefinition Height="Auto"/>
             <!-- Main content -->
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
@@ -83,9 +85,86 @@
         </Border>
 
         <!-- ═══════════════════════════════════════════════════
-             MAIN CONTENT
+             TOP TITLE BAR (full width, hidden while fullscreen)
              ═══════════════════════════════════════════════════ -->
-        <Grid Grid.Row="1">
+        <Border Grid.Row="1" Padding="20,14,20,14"
+                Background="{StaticResource BackgroundPrimaryBrush}"
+                BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1"
+                Visibility="{x:Bind ViewModel.IsCameraFocused, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                    <TextBlock Text="Giám sát Trực tiếp" Style="{StaticResource TitleTextBlockStyle}" VerticalAlignment="Center"/>
+
+                    <Border Background="{StaticResource BackgroundSecondaryBrush}" CornerRadius="4" Padding="10,5"
+                            BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE714;" FontSize="11" Foreground="{StaticResource SeverityLowBrush}"/>
+                            <TextBlock FontSize="12">
+                                <Run Text="Hoạt động:" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <Run Text="{x:Bind ViewModel.ActiveCameras, Mode=OneWay}" FontWeight="Bold"/>
+                                <Run Text="/" Foreground="{StaticResource TextTertiaryBrush}"/>
+                                <Run Text="{x:Bind ViewModel.TotalCameras, Mode=OneWay}" Foreground="{StaticResource TextTertiaryBrush}"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource BackgroundSecondaryBrush}" CornerRadius="4" Padding="10,5"
+                            BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE80A;" FontSize="11" Foreground="{StaticResource PrimaryMediumBrush}"/>
+                            <TextBlock FontSize="12">
+                                <Run Text="Bố cục:" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <Run Text="{x:Bind ViewModel.SelectedLayoutText, Mode=OneWay}" FontWeight="Bold"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Actions -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button Style="{StaticResource SecondaryButtonStyle}" Height="36" Padding="12,0"
+                            ToolTipService.ToolTip="Thay đổi bố cục">
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <FontIcon Glyph="&#xE80A;" FontSize="13"/>
+                            <TextBlock Text="Bố cục" FontSize="13"/>
+                            <FontIcon Glyph="&#xE70D;" FontSize="10" Opacity="0.6"/>
+                        </StackPanel>
+                        <Button.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                <MenuFlyoutItem Text="1×1 - Đơn" Command="{x:Bind ViewModel.ChangeLayoutCommand}" CommandParameter="1">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8A9;"/></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Text="2×2 - Lưới 4" Command="{x:Bind ViewModel.ChangeLayoutCommand}" CommandParameter="4">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE89A;"/></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Text="3×3 - Lưới 9" Command="{x:Bind ViewModel.ChangeLayoutCommand}" CommandParameter="9">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE80A;"/></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Text="4×4 - Lưới 16" Command="{x:Bind ViewModel.ChangeLayoutCommand}" CommandParameter="16">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8FE;"/></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                    <Button Style="{StaticResource SecondaryButtonStyle}"
+                            Command="{x:Bind ViewModel.RefreshStreamsCommand}"
+                            Height="36" Width="36" Padding="0"
+                            ToolTipService.ToolTip="Làm mới">
+                        <FontIcon Glyph="&#xE72C;" FontSize="14"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══════════════════════════════════════════════════
+             CONTENT: sidebar + camera grid
+             ═══════════════════════════════════════════════════ -->
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="SidebarColumn" Width="280" MinWidth="48"/>
                 <ColumnDefinition Width="*"/>
@@ -110,9 +189,10 @@
 
                         <StackPanel x:Name="SidebarTitlePanel" Grid.Column="0"
                                     VerticalAlignment="Center">
-                            <TextBlock Text="Camera" FontSize="15" FontWeight="SemiBold"
+                            <TextBlock Text="DANH SÁCH CAMERA" FontSize="13" FontWeight="SemiBold"
+                                       CharacterSpacing="20"
                                        Foreground="{StaticResource TextPrimaryBrush}"/>
-                            <TextBlock Text="Chọn camera để hiển thị" FontSize="11"
+                            <TextBlock Text="Kéo camera vào ô trống để xem" FontSize="11"
                                        Foreground="{StaticResource TextSecondaryBrush}" Margin="0,1,0,0"/>
                         </StackPanel>
 
@@ -151,12 +231,22 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Camera list -->
+                        <!-- Camera list: each row is a drag source -->
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0">
                             <ItemsControl ItemsSource="{x:Bind ViewModel.CameraStreams, Mode=OneWay}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="viewmodels:CameraStreamViewModel">
-                                        <Grid>
+                                        <Grid CanDrag="True" Background="Transparent"
+                                              DragStarting="CameraListItem_DragStarting"
+                                              DropCompleted="CameraListItem_DropCompleted"
+                                              PointerEntered="CameraListItem_PointerEntered"
+                                              PointerExited="CameraListItem_PointerExited">
+                                            <Grid.OpacityTransition>
+                                                <ScalarTransition Duration="0:0:0.2"/>
+                                            </Grid.OpacityTransition>
+                                            <Grid.BackgroundTransition>
+                                                <BrushTransition Duration="0:0:0.15"/>
+                                            </Grid.BackgroundTransition>
                                             <!-- Bottom divider -->
                                             <Rectangle Height="1" VerticalAlignment="Bottom"
                                                        Fill="{StaticResource BorderLightBrush}" Opacity="0.22"/>
@@ -187,7 +277,7 @@
                                                 </Grid>
                                             </Grid>
 
-                                            <!-- Normal state row with CheckBox -->
+                                            <!-- Normal state row: drag handle + status dot + name -->
                                             <Grid Padding="14,10,16,10"
                                                   Visibility="{x:Bind HasAlert, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
                                                 <Grid.ColumnDefinitions>
@@ -198,12 +288,10 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
 
-                                                <CheckBox Grid.Column="0"
-                                                          IsChecked="{x:Bind IsSelected, Mode=TwoWay}"
-                                                          Checked="CameraCheckBox_Changed"
-                                                          Unchecked="CameraCheckBox_Changed"
-                                                          MinWidth="0" Padding="0"
-                                                          VerticalAlignment="Center"/>
+                                                <FontIcon Grid.Column="0" Glyph="&#xE700;" FontSize="12"
+                                                          Foreground="{StaticResource TextTertiaryBrush}"
+                                                          VerticalAlignment="Center"
+                                                          ToolTipService.ToolTip="Kéo để hiển thị"/>
 
                                                 <Ellipse Grid.Column="2" Width="7" Height="7"
                                                          Fill="{x:Bind StatusColor, Mode=OneWay}"
@@ -228,384 +316,419 @@
                 </Grid>
             </Border>
 
-            <!-- ─── Main area: header + camera grid ─── -->
+            <!-- ─── Main area: hint banner + camera grid ─── -->
             <Grid Grid.Column="1" Padding="20">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- Header (hidden while a camera is focused fullscreen) -->
-                <Grid Grid.Row="0" Margin="0,0,0,16"
-                      Visibility="{x:Bind ViewModel.IsCameraFocused, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel Grid.Column="0">
-                        <TextBlock Text="Giám sát Trực tiếp" Style="{StaticResource TitleTextBlockStyle}" Margin="0,0,0,6"/>
-                        <StackPanel Orientation="Horizontal" Spacing="12">
-                            <Border Background="{StaticResource BackgroundPrimaryBrush}" CornerRadius="4" Padding="10,5"
-                                    BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <FontIcon Glyph="&#xE714;" FontSize="11" Foreground="{StaticResource SeverityLowBrush}"/>
-                                    <TextBlock FontSize="12">
-                                        <Run Text="Hoạt động:" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                        <Run Text="{x:Bind ViewModel.ActiveCameras, Mode=OneWay}" FontWeight="Bold"/>
-                                        <Run Text="/" Foreground="{StaticResource TextTertiaryBrush}"/>
-                                        <Run Text="{x:Bind ViewModel.TotalCameras, Mode=OneWay}" Foreground="{StaticResource TextTertiaryBrush}"/>
-                                    </TextBlock>
-                                </StackPanel>
-                            </Border>
-                            <Border Background="{StaticResource BackgroundPrimaryBrush}" CornerRadius="4" Padding="10,5"
-                                    BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <FontIcon Glyph="&#xE80A;" FontSize="11" Foreground="{StaticResource PrimaryMediumBrush}"/>
-                                    <TextBlock FontSize="12">
-                                        <Run Text="Bố cục:" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                        <Run Text="{x:Bind ViewModel.SelectedLayoutText, Mode=OneWay}" FontWeight="Bold"/>
-                                    </TextBlock>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
+                <!-- Drag-drop hint banner (hidden once every slot is filled, hidden while fullscreen) -->
+                <Border Grid.Row="0" Margin="0,0,0,16" Padding="14,10" CornerRadius="6"
+                        Background="#122338" BorderBrush="#2C4A6E" BorderThickness="1"
+                        Visibility="{x:Bind ViewModel.IsCameraFocused, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal" Spacing="10"
+                                Visibility="{x:Bind ViewModel.HasEmptySlots, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <FontIcon Glyph="&#xE8AB;" FontSize="14" Foreground="#60A5FA"/>
+                        <TextBlock Foreground="#BFDBFE" FontSize="13"
+                                   Text="Kéo thả camera từ danh sách bên trái vào ô trống để bắt đầu giám sát"/>
                     </StackPanel>
+                </Border>
 
-                    <!-- Actions -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
-                        <Button Style="{StaticResource SecondaryButtonStyle}" Height="36" Padding="12,0"
-                                ToolTipService.ToolTip="Thay đổi bố cục">
-                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                <FontIcon Glyph="&#xE80A;" FontSize="13"/>
-                                <TextBlock Text="Bố cục" FontSize="13"/>
-                                <FontIcon Glyph="&#xE70D;" FontSize="10" Opacity="0.6"/>
-                            </StackPanel>
-                            <Button.Flyout>
-                                <MenuFlyout Placement="BottomEdgeAlignedRight">
-                                    <MenuFlyoutItem Text="1×1 - Đơn" Command="{x:Bind ViewModel.ChangeLayoutCommand}" CommandParameter="1">
-                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8A9;"/></MenuFlyoutItem.Icon>
-                                    </MenuFlyoutItem>
-                                    <MenuFlyoutItem Text="2×2 - Lưới 4" Command="{x:Bind ViewModel.ChangeLayoutCommand}" CommandParameter="4">
-                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE89A;"/></MenuFlyoutItem.Icon>
-                                    </MenuFlyoutItem>
-                                    <MenuFlyoutItem Text="3×3 - Lưới 9" Command="{x:Bind ViewModel.ChangeLayoutCommand}" CommandParameter="9">
-                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE80A;"/></MenuFlyoutItem.Icon>
-                                    </MenuFlyoutItem>
-                                    <MenuFlyoutItem Text="4×4 - Lưới 16" Command="{x:Bind ViewModel.ChangeLayoutCommand}" CommandParameter="16">
-                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8FE;"/></MenuFlyoutItem.Icon>
-                                    </MenuFlyoutItem>
-                                </MenuFlyout>
-                            </Button.Flyout>
-                        </Button>
-                        <Button Style="{StaticResource SecondaryButtonStyle}"
-                                Command="{x:Bind ViewModel.RefreshStreamsCommand}"
-                                Height="36" Width="36" Padding="0"
-                                ToolTipService.ToolTip="Làm mới">
-                            <FontIcon Glyph="&#xE72C;" FontSize="14"/>
-                        </Button>
-                    </StackPanel>
-                </Grid>
-
-                <!-- ─── Camera Grid (collapsed while fullscreen overlay is active) ─── -->
-                <ScrollViewer Grid.Row="1" x:Name="VideoGridContainer"
-                              Visibility="{x:Bind ViewModel.IsCameraFocused, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}"
-                              SizeChanged="VideoGridContainer_SizeChanged"
-                              VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled">
+                <!-- ─── Camera Grid (collapsed while fullscreen overlay is active) ───
+                     Plain Grid panel (not ItemsWrapGrid) so slots can span 2 rows/columns:
+                     Grid.Row/Column/RowSpan/ColumnSpan are assigned to each generated
+                     container in code-behind, since a spanning cell must keep its
+                     covered neighbor's grid space reserved rather than reflowing it. -->
+                <Grid Grid.Row="1" x:Name="VideoGridContainer"
+                      Visibility="{x:Bind ViewModel.IsCameraFocused, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                      SizeChanged="VideoGridContainer_SizeChanged">
                     <ItemsControl x:Name="CameraItemsControl"
-                                  ItemsSource="{x:Bind ViewModel.CameraStreams, Mode=OneWay}">
+                                  Loaded="CameraItemsControl_Loaded"
+                                  ItemsSource="{x:Bind ViewModel.Slots, Mode=OneWay}"
+                                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                  HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <ItemsWrapGrid Orientation="Horizontal"
-                                               MaximumRowsOrColumns="{Binding ViewModel.GridColumns, ElementName=PageRoot, Mode=OneWay}"
-                                               ItemWidth="{Binding ViewModel.CameraItemWidth, ElementName=PageRoot, Mode=OneWay}"
-                                               ItemHeight="{Binding ViewModel.CameraItemHeight, ElementName=PageRoot, Mode=OneWay}"
-                                               HorizontalAlignment="Left"/>
+                                <Grid/>
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
 
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="viewmodels:CameraStreamViewModel">
-                                <Grid Margin="0,0,12,12"
-                                      Visibility="{x:Bind IsSelected, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <DataTemplate x:DataType="viewmodels:CameraSlotViewModel">
+                                <Grid AllowDrop="True" DragOver="Slot_DragOver" Drop="Slot_Drop"
+                                      DragEnter="Slot_DragEnter" DragLeave="Slot_DragLeave">
+                                <Grid Margin="0,0,12,12">
 
-                                    <!-- ── Normal card (no alert) ── -->
-                                    <Border Visibility="{x:Bind HasAlert, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}"
-                                            Background="{StaticResource BackgroundPrimaryBrush}"
-                                            BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
-                                            CornerRadius="4" Shadow="{StaticResource CommonShadow}">
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="*"/>
-                                                <RowDefinition Height="Auto"/>
-                                            </Grid.RowDefinitions>
+                                    <!-- ── Empty slot: dashed drop target ── -->
+                                    <Grid Visibility="{x:Bind IsEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <Rectangle Stroke="{StaticResource BorderLightBrush}" StrokeThickness="1.5"
+                                                   StrokeDashArray="4,3" RadiusX="6" RadiusY="6"
+                                                   Fill="{StaticResource BackgroundPrimaryBrush}" Opacity="0.6"/>
+                                        <!-- Highlighted while a dragged camera hovers over this slot -->
+                                        <Rectangle Stroke="{StaticResource PrimaryMediumBrush}" StrokeThickness="2"
+                                                   StrokeDashArray="4,3" RadiusX="6" RadiusY="6"
+                                                   Fill="{StaticResource PrimaryMediumBrush}"
+                                                   Opacity="{x:Bind DragHighlightOpacity, Mode=OneWay}">
+                                            <Rectangle.OpacityTransition>
+                                                <ScalarTransition Duration="0:0:0.15"/>
+                                            </Rectangle.OpacityTransition>
+                                        </Rectangle>
+                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+                                            <Border Width="48" Height="48" CornerRadius="24"
+                                                    Background="{StaticResource BackgroundSecondaryBrush}">
+                                                <FontIcon Glyph="&#xE710;" FontSize="20"
+                                                          Foreground="{StaticResource TextTertiaryBrush}"
+                                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <TextBlock Text="Kéo camera vào đây" FontSize="13"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{x:Bind SlotLabel, Mode=OneWay}" FontSize="11"
+                                                       Foreground="{StaticResource TextTertiaryBrush}"
+                                                       HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Grid>
 
-                                            <!-- Card header -->
-                                            <Grid Grid.Row="0" Padding="12,9"
-                                                  BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                    <Border Width="7" Height="7" CornerRadius="4"
-                                                            Background="{x:Bind StatusColor, Mode=OneWay}"/>
-                                                    <TextBlock Text="{x:Bind CameraName}"
-                                                               FontSize="13" FontWeight="SemiBold"
-                                                               Foreground="{StaticResource TextPrimaryBrush}"/>
-                                                </StackPanel>
-                                                <TextBlock Grid.Column="1" Text="{x:Bind CameraId}"
-                                                           FontSize="11" Foreground="{StaticResource TextTertiaryBrush}"
-                                                           VerticalAlignment="Center"/>
-                                            </Grid>
+                                    <!-- ── Filled slot: DataContext switches to the assigned camera so the
+                                         card content below can use classic {Binding} unchanged ── -->
+                                    <Grid DataContext="{x:Bind AssignedCamera, Mode=OneWay}"
+                                          Visibility="{x:Bind IsEmpty, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
 
-                                            <!-- Video area -->
-                                            <Grid Grid.Row="1">
-                                                <controls:CameraVideoControl
-                                                    StreamUrl="{x:Bind StreamUrl, Mode=OneWay}"
-                                                    IsOnline="{x:Bind IsOnline, Mode=OneWay}"
-                                                    IsStreamEnabled="{x:Bind IsStreamEnabled, Mode=OneWay}"
-                                                    SelectedResolution="{x:Bind Resolution, Mode=OneWay}"/>
-                                                <!-- Online overlays -->
-                                                <StackPanel VerticalAlignment="Top" HorizontalAlignment="Right" Margin="6"
-                                                            Orientation="Horizontal" Spacing="4"
-                                                            Visibility="{x:Bind IsOnline, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                    <Border Background="#99000000" CornerRadius="4" Padding="5,2">
-                                                        <TextBlock Text="LIVE" FontSize="9" FontWeight="Bold" Foreground="#EF4444"/>
-                                                    </Border>
-                                                    <Border Background="#99000000" CornerRadius="4" Padding="5,2"
-                                                            Visibility="{x:Bind IsRecording, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                        <StackPanel Orientation="Horizontal" Spacing="3">
-                                                            <FontIcon Glyph="&#xE7C8;" FontSize="7" Foreground="#EF4444"/>
-                                                            <TextBlock Text="REC" FontSize="9" FontWeight="Bold" Foreground="White"/>
-                                                        </StackPanel>
-                                                    </Border>
-                                                </StackPanel>
-                                                <Border VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="6"
-                                                        Background="#99000000" CornerRadius="4" Padding="5,2"
-                                                        Visibility="{x:Bind IsOnline, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                    <TextBlock Text="{x:Bind BitrateDisplay, Mode=OneWay}" FontSize="9" Foreground="White"/>
-                                                </Border>
-                                            </Grid>
+                                        <!-- ── Normal card (no alert) ── -->
+                                        <Border Visibility="{Binding HasAlert, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                                                Background="{StaticResource BackgroundPrimaryBrush}"
+                                                BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
+                                                CornerRadius="4" Shadow="{StaticResource CommonShadow}">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
 
-                                            <!-- Card footer -->
-                                            <Grid Grid.Row="2" Padding="10,7"
-                                                  Background="{StaticResource BackgroundSecondaryBrush}"
-                                                  CornerRadius="0,0,4,4">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                                    <!-- Resolution chip — click to open selector flyout -->
-                                                    <Button Padding="4,2" Height="22" CornerRadius="4"
-                                                            Background="{StaticResource BackgroundPrimaryBrush}"
-                                                            BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
-                                                            ToolTipService.ToolTip="Chọn độ phân giải">
-                                                        <StackPanel Orientation="Horizontal" Spacing="4">
-                                                            <TextBlock Text="{x:Bind Resolution, Mode=OneWay}" FontSize="10"
-                                                                       Foreground="{StaticResource TextSecondaryBrush}" MaxWidth="70"
-                                                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                                                            <FontIcon Glyph="&#xE70D;" FontSize="7"
-                                                                      Foreground="{StaticResource TextTertiaryBrush}" VerticalAlignment="Center"/>
-                                                        </StackPanel>
-                                                        <Button.Flyout>
-                                                            <MenuFlyout Placement="Top">
-                                                                <MenuFlyoutItem Text="320×240 — SD"
-                                                                                Command="{x:Bind SetResolutionCommand}"
-                                                                                CommandParameter="320×240"/>
-                                                                <MenuFlyoutItem Text="640×480 — VGA"
-                                                                                Command="{x:Bind SetResolutionCommand}"
-                                                                                CommandParameter="640×480"/>
-                                                                <MenuFlyoutItem Text="1280×720 — HD"
-                                                                                Command="{x:Bind SetResolutionCommand}"
-                                                                                CommandParameter="1280×720"/>
-                                                            </MenuFlyout>
-                                                        </Button.Flyout>
-                                                    </Button>
-                                                    <Border Background="{StaticResource BackgroundPrimaryBrush}" CornerRadius="4" Padding="4,2"
-                                                            BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
-                                                        <TextBlock FontSize="10" Foreground="{StaticResource TextSecondaryBrush}">
-                                                            <Run Text="{x:Bind Fps, Mode=OneWay}"/>
-                                                            <Run Text=" FPS"/>
-                                                        </TextBlock>
-                                                    </Border>
-                                                    <!-- Local video chip: visible when a video file is loaded -->
-                                                    <Border Background="#1E1B4B" CornerRadius="4" Padding="4,2"
-                                                            BorderBrush="#4F46E5" BorderThickness="1"
-                                                            Visibility="{x:Bind HasLocalVideo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                        <StackPanel Orientation="Horizontal" Spacing="4">
-                                                            <FontIcon Glyph="&#xE8B2;" FontSize="9" Foreground="#818CF8"/>
-                                                            <TextBlock Text="{x:Bind LocalVideoFileName, Mode=OneWay}" FontSize="10"
-                                                                       Foreground="#A5B4FC" MaxWidth="80"
-                                                                       TextTrimming="CharacterEllipsis"/>
-                                                            <Button Style="{StaticResource IconButtonStyle}" Width="14" Height="14" Padding="1"
-                                                                    Click="ClearVideo_Click"
-                                                                    ToolTipService.ToolTip="Xóa video">
-                                                                <FontIcon Glyph="&#xE711;" FontSize="8" Foreground="#A5B4FC"/>
-                                                            </Button>
-                                                        </StackPanel>
-                                                    </Border>
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                                                    <!-- Toggle stream on/off -->
-                                                    <Button Style="{StaticResource IconButtonStyle}" Width="26" Height="26" Padding="4"
-                                                            Command="{Binding ElementName=PageRoot, Path=ViewModel.ToggleStreamCommand}"
-                                                            CommandParameter="{Binding}"
-                                                            ToolTipService.ToolTip="{x:Bind StreamToggleTooltip, Mode=OneWay}">
-                                                        <FontIcon Glyph="{x:Bind StreamToggleIcon, Mode=OneWay}"
-                                                                  Foreground="{x:Bind StreamToggleColor, Mode=OneWay}"
-                                                                  FontSize="12"/>
-                                                    </Button>
-                                                    <Button Style="{StaticResource IconButtonStyle}" Width="26" Height="26" Padding="4"
-                                                            Click="ChooseVideo_Click"
-                                                            ToolTipService.ToolTip="Chọn video cục bộ">
-                                                        <FontIcon Glyph="&#xE8A5;" FontSize="12"/>
-                                                    </Button>
-                                                    <Button Style="{StaticResource IconButtonStyle}" Width="26" Height="26" Padding="4"
-                                                            Command="{Binding ElementName=PageRoot, Path=ViewModel.ToggleRecordingCommand}"
-                                                            CommandParameter="{Binding}" ToolTipService.ToolTip="Ghi hình">
-                                                        <FontIcon Glyph="{x:Bind RecordingIcon, Mode=OneWay}"
-                                                                  Foreground="{x:Bind RecordingColor, Mode=OneWay}" FontSize="12"/>
-                                                    </Button>
-                                                    <Button Style="{StaticResource IconButtonStyle}" Width="26" Height="26" Padding="4"
-                                                            Command="{Binding ElementName=PageRoot, Path=ViewModel.TakeSnapshotCommand}"
-                                                            CommandParameter="{Binding}" ToolTipService.ToolTip="Chụp ảnh">
-                                                        <FontIcon Glyph="&#xE722;" FontSize="12"/>
-                                                    </Button>
-                                                    <!-- Fullscreen / expand camera -->
-                                                    <Button Style="{StaticResource IconButtonStyle}" Width="26" Height="26" Padding="4"
-                                                            Command="{Binding ElementName=PageRoot, Path=ViewModel.FocusCameraCommand}"
-                                                            CommandParameter="{Binding}"
-                                                            ToolTipService.ToolTip="Phóng to">
-                                                        <FontIcon Glyph="&#xE740;" FontSize="12"/>
-                                                    </Button>
-                                                </StackPanel>
-                                            </Grid>
-                                        </Grid>
-                                    </Border>
-
-                                    <!-- ── ALERT CARD (blinks red border) ── -->
-                                    <Border Visibility="{x:Bind HasAlert, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
-                                            Background="#0F0505"
-                                            CornerRadius="4" Shadow="{StaticResource CommonShadow}"
-                                            BorderThickness="2">
-                                        <Border.BorderBrush>
-                                            <SolidColorBrush Color="#EF4444"
-                                                Opacity="{x:Bind AlertBorderOpacity, Mode=OneWay}"/>
-                                        </Border.BorderBrush>
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="*"/>
-                                                <RowDefinition Height="Auto"/>
-                                            </Grid.RowDefinitions>
-
-                                            <!-- Alert card header -->
-                                            <Grid Grid.Row="0" Padding="12,9" Background="#1A0808"
-                                                  CornerRadius="3,3,0,0">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                    <Ellipse Width="8" Height="8" Fill="#EF4444" VerticalAlignment="Center"/>
-                                                    <TextBlock Text="{x:Bind CameraName}"
-                                                               FontSize="13" FontWeight="SemiBold" Foreground="#F1F5F9"/>
-                                                </StackPanel>
-                                                <Border Grid.Column="1"
-                                                        Background="{x:Bind AlertSeverityBrush, Mode=OneWay}"
-                                                        CornerRadius="4" Padding="6,2" Opacity="0.9">
-                                                    <TextBlock Text="{x:Bind AlertSeverityText}"
-                                                               FontSize="10" FontWeight="Bold" Foreground="White"
-                                                               CharacterSpacing="60"/>
-                                                </Border>
-                                            </Grid>
-
-                                            <!-- Alert video area with overlay -->
-                                            <Grid Grid.Row="1" Background="#080101">
-                                                <!-- Stripe pattern (darker, reddish) -->
-                                                <Canvas>
-                                                    <Rectangle Width="2000" Height="2000"
-                                                               Canvas.Left="-500" Canvas.Top="-500"
-                                                               RenderTransformOrigin="0.5,0.5" Opacity="0.25">
-                                                        <Rectangle.Fill>
-                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1" SpreadMethod="Repeat">
-                                                                <GradientStop Color="#0A0303" Offset="0"/>
-                                                                <GradientStop Color="#0A0303" Offset="0.48"/>
-                                                                <GradientStop Color="#1A0808" Offset="0.5"/>
-                                                                <GradientStop Color="#1A0808" Offset="0.98"/>
-                                                            </LinearGradientBrush>
-                                                        </Rectangle.Fill>
-                                                        <Rectangle.RenderTransform>
-                                                            <RotateTransform Angle="45"/>
-                                                        </Rectangle.RenderTransform>
-                                                    </Rectangle>
-                                                </Canvas>
-
-                                                <!-- LIVE badge -->
-                                                <StackPanel VerticalAlignment="Top" HorizontalAlignment="Right" Margin="6"
-                                                            Orientation="Horizontal" Spacing="4">
-                                                    <Border Background="#CC000000" CornerRadius="4" Padding="5,2">
-                                                        <TextBlock Text="LIVE" FontSize="9" FontWeight="Bold" Foreground="#EF4444"/>
-                                                    </Border>
-                                                    <Border Background="#CC7F1D1D" BorderBrush="#EF4444" BorderThickness="1"
-                                                            CornerRadius="4" Padding="5,2">
-                                                        <TextBlock Text="ALERT" FontSize="9" FontWeight="Bold" Foreground="#FCA5A5"/>
-                                                    </Border>
-                                                </StackPanel>
-
-                                                <!-- Alert title overlay (center) -->
-                                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
-                                                            Margin="8" Spacing="4">
-                                                    <FontIcon Glyph="&#xE814;" FontSize="24" Foreground="#EF4444"
-                                                              HorizontalAlignment="Center" Opacity="0.7"/>
-                                                    <TextBlock Text="{x:Bind AlertTitle}"
-                                                               FontSize="11" FontWeight="SemiBold"
-                                                               Foreground="#FCA5A5" TextAlignment="Center"
-                                                               TextWrapping="Wrap" MaxWidth="180" Opacity="0.9"/>
-                                                </StackPanel>
-                                            </Grid>
-
-                                            <!-- Alert card footer: action button -->
-                                            <Border Grid.Row="2" Background="#1A0808" Padding="10,8" CornerRadius="0,0,3,3">
-                                                <Grid>
+                                                <!-- Card header -->
+                                                <Grid Grid.Row="0" Padding="12,9"
+                                                      BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*"/>
                                                         <ColumnDefinition Width="Auto"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="1">
-                                                        <TextBlock Text="{x:Bind AlertLocation}"
-                                                                   FontSize="10" Foreground="#94A3B8"
-                                                                   TextTrimming="CharacterEllipsis" MaxWidth="130"/>
-                                                        <TextBlock Text="{x:Bind AlertTimeDisplay}"
-                                                                   FontSize="10" Foreground="#6B7280"/>
+                                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                        <Border Width="7" Height="7" CornerRadius="4"
+                                                                Background="{Binding StatusColor, Mode=OneWay}"/>
+                                                        <TextBlock Text="{Binding CameraName}"
+                                                                   FontSize="13" FontWeight="SemiBold"
+                                                                   Foreground="{StaticResource TextPrimaryBrush}"/>
                                                     </StackPanel>
-                                                    <!-- "Xem cảnh báo" button triggers dialog -->
-                                                    <Button Grid.Column="1"
-                                                            Command="{Binding ElementName=PageRoot, Path=ViewModel.ShowAlertVideoCommand}"
-                                                            CommandParameter="{Binding}"
-                                                            Background="#EF4444" BorderThickness="0"
-                                                            CornerRadius="6" Height="30" Padding="10,0">
-                                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                                            <FontIcon Glyph="&#xE7EF;" FontSize="12" Foreground="White"/>
-                                                            <TextBlock Text="Xem" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
-                                                        </StackPanel>
-                                                    </Button>
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding CameraId}"
+                                                                   FontSize="11" Foreground="{StaticResource TextTertiaryBrush}"
+                                                                   VerticalAlignment="Center"/>
+                                                        <Button Style="{StaticResource IconButtonStyle}" Width="20" Height="20" Padding="2"
+                                                                Command="{Binding ElementName=PageRoot, Path=ViewModel.ClearSlotCommand}"
+                                                                CommandParameter="{x:Bind}"
+                                                                ToolTipService.ToolTip="Bỏ khỏi lưới hiển thị">
+                                                            <FontIcon Glyph="&#xE711;" FontSize="10" Foreground="{StaticResource TextTertiaryBrush}"/>
+                                                        </Button>
+                                                    </StackPanel>
                                                 </Grid>
-                                            </Border>
-                                        </Grid>
-                                    </Border>
 
+                                                <!-- Video area -->
+                                                <Grid Grid.Row="1">
+                                                    <controls:CameraVideoControl
+                                                        StreamUrl="{Binding StreamUrl, Mode=OneWay}"
+                                                        IsOnline="{Binding IsOnline, Mode=OneWay}"
+                                                        IsStreamEnabled="{Binding IsStreamEnabled, Mode=OneWay}"
+                                                        SelectedResolution="{Binding Resolution, Mode=OneWay}"/>
+                                                    <!-- Online overlays -->
+                                                    <StackPanel VerticalAlignment="Top" HorizontalAlignment="Right" Margin="6"
+                                                                Orientation="Horizontal" Spacing="4"
+                                                                Visibility="{Binding IsOnline, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                        <Border Background="#99000000" CornerRadius="4" Padding="5,2">
+                                                            <TextBlock Text="LIVE" FontSize="9" FontWeight="Bold" Foreground="#EF4444"/>
+                                                        </Border>
+                                                        <Border Background="#99000000" CornerRadius="4" Padding="5,2"
+                                                                Visibility="{Binding IsRecording, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                            <StackPanel Orientation="Horizontal" Spacing="3">
+                                                                <FontIcon Glyph="&#xE7C8;" FontSize="7" Foreground="#EF4444"/>
+                                                                <TextBlock Text="REC" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <Border VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="6"
+                                                            Background="#99000000" CornerRadius="4" Padding="5,2"
+                                                            Visibility="{Binding IsOnline, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                        <TextBlock Text="{Binding BitrateDisplay, Mode=OneWay}" FontSize="9" Foreground="White"/>
+                                                    </Border>
+                                                </Grid>
+
+                                                <!-- Card footer -->
+                                                <Grid Grid.Row="2" Padding="10,7"
+                                                      Background="{StaticResource BackgroundSecondaryBrush}"
+                                                      CornerRadius="0,0,4,4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                        <!-- Resolution chip — click to open selector flyout -->
+                                                        <Button Padding="4,2" Height="22" CornerRadius="4"
+                                                                Background="{StaticResource BackgroundPrimaryBrush}"
+                                                                BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
+                                                                ToolTipService.ToolTip="Chọn độ phân giải">
+                                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                                <TextBlock Text="{Binding Resolution, Mode=OneWay}" FontSize="10"
+                                                                           Foreground="{StaticResource TextSecondaryBrush}" MaxWidth="70"
+                                                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                                <FontIcon Glyph="&#xE70D;" FontSize="7"
+                                                                          Foreground="{StaticResource TextTertiaryBrush}" VerticalAlignment="Center"/>
+                                                            </StackPanel>
+                                                            <Button.Flyout>
+                                                                <MenuFlyout Placement="Top">
+                                                                    <MenuFlyoutItem Text="320×240 — SD"
+                                                                                    Command="{Binding SetResolutionCommand}"
+                                                                                    CommandParameter="320×240"/>
+                                                                    <MenuFlyoutItem Text="640×480 — VGA"
+                                                                                    Command="{Binding SetResolutionCommand}"
+                                                                                    CommandParameter="640×480"/>
+                                                                    <MenuFlyoutItem Text="1280×720 — HD"
+                                                                                    Command="{Binding SetResolutionCommand}"
+                                                                                    CommandParameter="1280×720"/>
+                                                                </MenuFlyout>
+                                                            </Button.Flyout>
+                                                        </Button>
+                                                        <Border Background="{StaticResource BackgroundPrimaryBrush}" CornerRadius="4" Padding="4,2"
+                                                                BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
+                                                            <TextBlock FontSize="10" Foreground="{StaticResource TextSecondaryBrush}">
+                                                                <Run Text="{Binding Fps, Mode=OneWay}"/>
+                                                                <Run Text=" FPS"/>
+                                                            </TextBlock>
+                                                        </Border>
+                                                        <!-- Local video chip: visible when a video file is loaded -->
+                                                        <Border Background="#1E1B4B" CornerRadius="4" Padding="4,2"
+                                                                BorderBrush="#4F46E5" BorderThickness="1"
+                                                                Visibility="{Binding HasLocalVideo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                                <FontIcon Glyph="&#xE8B2;" FontSize="9" Foreground="#818CF8"/>
+                                                                <TextBlock Text="{Binding LocalVideoFileName, Mode=OneWay}" FontSize="10"
+                                                                           Foreground="#A5B4FC" MaxWidth="80"
+                                                                           TextTrimming="CharacterEllipsis"/>
+                                                                <Button Style="{StaticResource IconButtonStyle}" Width="14" Height="14" Padding="1"
+                                                                        Click="ClearVideo_Click"
+                                                                        ToolTipService.ToolTip="Xóa video">
+                                                                    <FontIcon Glyph="&#xE711;" FontSize="8" Foreground="#A5B4FC"/>
+                                                                </Button>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                                        <!-- Toggle stream on/off -->
+                                                        <Button Style="{StaticResource IconButtonStyle}" Width="26" Height="26" Padding="4"
+                                                                Command="{Binding ElementName=PageRoot, Path=ViewModel.ToggleStreamCommand}"
+                                                                CommandParameter="{Binding}"
+                                                                ToolTipService.ToolTip="{Binding StreamToggleTooltip, Mode=OneWay}">
+                                                            <FontIcon Glyph="{Binding StreamToggleIcon, Mode=OneWay}"
+                                                                      Foreground="{Binding StreamToggleColor, Mode=OneWay}"
+                                                                      FontSize="12"/>
+                                                        </Button>
+                                                        <Button Style="{StaticResource IconButtonStyle}" Width="26" Height="26" Padding="4"
+                                                                Click="ChooseVideo_Click"
+                                                                ToolTipService.ToolTip="Chọn video cục bộ">
+                                                            <FontIcon Glyph="&#xE8A5;" FontSize="12"/>
+                                                        </Button>
+                                                        <Button Style="{StaticResource IconButtonStyle}" Width="26" Height="26" Padding="4"
+                                                                Command="{Binding ElementName=PageRoot, Path=ViewModel.ToggleRecordingCommand}"
+                                                                CommandParameter="{Binding}" ToolTipService.ToolTip="Ghi hình">
+                                                            <FontIcon Glyph="{Binding RecordingIcon, Mode=OneWay}"
+                                                                      Foreground="{Binding RecordingColor, Mode=OneWay}" FontSize="12"/>
+                                                        </Button>
+                                                        <Button Style="{StaticResource IconButtonStyle}" Width="26" Height="26" Padding="4"
+                                                                Command="{Binding ElementName=PageRoot, Path=ViewModel.TakeSnapshotCommand}"
+                                                                CommandParameter="{Binding}" ToolTipService.ToolTip="Chụp ảnh">
+                                                            <FontIcon Glyph="&#xE722;" FontSize="12"/>
+                                                        </Button>
+                                                        <!-- Fullscreen / expand camera -->
+                                                        <Button Style="{StaticResource IconButtonStyle}" Width="26" Height="26" Padding="4"
+                                                                Command="{Binding ElementName=PageRoot, Path=ViewModel.FocusCameraCommand}"
+                                                                CommandParameter="{Binding}"
+                                                                ToolTipService.ToolTip="Phóng to">
+                                                            <FontIcon Glyph="&#xE740;" FontSize="12"/>
+                                                        </Button>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- ── ALERT CARD (blinks red border) ── -->
+                                        <Border Visibility="{Binding HasAlert, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                Background="#0F0505"
+                                                CornerRadius="4" Shadow="{StaticResource CommonShadow}"
+                                                BorderThickness="2">
+                                            <Border.BorderBrush>
+                                                <SolidColorBrush Color="#EF4444"
+                                                    Opacity="{Binding AlertBorderOpacity, Mode=OneWay}"/>
+                                            </Border.BorderBrush>
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <!-- Alert card header -->
+                                                <Grid Grid.Row="0" Padding="12,9" Background="#1A0808"
+                                                      CornerRadius="3,3,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                        <Ellipse Width="8" Height="8" Fill="#EF4444" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding CameraName}"
+                                                                   FontSize="13" FontWeight="SemiBold" Foreground="#F1F5F9"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                                        <Border Background="{Binding AlertSeverityBrush, Mode=OneWay}"
+                                                                CornerRadius="4" Padding="6,2" Opacity="0.9">
+                                                            <TextBlock Text="{Binding AlertSeverityText}"
+                                                                       FontSize="10" FontWeight="Bold" Foreground="White"
+                                                                       CharacterSpacing="60"/>
+                                                        </Border>
+                                                        <Button Style="{StaticResource IconButtonStyle}" Width="20" Height="20" Padding="2"
+                                                                Command="{Binding ElementName=PageRoot, Path=ViewModel.ClearSlotCommand}"
+                                                                CommandParameter="{x:Bind}"
+                                                                ToolTipService.ToolTip="Bỏ khỏi lưới hiển thị">
+                                                            <FontIcon Glyph="&#xE711;" FontSize="10" Foreground="#FCA5A5"/>
+                                                        </Button>
+                                                    </StackPanel>
+                                                </Grid>
+
+                                                <!-- Alert video area with overlay -->
+                                                <Grid Grid.Row="1" Background="#080101">
+                                                    <!-- Stripe pattern (darker, reddish) -->
+                                                    <Canvas>
+                                                        <Rectangle Width="2000" Height="2000"
+                                                                   Canvas.Left="-500" Canvas.Top="-500"
+                                                                   RenderTransformOrigin="0.5,0.5" Opacity="0.25">
+                                                            <Rectangle.Fill>
+                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1" SpreadMethod="Repeat">
+                                                                    <GradientStop Color="#0A0303" Offset="0"/>
+                                                                    <GradientStop Color="#0A0303" Offset="0.48"/>
+                                                                    <GradientStop Color="#1A0808" Offset="0.5"/>
+                                                                    <GradientStop Color="#1A0808" Offset="0.98"/>
+                                                                </LinearGradientBrush>
+                                                            </Rectangle.Fill>
+                                                            <Rectangle.RenderTransform>
+                                                                <RotateTransform Angle="45"/>
+                                                            </Rectangle.RenderTransform>
+                                                        </Rectangle>
+                                                    </Canvas>
+
+                                                    <!-- LIVE badge -->
+                                                    <StackPanel VerticalAlignment="Top" HorizontalAlignment="Right" Margin="6"
+                                                                Orientation="Horizontal" Spacing="4">
+                                                        <Border Background="#CC000000" CornerRadius="4" Padding="5,2">
+                                                            <TextBlock Text="LIVE" FontSize="9" FontWeight="Bold" Foreground="#EF4444"/>
+                                                        </Border>
+                                                        <Border Background="#CC7F1D1D" BorderBrush="#EF4444" BorderThickness="1"
+                                                                CornerRadius="4" Padding="5,2">
+                                                            <TextBlock Text="ALERT" FontSize="9" FontWeight="Bold" Foreground="#FCA5A5"/>
+                                                        </Border>
+                                                    </StackPanel>
+
+                                                    <!-- Alert title overlay (center) -->
+                                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                                Margin="8" Spacing="4">
+                                                        <FontIcon Glyph="&#xE814;" FontSize="24" Foreground="#EF4444"
+                                                                  HorizontalAlignment="Center" Opacity="0.7"/>
+                                                        <TextBlock Text="{Binding AlertTitle}"
+                                                                   FontSize="11" FontWeight="SemiBold"
+                                                                   Foreground="#FCA5A5" TextAlignment="Center"
+                                                                   TextWrapping="Wrap" MaxWidth="180" Opacity="0.9"/>
+                                                    </StackPanel>
+                                                </Grid>
+
+                                                <!-- Alert card footer: action button -->
+                                                <Border Grid.Row="2" Background="#1A0808" Padding="10,8" CornerRadius="0,0,3,3">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="1">
+                                                            <TextBlock Text="{Binding AlertLocation}"
+                                                                       FontSize="10" Foreground="#94A3B8"
+                                                                       TextTrimming="CharacterEllipsis" MaxWidth="130"/>
+                                                            <TextBlock Text="{Binding AlertTimeDisplay}"
+                                                                       FontSize="10" Foreground="#6B7280"/>
+                                                        </StackPanel>
+                                                        <!-- "Xem cảnh báo" button triggers dialog -->
+                                                        <Button Grid.Column="1"
+                                                                Command="{Binding ElementName=PageRoot, Path=ViewModel.ShowAlertVideoCommand}"
+                                                                CommandParameter="{Binding}"
+                                                                Background="#EF4444" BorderThickness="0"
+                                                                CornerRadius="6" Height="30" Padding="10,0">
+                                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                                <FontIcon Glyph="&#xE7EF;" FontSize="12" Foreground="White"/>
+                                                                <TextBlock Text="Xem" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
+                                                            </StackPanel>
+                                                        </Button>
+                                                    </Grid>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+                                </Grid>
+
+                                <!-- Resize grips: sit in the 12px gutter beside/below the card so they
+                                     never overlap its buttons. Dragging past half a cell toggles the
+                                     span 1↔2 on that axis (LiveVideoPage.xaml.cs handles the drag math;
+                                     LiveVideoViewModel.ExpandColumn/Row does the grid-model update). -->
+                                <Grid Width="12" HorizontalAlignment="Right" VerticalAlignment="Stretch" Margin="0,0,0,12"
+                                      Background="Transparent"
+                                      Visibility="{x:Bind ShowRightGrip, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+                                      ManipulationMode="TranslateX"
+                                      ManipulationStarted="RightGrip_ManipulationStarted"
+                                      ManipulationDelta="RightGrip_ManipulationDelta"
+                                      ManipulationCompleted="RightGrip_ManipulationCompleted"
+                                      PointerEntered="ResizeGrip_PointerEntered"
+                                      PointerExited="ResizeGrip_PointerExited"
+                                      ToolTipService.ToolTip="Kéo để mở rộng / thu nhỏ theo chiều ngang">
+                                    <Rectangle Width="3" Fill="{StaticResource PrimaryMediumBrush}" Opacity="0.5"
+                                               RadiusX="1.5" RadiusY="1.5"
+                                               HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="0,24,0,24">
+                                        <Rectangle.OpacityTransition>
+                                            <ScalarTransition Duration="0:0:0.12"/>
+                                        </Rectangle.OpacityTransition>
+                                    </Rectangle>
+                                </Grid>
+                                <Grid Height="12" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Margin="0,0,12,0"
+                                      Background="Transparent"
+                                      Visibility="{x:Bind ShowBottomGrip, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+                                      ManipulationMode="TranslateY"
+                                      ManipulationStarted="BottomGrip_ManipulationStarted"
+                                      ManipulationDelta="BottomGrip_ManipulationDelta"
+                                      ManipulationCompleted="BottomGrip_ManipulationCompleted"
+                                      PointerEntered="ResizeGrip_PointerEntered"
+                                      PointerExited="ResizeGrip_PointerExited"
+                                      ToolTipService.ToolTip="Kéo để mở rộng / thu nhỏ theo chiều dọc">
+                                    <Rectangle Height="3" Fill="{StaticResource PrimaryMediumBrush}" Opacity="0.5"
+                                               RadiusX="1.5" RadiusY="1.5"
+                                               VerticalAlignment="Center" HorizontalAlignment="Stretch" Margin="24,0,24,0">
+                                        <Rectangle.OpacityTransition>
+                                            <ScalarTransition Duration="0:0:0.12"/>
+                                        </Rectangle.OpacityTransition>
+                                    </Rectangle>
+                                </Grid>
                                 </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                </ScrollViewer>
+                </Grid>
 
                 <!-- ─── Fullscreen Overlay (YouTube-style) ─── -->
-                <!-- AFTER ScrollViewer → correct z-order. ScrollViewer is collapsed
+                <!-- AFTER the camera grid → correct z-order. The camera grid is collapsed
                      when this is visible to prevent WebView2 HWND bleed-through. -->
                 <Grid Grid.Row="0" Grid.RowSpan="2" Margin="-20"
                       Visibility="{x:Bind ViewModel.IsCameraFocused, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"

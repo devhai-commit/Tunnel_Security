@@ -33,23 +33,23 @@ namespace Station.ViewModels
         // Camera streams
         public ObservableCollection<CameraStreamViewModel> CameraStreams { get; } = new();
 
+        // Fixed display slots (count = GridColumns * GridRows). Cameras are assigned
+        // to a slot by dragging them from the sidebar list; a slot with no camera
+        // renders as an empty drop target.
+        public ObservableCollection<CameraSlotViewModel> Slots { get; } = new();
+
+        private bool _slotsInitialized = false;
+
+        [ObservableProperty]
+        private bool _hasEmptySlots = true;
+
+        // Raised after Slots is cleared and rebuilt (layout change) so the view can
+        // re-subscribe to the new slot instances and reposition their grid containers.
+        public event Action? SlotsRebuilt;
+
         // Statistics
         [ObservableProperty]
         private int _activeCameras = 0;
-
-        private double _cameraItemWidth = 420;
-        public double CameraItemWidth
-        {
-            get => _cameraItemWidth;
-            set => SetProperty(ref _cameraItemWidth, value);
-        }
-
-        private double _cameraItemHeight = 340;
-        public double CameraItemHeight
-        {
-            get => _cameraItemHeight;
-            set => SetProperty(ref _cameraItemHeight, value);
-        }
 
         [ObservableProperty]
         private int _totalCameras = 0;
@@ -83,7 +83,20 @@ namespace Station.ViewModels
             _blinkTimer.Start();
 
             _mockData.AlertGenerated += OnMockAlertGenerated;
+            // With DATA_SOURCE=api, the camera list comes from BackendV2 asynchronously —
+            // the initial LoadCameraStreams() above runs before that fetch completes, so we
+            // must reload once TopologyLoaded fires (same pattern as DevicesViewModel).
+            _mockData.TopologyLoaded += OnTopologyLoaded;
             _mockData.Start();
+        }
+
+        private void OnTopologyLoaded(object? sender, EventArgs e)
+        {
+            _dispatcherQueue.TryEnqueue(() =>
+            {
+                LoadCameraStreams();
+                ChangeLayout((int)CurrentLayout);
+            });
         }
 
         private void OnMockAlertGenerated(object? sender, AlertGeneratedEventArgs e)
@@ -151,7 +164,7 @@ namespace Station.ViewModels
 
         public void UpdateActiveCameras()
         {
-            ActiveCameras = CameraStreams.Count(c => c.IsSelected && c.IsOnline && c.IsStreamEnabled);
+            ActiveCameras = CameraStreams.Count(c => c.IsOnline);
         }
 
         [RelayCommand]
@@ -208,8 +221,197 @@ namespace Station.ViewModels
                     break;
             }
 
-            for (int i = 0; i < CameraStreams.Count; i++)
-                CameraStreams[i].IsSelected = (i < count);
+            RebuildSlots(count);
+        }
+
+        private void RebuildSlots(int count)
+        {
+            var previousAssignments = Slots.Select(s => s.AssignedCamera).ToList();
+            Slots.Clear();
+            for (int i = 0; i < count; i++)
+            {
+                // Span state doesn't carry across a layout change — every cell starts
+                // as an independent 1x1 slot in its row-major grid position.
+                var slot = new CameraSlotViewModel
+                {
+                    ChannelIndex = i + 1,
+                    Row = i / GridColumns,
+                    Column = i % GridColumns
+                };
+                if (i < previousAssignments.Count)
+                    slot.AssignedCamera = previousAssignments[i];
+                Slots.Add(slot);
+            }
+
+            if (!_slotsInitialized)
+            {
+                _slotsInitialized = true;
+                AutoFillEmptySlots();
+            }
+
+            RefreshHasEmptySlots();
+            RefreshResizeAffordances();
+            UpdateActiveCameras();
+            SlotsRebuilt?.Invoke();
+        }
+
+        private void AutoFillEmptySlots()
+        {
+            var unassigned = CameraStreams.Where(c => !IsCameraAssigned(c)).ToList();
+            foreach (var slot in Slots)
+            {
+                if (slot.IsHiddenBySpan || slot.AssignedCamera != null) continue;
+                var next = unassigned.FirstOrDefault();
+                if (next == null) break;
+                slot.AssignedCamera = next;
+                unassigned.Remove(next);
+            }
+        }
+
+        private bool IsCameraAssigned(CameraStreamViewModel camera) =>
+            Slots.Any(s => s.AssignedCamera == camera);
+
+        private void RefreshHasEmptySlots()
+        {
+            HasEmptySlots = Slots.Any(s => !s.IsHiddenBySpan && s.AssignedCamera == null);
+        }
+
+        private CameraSlotViewModel? SlotAt(int row, int col) =>
+            Slots.FirstOrDefault(s => s.Row == row && s.Column == col);
+
+        private static bool IsPlainSlot(CameraSlotViewModel? slot) =>
+            slot != null && !slot.IsHiddenBySpan && slot.RowSpan == 1 && slot.ColumnSpan == 1;
+
+        public bool CanExpandRight(CameraSlotViewModel slot)
+        {
+            int newCol = slot.Column + slot.ColumnSpan;
+            if (newCol >= GridColumns) return false;
+            for (int r = slot.Row; r < slot.Row + slot.RowSpan; r++)
+                if (!IsPlainSlot(SlotAt(r, newCol))) return false;
+            return true;
+        }
+
+        public bool CanExpandDown(CameraSlotViewModel slot)
+        {
+            int newRow = slot.Row + slot.RowSpan;
+            if (newRow >= GridRows) return false;
+            for (int c = slot.Column; c < slot.Column + slot.ColumnSpan; c++)
+                if (!IsPlainSlot(SlotAt(newRow, c))) return false;
+            return true;
+        }
+
+        /// Grows a slot to cover the column immediately to its right. The camera
+        /// occupying that column (if any) is unassigned — "cameras that get occupied
+        /// by the span automatically hide".
+        public void ExpandColumn(CameraSlotViewModel slot)
+        {
+            if (!CanExpandRight(slot)) return;
+            int newCol = slot.Column + slot.ColumnSpan;
+            for (int r = slot.Row; r < slot.Row + slot.RowSpan; r++)
+            {
+                var neighbor = SlotAt(r, newCol);
+                if (neighbor == null) continue;
+                neighbor.IsHiddenBySpan = true;
+                neighbor.AssignedCamera = null;
+            }
+            slot.ColumnSpan++;
+            RefreshHasEmptySlots();
+            RefreshResizeAffordances();
+            UpdateActiveCameras();
+        }
+
+        public void CollapseColumn(CameraSlotViewModel slot)
+        {
+            if (slot.ColumnSpan <= 1) return;
+            int removedCol = slot.Column + slot.ColumnSpan - 1;
+            for (int r = slot.Row; r < slot.Row + slot.RowSpan; r++)
+            {
+                var neighbor = SlotAt(r, removedCol);
+                if (neighbor != null) neighbor.IsHiddenBySpan = false;
+            }
+            slot.ColumnSpan--;
+            RefreshHasEmptySlots();
+            RefreshResizeAffordances();
+            UpdateActiveCameras();
+        }
+
+        /// Grows a slot to cover the row immediately below it, hiding whatever camera
+        /// occupied that row.
+        public void ExpandRow(CameraSlotViewModel slot)
+        {
+            if (!CanExpandDown(slot)) return;
+            int newRow = slot.Row + slot.RowSpan;
+            for (int c = slot.Column; c < slot.Column + slot.ColumnSpan; c++)
+            {
+                var neighbor = SlotAt(newRow, c);
+                if (neighbor == null) continue;
+                neighbor.IsHiddenBySpan = true;
+                neighbor.AssignedCamera = null;
+            }
+            slot.RowSpan++;
+            RefreshHasEmptySlots();
+            RefreshResizeAffordances();
+            UpdateActiveCameras();
+        }
+
+        public void CollapseRow(CameraSlotViewModel slot)
+        {
+            if (slot.RowSpan <= 1) return;
+            int removedRow = slot.Row + slot.RowSpan - 1;
+            for (int c = slot.Column; c < slot.Column + slot.ColumnSpan; c++)
+            {
+                var neighbor = SlotAt(removedRow, c);
+                if (neighbor != null) neighbor.IsHiddenBySpan = false;
+            }
+            slot.RowSpan--;
+            RefreshHasEmptySlots();
+            RefreshResizeAffordances();
+            UpdateActiveCameras();
+        }
+
+        /// Updates each slot's resize-grip visibility: a grip only shows when the
+        /// slot can actually grow in that direction, or is already expanded (so it
+        /// can be dragged back).
+        private void RefreshResizeAffordances()
+        {
+            foreach (var slot in Slots)
+            {
+                slot.ShowRightGrip = !slot.IsHiddenBySpan && slot.AssignedCamera != null
+                    && (slot.ColumnSpan > 1 || CanExpandRight(slot));
+                slot.ShowBottomGrip = !slot.IsHiddenBySpan && slot.AssignedCamera != null
+                    && (slot.RowSpan > 1 || CanExpandDown(slot));
+            }
+        }
+
+        /// Called from the view when a camera is dropped onto a slot.
+        public void AssignCameraToSlot(int slotIndex, string cameraId)
+        {
+            if (slotIndex < 0 || slotIndex >= Slots.Count) return;
+
+            var slot = Slots[slotIndex];
+            if (slot.IsHiddenBySpan) return;
+
+            var camera = CameraStreams.FirstOrDefault(c => c.CameraId == cameraId);
+            if (camera == null) return;
+
+            // A camera can only occupy one slot at a time — moving it clears the old slot.
+            var existingSlot = Slots.FirstOrDefault(s => s.AssignedCamera == camera);
+            if (existingSlot != null)
+                existingSlot.AssignedCamera = null;
+
+            slot.AssignedCamera = camera;
+            RefreshHasEmptySlots();
+            RefreshResizeAffordances();
+            UpdateActiveCameras();
+        }
+
+        [RelayCommand]
+        private void ClearSlot(CameraSlotViewModel? slot)
+        {
+            if (slot == null) return;
+            slot.AssignedCamera = null;
+            RefreshHasEmptySlots();
+            RefreshResizeAffordances();
             UpdateActiveCameras();
         }
 
@@ -341,13 +543,6 @@ namespace Station.ViewModels
         [ObservableProperty]
         private DateTimeOffset _alertTime = DateTimeOffset.Now;
 
-        private bool _isSelected = true;
-        public bool IsSelected
-        {
-            get => _isSelected;
-            set => SetProperty(ref _isSelected, value);
-        }
-
         // Computed display helpers
 
         public string StatusText => _isOnline ? "Online" : "Offline";
@@ -423,5 +618,57 @@ namespace Station.ViewModels
         {
             if (!string.IsNullOrEmpty(res)) Resolution = res;
         }
+    }
+
+    /// One cell in the camera display grid — either empty (a drop target) or holding an
+    /// assigned camera. Row/Column are its fixed row-major position; RowSpan/ColumnSpan
+    /// grow to 2 when the user drags a resize grip, at which point IsHiddenBySpan is set
+    /// on the cell(s) it now covers so they stop rendering as independent drop targets.
+    public partial class CameraSlotViewModel : ObservableObject
+    {
+        [ObservableProperty]
+        private int _channelIndex;
+
+        [ObservableProperty]
+        private CameraStreamViewModel? _assignedCamera;
+
+        [ObservableProperty]
+        private int _row;
+
+        [ObservableProperty]
+        private int _column;
+
+        [ObservableProperty]
+        private int _rowSpan = 1;
+
+        [ObservableProperty]
+        private int _columnSpan = 1;
+
+        [ObservableProperty]
+        private bool _isHiddenBySpan;
+
+        [ObservableProperty]
+        private bool _showRightGrip;
+
+        [ObservableProperty]
+        private bool _showBottomGrip;
+
+        // True while a dragged camera is hovering over this (empty) slot — drives the
+        // animated highlight on the dashed drop-target border.
+        [ObservableProperty]
+        private bool _isDragHighlighted;
+
+        public bool IsEmpty => _assignedCamera == null;
+
+        public string SlotLabel => $"Trống (Kênh {_channelIndex:00})";
+
+        public double DragHighlightOpacity => _isDragHighlighted ? 0.4 : 0;
+
+        partial void OnAssignedCameraChanged(CameraStreamViewModel? value)
+        {
+            OnPropertyChanged(nameof(IsEmpty));
+        }
+
+        partial void OnIsDragHighlightedChanged(bool value) => OnPropertyChanged(nameof(DragHighlightOpacity));
     }
 }

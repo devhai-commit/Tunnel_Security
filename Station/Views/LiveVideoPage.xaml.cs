@@ -1,6 +1,9 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
+using Microsoft.UI.Xaml.Shapes;
 using Station.Dialogs;
 using Station.Models;
 using Station.ViewModels;
@@ -8,6 +11,7 @@ using System;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage.Pickers;
 
 namespace Station.Views
@@ -22,14 +26,8 @@ namespace Station.Views
             ViewModel = new LiveVideoViewModel();
             this.DataContext = ViewModel;
 
-            ViewModel.PropertyChanged += ViewModel_PropertyChanged;
             ViewModel.AlertDialogRequested += OnAlertDialogRequested;
-        }
-
-        private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(LiveVideoViewModel.GridColumns))
-                UpdateCameraItemSize();
+            ViewModel.SlotsRebuilt += OnSlotsRebuilt;
         }
 
         private async void OnAlertDialogRequested(CameraStreamViewModel camera)
@@ -52,9 +50,206 @@ namespace Station.Views
             await dialog.ShowAsync();
         }
 
-        private void CameraCheckBox_Changed(object sender, RoutedEventArgs e)
+        private void CameraListItem_DragStarting(UIElement sender, DragStartingEventArgs args)
         {
-            ViewModel.UpdateActiveCameras();
+            if (sender is not FrameworkElement fe || fe.DataContext is not CameraStreamViewModel camera) return;
+
+            args.Data.SetText(camera.CameraId);
+            args.Data.RequestedOperation = DataPackageOperation.Copy;
+
+            // Dim the source row while it's being dragged; DropCompleted restores it.
+            // Animated by the Grid.OpacityTransition declared on this same element in XAML.
+            sender.Opacity = 0.4;
+        }
+
+        private void CameraListItem_DropCompleted(UIElement sender, DropCompletedEventArgs args)
+        {
+            sender.Opacity = 1.0;
+        }
+
+        private static readonly SolidColorBrush _rowHoverBrush = new(Windows.UI.Color.FromArgb(18, 255, 255, 255));
+        private static readonly SolidColorBrush _rowIdleBrush = new(Windows.UI.Color.FromArgb(0, 255, 255, 255));
+
+        private void CameraListItem_PointerEntered(object sender, PointerRoutedEventArgs e)
+        {
+            if (sender is Grid grid) grid.Background = _rowHoverBrush;
+        }
+
+        private void CameraListItem_PointerExited(object sender, PointerRoutedEventArgs e)
+        {
+            if (sender is Grid grid) grid.Background = _rowIdleBrush;
+        }
+
+        private void Slot_DragOver(object sender, DragEventArgs e)
+        {
+            e.AcceptedOperation = DataPackageOperation.Copy;
+            e.DragUIOverride.Caption = "Hiển thị camera ở đây";
+            e.DragUIOverride.IsGlyphVisible = false;
+        }
+
+        private void Slot_DragEnter(object sender, DragEventArgs e)
+        {
+            if (((FrameworkElement)sender).DataContext is CameraSlotViewModel slot && slot.IsEmpty)
+                slot.IsDragHighlighted = true;
+        }
+
+        private void Slot_DragLeave(object sender, DragEventArgs e)
+        {
+            if (((FrameworkElement)sender).DataContext is CameraSlotViewModel slot)
+                slot.IsDragHighlighted = false;
+        }
+
+        private async void Slot_Drop(object sender, DragEventArgs e)
+        {
+            if (sender is not FrameworkElement fe || fe.DataContext is not CameraSlotViewModel slot) return;
+            slot.IsDragHighlighted = false;
+
+            if (!e.DataView.Contains(StandardDataFormats.Text)) return;
+
+            string cameraId = await e.DataView.GetTextAsync();
+            int index = ViewModel.Slots.IndexOf(slot);
+            ViewModel.AssignCameraToSlot(index, cameraId);
+        }
+
+        private void ResizeGrip_PointerEntered(object sender, PointerRoutedEventArgs e)
+        {
+            if (sender is Grid grid && grid.Children.Count > 0 && grid.Children[0] is Rectangle bar)
+                bar.Opacity = 1.0;
+        }
+
+        private void ResizeGrip_PointerExited(object sender, PointerRoutedEventArgs e)
+        {
+            if (sender is Grid grid && grid.Children.Count > 0 && grid.Children[0] is Rectangle bar)
+                bar.Opacity = 0.5;
+        }
+
+        // ── Fixed camera grid: position each slot's generated container on the
+        // ── Grid panel (Grid.Row/Column/RowSpan/ColumnSpan), since the panel itself
+        // ── has no way to express "this item spans 2 cells" declaratively.
+
+        private Grid? CameraGridPanel => CameraItemsControl.ItemsPanelRoot as Grid;
+
+        private void CameraItemsControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            SubscribeToSlots();
+            RebuildCameraGrid();
+        }
+
+        private void OnSlotsRebuilt()
+        {
+            SubscribeToSlots();
+            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, RebuildCameraGrid);
+        }
+
+        private void SubscribeToSlots()
+        {
+            foreach (var slot in ViewModel.Slots)
+                slot.PropertyChanged += Slot_PropertyChanged;
+        }
+
+        private void Slot_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (sender is not CameraSlotViewModel slot) return;
+            if (e.PropertyName is nameof(CameraSlotViewModel.RowSpan)
+                or nameof(CameraSlotViewModel.ColumnSpan)
+                or nameof(CameraSlotViewModel.IsHiddenBySpan))
+            {
+                PositionSlot(slot);
+            }
+        }
+
+        private void RebuildCameraGrid()
+        {
+            var panel = CameraGridPanel;
+            if (panel == null) return;
+
+            if (panel.RowDefinitions.Count != ViewModel.GridRows)
+            {
+                panel.RowDefinitions.Clear();
+                for (int i = 0; i < ViewModel.GridRows; i++)
+                    panel.RowDefinitions.Add(new RowDefinition());
+            }
+            if (panel.ColumnDefinitions.Count != ViewModel.GridColumns)
+            {
+                panel.ColumnDefinitions.Clear();
+                for (int i = 0; i < ViewModel.GridColumns; i++)
+                    panel.ColumnDefinitions.Add(new ColumnDefinition());
+            }
+
+            foreach (var slot in ViewModel.Slots)
+                PositionSlot(slot);
+        }
+
+        private void PositionSlot(CameraSlotViewModel slot)
+        {
+            if (CameraItemsControl.ContainerFromItem(slot) is not FrameworkElement container) return;
+
+            Grid.SetRow(container, slot.Row);
+            Grid.SetColumn(container, slot.Column);
+            Grid.SetRowSpan(container, Math.Max(1, slot.RowSpan));
+            Grid.SetColumnSpan(container, Math.Max(1, slot.ColumnSpan));
+            container.Visibility = slot.IsHiddenBySpan ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        // ── Resize grips: drag past half a cell to grow the span to 2 on that axis,
+        // ── drag back to shrink it to 1. ManipulationDelta accumulates the raw pointer
+        // ── translation; the decision is made once on ManipulationCompleted.
+
+        private CameraSlotViewModel? _resizingColumnSlot;
+        private double _columnDragTotal;
+        private CameraSlotViewModel? _resizingRowSlot;
+        private double _rowDragTotal;
+
+        private void RightGrip_ManipulationStarted(object sender, ManipulationStartedRoutedEventArgs e)
+        {
+            _resizingColumnSlot = ((FrameworkElement)sender).DataContext as CameraSlotViewModel;
+            _columnDragTotal = 0;
+        }
+
+        private void RightGrip_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
+        {
+            _columnDragTotal += e.Delta.Translation.X;
+        }
+
+        private void RightGrip_ManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
+        {
+            if (_resizingColumnSlot is not CameraSlotViewModel slot) return;
+
+            double cellWidth = (CameraGridPanel?.ActualWidth ?? 0) / Math.Max(1, ViewModel.GridColumns);
+            double threshold = cellWidth > 0 ? cellWidth / 2 : 60;
+
+            if (_columnDragTotal > threshold)
+                ViewModel.ExpandColumn(slot);
+            else if (_columnDragTotal < -threshold)
+                ViewModel.CollapseColumn(slot);
+
+            _resizingColumnSlot = null;
+        }
+
+        private void BottomGrip_ManipulationStarted(object sender, ManipulationStartedRoutedEventArgs e)
+        {
+            _resizingRowSlot = ((FrameworkElement)sender).DataContext as CameraSlotViewModel;
+            _rowDragTotal = 0;
+        }
+
+        private void BottomGrip_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
+        {
+            _rowDragTotal += e.Delta.Translation.Y;
+        }
+
+        private void BottomGrip_ManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
+        {
+            if (_resizingRowSlot is not CameraSlotViewModel slot) return;
+
+            double cellHeight = (CameraGridPanel?.ActualHeight ?? 0) / Math.Max(1, ViewModel.GridRows);
+            double threshold = cellHeight > 0 ? cellHeight / 2 : 60;
+
+            if (_rowDragTotal > threshold)
+                ViewModel.ExpandRow(slot);
+            else if (_rowDragTotal < -threshold)
+                ViewModel.CollapseRow(slot);
+
+            _resizingRowSlot = null;
         }
 
         private bool _sidebarExpanded = true;
@@ -81,35 +276,11 @@ namespace Station.Views
                 SidebarToggleIcon.Glyph = "";
                 ToolTipService.SetToolTip(SidebarToggleButton, "Mở rộng danh sách");
             }
-
-            UpdateCameraItemSize();
         }
 
         private void VideoGridContainer_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            UpdateCameraItemSize();
-        }
-
-        private void UpdateCameraItemSize()
-        {
-            if (VideoGridContainer == null || ViewModel == null) return;
-
-            double containerWidth = VideoGridContainer.ActualWidth;
-            if (containerWidth <= 0) return;
-
-            double availableWidth = containerWidth - 24;
-
-            int columns = ViewModel.GridColumns;
-            if (columns < 1) columns = 1;
-
-            double newWidth = Math.Floor(availableWidth / columns);
-            double newHeight = Math.Floor(newWidth * 0.75);
-
-            if (newWidth < 200) newWidth = 200;
-            if (newHeight < 150) newHeight = 150;
-
-            ViewModel.CameraItemWidth = newWidth;
-            ViewModel.CameraItemHeight = newHeight;
+            RebuildCameraGrid();
         }
 
         private static readonly HttpClient _http = new();
