@@ -230,6 +230,7 @@ _pkginfo.txt
 *.appx
 *.appxbundle
 *.appxupload
+CameraPublisherSim/Videos/
 
 # Visual Studio cache files
 # files ending in .cache can be ignored

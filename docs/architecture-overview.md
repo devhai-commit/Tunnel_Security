@@ -188,17 +188,18 @@ Sinh dữ liệu → TLV Encode → WireFrame Encode → MQTT Publish
 
 **Vai trò:** Giả lập camera gửi luồng JPEG frames qua WebSocket đến BackendV2.
 
-**Hai chế độ hoạt động:**
+**Ba chế độ hoạt động (ưu tiên: video > ảnh tĩnh > synthetic):**
 1. **Synthetic frames (mặc định):** Sinh ảnh JPEG 640×480 procedural bằng ImageSharp, mỗi frame có màu nền thay đổi (hue cycling), scan line trượt, marker đỏ nhấp nháy.
 2. **Static image:** Nếu set biến `CAMERA_IMAGE_PATH`, đọc file ảnh tĩnh và gửi lặp lại.
+3. **Local video:** Nếu set biến `CAMERA_VIDEO_PATH`, spawn tiến trình `ffmpeg` để decode video (loop vô hạn, đọc theo tốc độ thực `-re`) thành chuỗi JPEG qua pipe MJPEG (`VideoFrameSource`, cùng kỹ thuật với `Backend/Services/VideoFrameReader.cs`), rồi gửi từng frame qua WebSocket theo đúng nhịp `-r {CAMERA_FPS}`. Cần có `ffmpeg` trong PATH hoặc set `FFMPEG_PATH`.
 
 **Luồng xử lý:**
 ```
-GenerateFrame (synthetic/static) → WebSocket SendAsync (binary) → BackendV2
-                                                                      ↓
-                                                           CameraRelayRegistry
-                                                                      ↓
-                                                           CameraView → Station
+GenerateFrame (synthetic/static) hoặc VideoFrameSource (video) → WebSocket SendAsync (binary) → BackendV2
+                                                                                                     ↓
+                                                                                          CameraRelayRegistry
+                                                                                                     ↓
+                                                                                          CameraView → Station
 ```
 
 **Tự động kết nối lại:** Khi mất kết nối, đợi 5s và thử lại.
@@ -208,6 +209,8 @@ GenerateFrame (synthetic/static) → WebSocket SendAsync (binary) → BackendV2
 - `CAMERA_ID`: ID camera (mặc định: `CAM-HUB-01`)
 - `CAMERA_FPS`: Số frame/giây (mặc định: `5`)
 - `CAMERA_IMAGE_PATH`: Đường dẫn ảnh tĩnh (tùy chọn)
+- `CAMERA_VIDEO_PATH`: Đường dẫn video local để giả lập (tùy chọn, ưu tiên cao hơn `CAMERA_IMAGE_PATH`)
+- `FFMPEG_PATH`: Đường dẫn tới `ffmpeg.exe` nếu không nằm trong PATH (chỉ dùng khi có `CAMERA_VIDEO_PATH`)
 
 ---
 

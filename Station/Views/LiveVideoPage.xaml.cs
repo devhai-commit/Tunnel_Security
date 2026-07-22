@@ -13,6 +13,7 @@ using System.Text;
 using System.Text.Json;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage.Pickers;
+using Windows.System;
 
 namespace Station.Views
 {
@@ -109,6 +110,24 @@ namespace Station.Views
             string cameraId = await e.DataView.GetTextAsync();
             int index = ViewModel.Slots.IndexOf(slot);
             ViewModel.AssignCameraToSlot(index, cameraId);
+        }
+
+        // Keyboard equivalent of the drag grips below: the grip Grid is a tab stop
+        // (IsTabStop in XAML), so arrow keys resize the focused slot without a pointer.
+        private void RightGrip_KeyDown(object sender, KeyRoutedEventArgs e)
+        {
+            if (((FrameworkElement)sender).DataContext is not CameraSlotViewModel slot) return;
+
+            if (e.Key == VirtualKey.Right) { ViewModel.ExpandColumn(slot); e.Handled = true; }
+            else if (e.Key == VirtualKey.Left) { ViewModel.CollapseColumn(slot); e.Handled = true; }
+        }
+
+        private void BottomGrip_KeyDown(object sender, KeyRoutedEventArgs e)
+        {
+            if (((FrameworkElement)sender).DataContext is not CameraSlotViewModel slot) return;
+
+            if (e.Key == VirtualKey.Down) { ViewModel.ExpandRow(slot); e.Handled = true; }
+            else if (e.Key == VirtualKey.Up) { ViewModel.CollapseRow(slot); e.Handled = true; }
         }
 
         private void ResizeGrip_PointerEntered(object sender, PointerRoutedEventArgs e)

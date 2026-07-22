@@ -14,38 +14,38 @@
     <Style x:Key="TitleTextBlockStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="{StaticResource FontSizeXXLarge}"/>
         <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}"/>
         <Setter Property="Margin" Value="0,0,0,16"/>
     </Style>
 
     <Style x:Key="SubtitleTextBlockStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="{StaticResource FontSizeXLarge}"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="{StaticResource PrimaryDarkBrush}"/>
+        <Setter Property="Foreground" Value="{ThemeResource PrimaryDarkBrush}"/>
         <Setter Property="Margin" Value="0,0,0,12"/>
     </Style>
 
     <Style x:Key="HeaderTextBlockStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="{StaticResource FontSizeLarge}"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}"/>
         <Setter Property="Margin" Value="0,0,0,8"/>
     </Style>
 
     <Style x:Key="BodyTextBlockStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="{StaticResource FontSizeNormal}"/>
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}"/>
         <Setter Property="TextWrapping" Value="Wrap"/>
     </Style>
 
     <Style x:Key="CaptionTextBlockStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="{StaticResource FontSizeSmall}"/>
-        <Setter Property="Foreground" Value="{StaticResource TextTertiaryBrush}"/>
+        <Setter Property="Foreground" Value="{ThemeResource TextTertiaryBrush}"/>
     </Style>
 
     <Style x:Key="ErrorTextBlockStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="{StaticResource FontSizeSmall}"/>
-        <Setter Property="Foreground" Value="{StaticResource SeverityCriticalBrush}"/>
+        <Setter Property="Foreground" Value="{ThemeResource ErrorTextBrush}"/>
         <Setter Property="TextWrapping" Value="Wrap"/>
         <Setter Property="Margin" Value="0,4,0,0"/>
     </Style>
@@ -55,8 +55,6 @@
     ==================================== -->
 
     <Style x:Key="StandardTextBoxStyle" TargetType="TextBox">
-        <Setter Property="FontSize" Value="{StaticResource FontSizeNormal}"/>
-        <Setter Property="Padding" Value="{StaticResource SpacingMedium}"/>
         <Setter Property="BorderThickness" Value="{StaticResource BorderThicknessNormal}"/>
         <Setter Property="CornerRadius" Value="{StaticResource CornerRadiusMedium}"/>
         <Setter Property="Padding" Value="12,10" />
@@ -187,6 +185,11 @@
                                     <VisualState.Setters>
                                         <Setter Target="RootBorder.Background" Value="{ThemeResource PrimaryLightBrush}"/>
                                         <Setter Target="RootBorder.BorderBrush" Value="{ThemeResource PrimaryDarkBrush}"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="RootBorder.Opacity" Value="0.5"/>
                                     </VisualState.Setters>
                                 </VisualState>
                             </VisualStateGroup>
@@ -350,7 +353,7 @@
     <Style x:Key="AlertLowStyle" TargetType="Border">
         <Setter Property="Background" Value="{ThemeResource SeverityLowLightBrush}"/>
         <Setter Property="BorderBrush" Value="{ThemeResource SeverityLowBrush}"/>
-        <Setter Property="BorderThickness" Value="2,0,0,0"/>
+        <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="12"/>
         <Setter Property="CornerRadius" Value="{StaticResource CornerRadiusSmall}"/>
     </Style>
@@ -437,6 +440,11 @@
                                                              Duration="0:0:0.05"/>
                                         </Storyboard>
                                     </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <VisualState.Setters>
+                                            <Setter Target="RootBorder.Opacity" Value="0.5"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
                                 </VisualStateGroup>
                             </VisualStateManager.VisualStateGroups>
                             <Grid>
@@ -469,7 +477,7 @@
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Foreground" Value="White"/>
-        <Setter Property="Background" Value="{StaticResource PrimaryDarkBrush}"/>
+        <Setter Property="Background" Value="{ThemeResource PrimaryDarkBrush}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="CornerRadius" Value="6"/>
         <Setter Property="Template">
@@ -534,8 +542,8 @@
 
                         <!-- Popup -->
                         <Popup x:Name="Popup">
-                            <Border Background="{StaticResource BackgroundPrimaryBrush}"
-                                    BorderBrush="{StaticResource BorderLightBrush}"
+                            <Border Background="{ThemeResource BackgroundPrimaryBrush}"
+                                    BorderBrush="{ThemeResource BorderLightBrush}"
                                     BorderThickness="1"
                                     CornerRadius="8"
                                     Padding="4"
@@ -558,7 +566,7 @@
                     <Setter Property="MinHeight" Value="36"/>
                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                     <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                    <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}"/>
                     <Setter Property="CornerRadius" Value="4"/>
                     <Setter Property="Template">
                         <Setter.Value>
@@ -573,17 +581,17 @@
                                             <VisualState x:Name="Normal"/>
                                             <VisualState x:Name="PointerOver">
                                                 <VisualState.Setters>
-                                                    <Setter Target="ItemBorder.Background" Value="{StaticResource BackgroundSecondaryBrush}"/>
+                                                    <Setter Target="ItemBorder.Background" Value="{ThemeResource BackgroundSecondaryBrush}"/>
                                                 </VisualState.Setters>
                                             </VisualState>
                                             <VisualState x:Name="Pressed">
                                                 <VisualState.Setters>
-                                                    <Setter Target="ItemBorder.Background" Value="{StaticResource PrimaryLightBrush}"/>
+                                                    <Setter Target="ItemBorder.Background" Value="{ThemeResource PrimaryLightBrush}"/>
                                                 </VisualState.Setters>
                                             </VisualState>
                                             <VisualState x:Name="Selected">
                                                 <VisualState.Setters>
-                                                    <Setter Target="ItemBorder.Background" Value="{StaticResource PrimaryLightBrush}"/>
+                                                    <Setter Target="ItemBorder.Background" Value="{ThemeResource PrimaryLightBrush}"/>
                                                 </VisualState.Setters>
                                             </VisualState>
                                         </VisualStateGroup>
@@ -626,12 +634,17 @@
                                 <VisualState x:Name="Normal"/>
                                 <VisualState x:Name="PointerOver">
                                     <VisualState.Setters>
-                                        <Setter Target="RootBorder.Background" Value="{StaticResource BackgroundSecondaryBrush}"/>
+                                        <Setter Target="RootBorder.Background" Value="{ThemeResource BackgroundSecondaryBrush}"/>
                                     </VisualState.Setters>
                                 </VisualState>
                                 <VisualState x:Name="Pressed">
                                     <VisualState.Setters>
-                                        <Setter Target="RootBorder.Background" Value="{StaticResource BackgroundAccentBrush}"/>
+                                        <Setter Target="RootBorder.Background" Value="{ThemeResource BackgroundAccentBrush}"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="RootBorder.Opacity" Value="0.5"/>
                                     </VisualState.Setters>
                                 </VisualState>
                             </VisualStateGroup>
@@ -812,12 +825,12 @@
                                 <VisualState x:Name="Normal"/>
                                 <VisualState x:Name="PointerOver">
                                     <VisualState.Setters>
-                                        <Setter Target="Root.Background" Value="#1D4ED8"/>
+                                        <Setter Target="Root.Background" Value="{StaticResource DkBlueBorderBrush}"/>
                                     </VisualState.Setters>
                                 </VisualState>
                                 <VisualState x:Name="Pressed">
                                     <VisualState.Setters>
-                                        <Setter Target="Root.Background" Value="#1E40AF"/>
+                                        <Setter Target="Root.Background" Value="{StaticResource DkBluePressedBrush}"/>
                                     </VisualState.Setters>
                                 </VisualState>
                                 <VisualState x:Name="Disabled">
@@ -857,13 +870,13 @@
                                 <VisualState x:Name="Normal"/>
                                 <VisualState x:Name="PointerOver">
                                     <VisualState.Setters>
-                                        <Setter Target="Root.Background"  Value="#1C222D"/>
-                                        <Setter Target="Root.BorderBrush" Value="#475569"/>
+                                        <Setter Target="Root.Background"  Value="{StaticResource DkHoverSurfaceBrush}"/>
+                                        <Setter Target="Root.BorderBrush" Value="{StaticResource DkBorderHoverBrush}"/>
                                     </VisualState.Setters>
                                 </VisualState>
                                 <VisualState x:Name="Pressed">
                                     <VisualState.Setters>
-                                        <Setter Target="Root.Background" Value="#0F1526"/>
+                                        <Setter Target="Root.Background" Value="{StaticResource DkBgBrush}"/>
                                     </VisualState.Setters>
                                 </VisualState>
                                 <VisualState x:Name="Disabled">
@@ -901,12 +914,17 @@
                                 <VisualState x:Name="Normal"/>
                                 <VisualState x:Name="PointerOver">
                                     <VisualState.Setters>
-                                        <Setter Target="Root.Background" Value="#1C222D"/>
+                                        <Setter Target="Root.Background" Value="{StaticResource DkHoverSurfaceBrush}"/>
                                     </VisualState.Setters>
                                 </VisualState>
                                 <VisualState x:Name="Pressed">
                                     <VisualState.Setters>
-                                        <Setter Target="Root.Background" Value="#2D3545"/>
+                                        <Setter Target="Root.Background" Value="{StaticResource DkPressedSurfaceBrush}"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Opacity" Value="0.5"/>
                                     </VisualState.Setters>
                                 </VisualState>
                             </VisualStateGroup>
@@ -936,12 +954,17 @@
                                 <VisualState x:Name="Normal"/>
                                 <VisualState x:Name="PointerOver">
                                     <VisualState.Setters>
-                                        <Setter Target="Root.Background" Value="#0D1D3B"/>
+                                        <Setter Target="Root.Background" Value="{StaticResource DkBlueBgBrush}"/>
                                     </VisualState.Setters>
                                 </VisualState>
                                 <VisualState x:Name="Pressed">
                                     <VisualState.Setters>
                                         <Setter Target="Root.Opacity" Value="0.8"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Opacity" Value="0.5"/>
                                     </VisualState.Setters>
                                 </VisualState>
                             </VisualStateGroup>
@@ -957,7 +980,7 @@
     <Style x:Key="DkComboBoxStyle" TargetType="ComboBox">
         <Setter Property="Background"          Value="{StaticResource DkInputBgBrush}"/>
         <Setter Property="BorderBrush"         Value="{StaticResource DkBorderBrush}"/>
-        <Setter Property="Foreground"          Value="#E2E8F0"/>
+        <Setter Property="Foreground"          Value="{StaticResource DkTextPrimaryBrush}"/>
         <Setter Property="FontSize"            Value="13"/>
         <Setter Property="CornerRadius"        Value="0"/>
         <Setter Property="Padding"             Value="12,8"/>
@@ -969,7 +992,7 @@
     <Style x:Key="DkSearchBoxStyle" TargetType="TextBox">
         <Setter Property="Background"            Value="{StaticResource DkInputBgBrush}"/>
         <Setter Property="BorderBrush"           Value="{StaticResource DkBorderBrush}"/>
-        <Setter Property="Foreground"            Value="#E2E8F0"/>
+        <Setter Property="Foreground"            Value="{StaticResource DkTextPrimaryBrush}"/>
         <Setter Property="FontSize"              Value="13"/>
         <Setter Property="CornerRadius"          Value="0"/>
         <Setter Property="Padding"               Value="36,8,8,8"/>
@@ -1069,6 +1092,11 @@
                                         <Setter Target="RootBorder.Background" Value="{ThemeResource PrimaryLightBrush}"/>
                                     </VisualState.Setters>
                                 </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="RootBorder.Opacity" Value="0.5"/>
+                                    </VisualState.Setters>
+                                </VisualState>
                             </VisualStateGroup>
                         </VisualStateManager.VisualStateGroups>
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -1084,7 +1112,7 @@
 
     <Style x:Key="AccentButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="{ThemeResource AccentBrush}"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{ThemeResource AccentForegroundBrush}"/>
         <Setter Property="BorderBrush" Value="{ThemeResource BorderLightBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="FontSize" Value="13"/>

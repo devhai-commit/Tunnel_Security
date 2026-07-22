@@ -6,6 +6,7 @@ using System.Timers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI;
 using Station.Models;
@@ -415,6 +416,21 @@ namespace Station.ViewModels
             UpdateActiveCameras();
         }
 
+        // Keyboard/non-drag equivalent of dragging a sidebar camera onto a slot:
+        // drops it into the first free slot. Button that invokes this is disabled
+        // via HasEmptySlots when the grid is full, so a no-op here just means the
+        // user re-clicked before the UI caught up.
+        [RelayCommand]
+        private void AssignToFirstEmptySlot(CameraStreamViewModel? camera)
+        {
+            if (camera == null || IsCameraAssigned(camera)) return;
+
+            var slot = Slots.FirstOrDefault(s => !s.IsHiddenBySpan && s.AssignedCamera == null);
+            if (slot == null) return;
+
+            AssignCameraToSlot(Slots.IndexOf(slot), camera.CameraId);
+        }
+
         [RelayCommand]
         private void RefreshStreams()
         {
@@ -545,11 +561,33 @@ namespace Station.ViewModels
 
         // Computed display helpers
 
+        // Resolves a theme-dictionary brush by key so status/severity colors stay in
+        // sync with Colors.xaml (incl. Light/Dark variants) instead of duplicating
+        // hex values here — same pattern as ColorConverters.cs / DevicesPage.xaml.cs.
+        private static SolidColorBrush ResolveBrush(string key, Windows.UI.Color fallback) =>
+            Application.Current.Resources.TryGetValue(key, out var resource) && resource is SolidColorBrush brush
+                ? brush
+                : new SolidColorBrush(fallback);
+
         public string StatusText => _isOnline ? "Online" : "Offline";
 
-        public SolidColorBrush StatusColor => _isOnline
-            ? new SolidColorBrush(Colors.Green)
-            : new SolidColorBrush(Colors.Gray);
+        public SolidColorBrush StatusColor => ResolveBrush(
+            _isOnline ? "MonitoringNodeNormalBrush" : "MonitoringNodeOfflineBrush",
+            _isOnline ? Windows.UI.Color.FromArgb(255, 63, 207, 142) : Windows.UI.Color.FromArgb(255, 123, 126, 133));
+
+        // Fill is transparent while offline so the status dot renders as a hollow
+        // ring rather than a solid one — a colorblind-safe shape cue alongside the
+        // hue, per PRODUCT.md's "not color-alone" accessibility bar.
+        public SolidColorBrush StatusFillBrush => _isOnline
+            ? StatusColor
+            : new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0));
+
+        partial void OnIsOnlineChanged(bool value)
+        {
+            OnPropertyChanged(nameof(StatusText));
+            OnPropertyChanged(nameof(StatusColor));
+            OnPropertyChanged(nameof(StatusFillBrush));
+        }
 
         public string RecordingIcon  => _isRecording ? "" : "";
 
@@ -580,13 +618,21 @@ namespace Station.ViewModels
             _                      => "THẤP"
         };
 
+        // Routed through Colors.xaml's SeverityXBrush tokens (same brushes every other
+        // severity-graded surface in the app uses) instead of duplicating raw ARGB here —
+        // keeps this card's border/dot/icon in lockstep with the app-wide severity grammar,
+        // including its Dark-theme hue adjustments.
         public SolidColorBrush AlertSeverityBrush => _alertSeverityLevel switch
         {
-            AlertSeverity.Critical => new SolidColorBrush(Windows.UI.Color.FromArgb(255, 239, 68, 68)),
-            AlertSeverity.High     => new SolidColorBrush(Windows.UI.Color.FromArgb(255, 249, 115, 22)),
-            AlertSeverity.Medium   => new SolidColorBrush(Windows.UI.Color.FromArgb(255, 234, 179, 8)),
-            _                      => new SolidColorBrush(Windows.UI.Color.FromArgb(255, 34, 197, 94))
+            AlertSeverity.Critical => ResolveBrush("SeverityCriticalBrush", Windows.UI.Color.FromArgb(255, 239, 68, 68)),
+            AlertSeverity.High     => ResolveBrush("SeverityHighBrush",     Windows.UI.Color.FromArgb(255, 249, 115, 22)),
+            AlertSeverity.Medium   => ResolveBrush("SeverityMediumBrush",   Windows.UI.Color.FromArgb(255, 234, 179, 8)),
+            _                      => ResolveBrush("SeverityLowBrush",      Windows.UI.Color.FromArgb(255, 34, 197, 94))
         };
+
+        // Color (not Brush) form for binding into SolidColorBrush.Color, e.g. the alert
+        // card's pulsing border where Opacity is animated independently of the hue.
+        public Windows.UI.Color AlertSeverityColor => AlertSeverityBrush.Color;
 
         public string AlertTimeDisplay => _alertTime.ToString("HH:mm:ss dd/MM/yyyy");
 
@@ -602,6 +648,7 @@ namespace Station.ViewModels
 
             OnPropertyChanged(nameof(AlertSeverityText));
             OnPropertyChanged(nameof(AlertSeverityBrush));
+            OnPropertyChanged(nameof(AlertSeverityColor));
             OnPropertyChanged(nameof(AlertTimeDisplay));
         }
 
