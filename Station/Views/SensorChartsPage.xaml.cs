@@ -91,8 +91,20 @@ public sealed partial class SensorChartsPage : Page
     // (and become draggable) while its group header is expanded.
     private readonly HashSet<string> _expandedNodes = new();
 
-    private static readonly SolidColorBrush _rowHoverBrush = new(Color.FromArgb(18, 255, 255, 255));
-    private static readonly SolidColorBrush _rowIdleBrush  = new(Color.FromArgb(0, 255, 255, 255));
+    // Resolves a brush/color from Colors.xaml by key so this page's palette stays in
+    // sync with the shared design tokens instead of duplicating raw ARGB values here —
+    // same pattern as LiveVideoViewModel.ResolveBrush().
+    private static Color ResolveColor(string key, Color fallback) =>
+        Application.Current.Resources.TryGetValue(key, out var resource) && resource is SolidColorBrush brush
+            ? brush.Color
+            : fallback;
+
+    private static SolidColorBrush ResolveBrush(string key, Color fallback) => new(ResolveColor(key, fallback));
+
+    private static Color WithAlpha(Color color, byte alpha) => Color.FromArgb(alpha, color.R, color.G, color.B);
+
+    private static readonly SolidColorBrush _rowHoverBrush = ResolveBrush("DkRowHoverOverlayBrush", Color.FromArgb(18, 255, 255, 255));
+    private static readonly SolidColorBrush _rowIdleBrush  = new(Colors.Transparent);
 
     private DispatcherTimer? _renderTimer;
     private const int RenderIntervalMs = 200;
@@ -210,10 +222,10 @@ public sealed partial class SensorChartsPage : Page
 
         var (dotColor, statusLabel) = e.Sensor.CurrentLevel switch
         {
-            SensorAlertLevel.Critical => (Color.FromArgb(255, 255, 82,  82),  "CRITICAL"),
-            SensorAlertLevel.Warning  => (Color.FromArgb(255, 255, 209, 102), "WARNING"),
-            SensorAlertLevel.Offline  => (Color.FromArgb(255, 123, 126, 133), "OFFLINE"),
-            _                         => (Color.FromArgb(255, 63,  207, 142), "NORMAL")
+            SensorAlertLevel.Critical => (ResolveColor("DkRedBrush",   Color.FromArgb(255, 255, 82,  82)),  "CRITICAL"),
+            SensorAlertLevel.Warning  => (ResolveColor("DkYellowBrush", Color.FromArgb(255, 255, 209, 102)), "WARNING"),
+            SensorAlertLevel.Offline  => (ResolveColor("DkGrayBrush",   Color.FromArgb(255, 123, 126, 133)), "OFFLINE"),
+            _                         => (ResolveColor("DkGreenBrush",  Color.FromArgb(255, 63,  207, 142)), "NORMAL")
         };
 
         var brush = new SolidColorBrush(dotColor);
@@ -266,11 +278,11 @@ public sealed partial class SensorChartsPage : Page
 
     private static void ApplyActiveState(TabItem item, bool active)
     {
-        var activeBg     = Color.FromArgb(255, 13,  29,  59);
-        var activeBorder = Color.FromArgb(255, 96,  165, 250);
-        var activeText   = Color.FromArgb(255, 96,  165, 250);
-        var inactiveText = Color.FromArgb(255, 150, 160, 179);
-        var transparent  = Color.FromArgb(0, 0, 0, 0);
+        var activeBg     = ResolveColor("DkBlueBgBrush",     Color.FromArgb(255, 13,  29,  59));
+        var activeBorder = ResolveColor("DkBlueLightBrush",  Color.FromArgb(255, 96,  165, 250));
+        var activeText   = activeBorder;
+        var inactiveText = ResolveColor("DkTextMutedBrush",  Color.FromArgb(255, 150, 160, 179));
+        var transparent  = Colors.Transparent;
 
         item.Btn.Background  = new SolidColorBrush(active ? activeBg : transparent);
         item.Btn.BorderBrush = new SolidColorBrush(active ? activeBorder : transparent);
@@ -402,6 +414,31 @@ public sealed partial class SensorChartsPage : Page
         return true;
     }
 
+    /// The neighbor slot(s) that would be absorbed if `slot` grew one more cell in the given
+    /// direction — shared by Expand*() (which actually absorbs them) and BuildEdgeGrip()'s
+    /// live drag preview (which just dims them without committing anything yet).
+    private IEnumerable<ChartSlot> NeighborsForExpand(ChartSlot slot, bool isRight)
+    {
+        if (isRight)
+        {
+            var newCol = slot.Column + slot.ColumnSpan;
+            for (var r = slot.Row; r < slot.Row + slot.RowSpan; r++)
+            {
+                var neighbor = SlotAt(r, newCol);
+                if (neighbor != null) yield return neighbor;
+            }
+        }
+        else
+        {
+            var newRow = slot.Row + slot.RowSpan;
+            for (var c = slot.Column; c < slot.Column + slot.ColumnSpan; c++)
+            {
+                var neighbor = SlotAt(newRow, c);
+                if (neighbor != null) yield return neighbor;
+            }
+        }
+    }
+
     /// Grows a slot to cover the column immediately to its right — by exactly one grid
     /// cell, so the row's total width stays exactly what it was (a ratio, never a raw
     /// pixel amount). Whatever sensor occupied that column is unassigned, same as
@@ -409,11 +446,8 @@ public sealed partial class SensorChartsPage : Page
     private void ExpandColumn(ChartSlot slot)
     {
         if (!CanExpandRight(slot)) return;
-        var newCol = slot.Column + slot.ColumnSpan;
-        for (var r = slot.Row; r < slot.Row + slot.RowSpan; r++)
+        foreach (var neighbor in NeighborsForExpand(slot, isRight: true))
         {
-            var neighbor = SlotAt(r, newCol);
-            if (neighbor == null) continue;
             neighbor.IsHiddenBySpan = true;
             neighbor.SensorId = null;
         }
@@ -441,11 +475,8 @@ public sealed partial class SensorChartsPage : Page
     private void ExpandRow(ChartSlot slot)
     {
         if (!CanExpandDown(slot)) return;
-        var newRow = slot.Row + slot.RowSpan;
-        for (var c = slot.Column; c < slot.Column + slot.ColumnSpan; c++)
+        foreach (var neighbor in NeighborsForExpand(slot, isRight: false))
         {
-            var neighbor = SlotAt(newRow, c);
-            if (neighbor == null) continue;
             neighbor.IsHiddenBySpan = true;
             neighbor.SensorId = null;
         }
@@ -510,7 +541,7 @@ public sealed partial class SensorChartsPage : Page
         {
             Glyph      = expanded ? "" : "",
             FontSize   = 9,
-            Foreground = new SolidColorBrush(Color.FromArgb(255, 123, 126, 133)),
+            Foreground = ResolveBrush("DkGrayBrush", Color.FromArgb(255, 123, 126, 133)),
             VerticalAlignment = VerticalAlignment.Center
         };
         Grid.SetColumn(chevron, 0);
@@ -521,7 +552,7 @@ public sealed partial class SensorChartsPage : Page
             FontSize     = 11,
             FontFamily   = new FontFamily("Consolas"),
             FontWeight   = Microsoft.UI.Text.FontWeights.SemiBold,
-            Foreground   = new SolidColorBrush(Color.FromArgb(255, 194, 198, 214)),
+            Foreground   = ResolveBrush("DkTextSubtleBrush", Color.FromArgb(255, 194, 198, 214)),
             TextTrimming = TextTrimming.CharacterEllipsis,
             Margin       = new Thickness(8, 0, 8, 0),
             VerticalAlignment = VerticalAlignment.Center
@@ -533,7 +564,7 @@ public sealed partial class SensorChartsPage : Page
             Text       = $"{assignedCount}/{sensors.Count}",
             FontSize   = 9,
             FontFamily = new FontFamily("Consolas"),
-            Foreground = new SolidColorBrush(Color.FromArgb(255, 90, 97, 110)),
+            Foreground = ResolveBrush("DkTextFaintBrush", Color.FromArgb(255, 90, 97, 110)),
             VerticalAlignment = VerticalAlignment.Center
         };
         Grid.SetColumn(countTb, 2);
@@ -590,14 +621,14 @@ public sealed partial class SensorChartsPage : Page
             Text       = SensorLabel(type),
             FontSize   = 11,
             FontFamily = new FontFamily("Consolas"),
-            Foreground = new SolidColorBrush(Color.FromArgb(255, 194, 198, 214)),
+            Foreground = ResolveBrush("DkTextSubtleBrush", Color.FromArgb(255, 194, 198, 214)),
             TextTrimming = TextTrimming.CharacterEllipsis
         };
         var typeTb = new TextBlock
         {
             Text       = sensor.SensorId,
             FontSize   = 9,
-            Foreground = new SolidColorBrush(Color.FromArgb(255, 90, 97, 110)),
+            Foreground = ResolveBrush("DkTextFaintBrush", Color.FromArgb(255, 90, 97, 110)),
             Margin     = new Thickness(0, 2, 0, 0)
         };
         var textStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 8, 0) };
@@ -605,7 +636,7 @@ public sealed partial class SensorChartsPage : Page
         textStack.Children.Add(typeTb);
         Grid.SetColumn(textStack, 1);
 
-        var addIcon = new FontIcon { Glyph = "", FontSize = 11, Foreground = new SolidColorBrush(Color.FromArgb(255, 123, 126, 133)) };
+        var addIcon = new FontIcon { Glyph = "", FontSize = 11, Foreground = ResolveBrush("DkGrayBrush", Color.FromArgb(255, 123, 126, 133)) };
         var addBtn = new Button
         {
             Content         = addIcon,
@@ -734,18 +765,18 @@ public sealed partial class SensorChartsPage : Page
         var index = _slots.IndexOf(slot);
         var highlight = new Rectangle
         {
-            Stroke          = new SolidColorBrush(Color.FromArgb(255, 96, 165, 250)),
+            Stroke          = ResolveBrush("DkBlueLightBrush", Color.FromArgb(255, 96, 165, 250)),
             StrokeThickness = 2,
             StrokeDashArray = new DoubleCollection { 4, 3 },
             RadiusX         = 4,
             RadiusY         = 4,
-            Fill            = new SolidColorBrush(Color.FromArgb(40, 96, 165, 250)),
+            Fill            = new SolidColorBrush(WithAlpha(ResolveColor("DkBlueLightBrush", Color.FromArgb(255, 96, 165, 250)), 40)),
             Opacity         = 0
         };
 
         var dashedBorder = new Rectangle
         {
-            Stroke          = new SolidColorBrush(Color.FromArgb(255, 45, 50, 56)),
+            Stroke          = ResolveBrush("DkBorderBrush", Color.FromArgb(255, 45, 50, 56)),
             StrokeThickness = 1.5,
             StrokeDashArray = new DoubleCollection { 4, 3 },
             RadiusX         = 4,
@@ -757,13 +788,13 @@ public sealed partial class SensorChartsPage : Page
             Width               = 48,
             Height              = 48,
             CornerRadius        = new CornerRadius(24),
-            Background          = new SolidColorBrush(Color.FromArgb(255, 23, 30, 51)),
+            Background          = ResolveBrush("DkSurfaceBrush", Color.FromArgb(255, 23, 30, 51)),
             HorizontalAlignment = HorizontalAlignment.Center,
             Child = new FontIcon
             {
                 Glyph               = "",
                 FontSize            = 20,
-                Foreground          = new SolidColorBrush(Color.FromArgb(255, 123, 126, 133)),
+                Foreground          = ResolveBrush("DkGrayBrush", Color.FromArgb(255, 123, 126, 133)),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment   = VerticalAlignment.Center
             }
@@ -773,7 +804,7 @@ public sealed partial class SensorChartsPage : Page
         {
             Text                = "Kéo cảm biến vào đây",
             FontSize            = 13,
-            Foreground          = new SolidColorBrush(Color.FromArgb(255, 150, 160, 179)),
+            Foreground          = ResolveBrush("DkTextMutedBrush", Color.FromArgb(255, 150, 160, 179)),
             HorizontalAlignment = HorizontalAlignment.Center,
             Margin              = new Thickness(0, 10, 0, 4)
         };
@@ -782,7 +813,7 @@ public sealed partial class SensorChartsPage : Page
             Text                = $"Trống (Ô {index + 1:00})",
             FontSize            = 11,
             FontFamily          = new FontFamily("Consolas"),
-            Foreground          = new SolidColorBrush(Color.FromArgb(255, 90, 97, 110)),
+            Foreground          = ResolveBrush("DkTextFaintBrush", Color.FromArgb(255, 90, 97, 110)),
             HorizontalAlignment = HorizontalAlignment.Center
         };
 
@@ -859,8 +890,10 @@ public sealed partial class SensorChartsPage : Page
             };
         }
 
-        var axisLabelPaint = new SolidColorPaint(new SKColor(100, 110, 130));
-        var gridPaint      = new SolidColorPaint(new SKColor(30,  42,  68, 200)) { StrokeThickness = 1 };
+        var axisLabelColor = ResolveColor("DkChartAxisLabelBrush", Color.FromArgb(255, 100, 110, 130));
+        var gridColor      = ResolveColor("DkChartGridBrush",      Color.FromArgb(200, 30,  42,  68));
+        var axisLabelPaint = new SolidColorPaint(new SKColor(axisLabelColor.R, axisLabelColor.G, axisLabelColor.B));
+        var gridPaint      = new SolidColorPaint(new SKColor(gridColor.R, gridColor.G, gridColor.B, gridColor.A)) { StrokeThickness = 1 };
 
         var chart = new CartesianChart
         {
@@ -879,14 +912,14 @@ public sealed partial class SensorChartsPage : Page
             FontSize    = 32,
             FontFamily  = new FontFamily("Consolas"),
             FontWeight  = Microsoft.UI.Text.FontWeights.Bold,
-            Foreground  = new SolidColorBrush(Color.FromArgb(255, 218, 226, 253))
+            Foreground  = ResolveBrush("DkChartValueBrush", Color.FromArgb(255, 218, 226, 253))
         };
 
         var statusDot = new Border
         {
             Width              = 6,
             Height             = 6,
-            Background         = new SolidColorBrush(Color.FromArgb(255, 63, 207, 142)),
+            Background         = ResolveBrush("DkGreenBrush", Color.FromArgb(255, 63, 207, 142)),
             CornerRadius       = new CornerRadius(3),
             VerticalAlignment  = VerticalAlignment.Center
         };
@@ -896,7 +929,7 @@ public sealed partial class SensorChartsPage : Page
             Text              = "NORMAL",
             FontSize          = 8,
             FontFamily        = new FontFamily("Consolas"),
-            Foreground        = new SolidColorBrush(Color.FromArgb(255, 63, 207, 142)),
+            Foreground        = ResolveBrush("DkGreenBrush", Color.FromArgb(255, 63, 207, 142)),
             VerticalAlignment = VerticalAlignment.Center
         };
 
@@ -917,11 +950,10 @@ public sealed partial class SensorChartsPage : Page
         string sensorId, ChartSlot slot, string nodeName, string type, CartesianChart chart,
         TextBlock valueTb, Border statusDot, TextBlock statusTb, Color accent)
     {
-        // DkSurfaceBrush #171E33, DkBorderBrush #2D3238
         var card = new Border
         {
-            Background      = new SolidColorBrush(Color.FromArgb(255, 23, 30, 51)),
-            BorderBrush     = new SolidColorBrush(Color.FromArgb(255, 45, 50, 56)),
+            Background      = ResolveBrush("DkSurfaceBrush", Color.FromArgb(255, 23, 30, 51)),
+            BorderBrush     = ResolveBrush("DkBorderBrush", Color.FromArgb(255, 45, 50, 56)),
             BorderThickness = new Thickness(1),
             AllowDrop       = true,
             CanDrag         = true
@@ -951,7 +983,7 @@ public sealed partial class SensorChartsPage : Page
         {
             Text         = nodeName,
             FontSize     = 10,
-            Foreground   = new SolidColorBrush(Color.FromArgb(200, 194, 198, 214)),
+            Foreground   = new SolidColorBrush(WithAlpha(ResolveColor("DkTextSubtleBrush", Color.FromArgb(255, 194, 198, 214)), 200)),
             TextTrimming = TextTrimming.CharacterEllipsis,
             Margin       = new Thickness(0, 2, 0, 0)
         };
@@ -966,7 +998,7 @@ public sealed partial class SensorChartsPage : Page
         var expandIcon = new FontIcon
         {
             FontSize   = 10,
-            Foreground = new SolidColorBrush(Color.FromArgb(255, 123, 126, 133))
+            Foreground = ResolveBrush("DkGrayBrush", Color.FromArgb(255, 123, 126, 133))
         };
         expandIcon.Glyph = "";
         var expandBtn = new Button
@@ -988,7 +1020,7 @@ public sealed partial class SensorChartsPage : Page
         {
             Glyph      = "",
             FontSize   = 10,
-            Foreground = new SolidColorBrush(Color.FromArgb(255, 123, 126, 133))
+            Foreground = ResolveBrush("DkGrayBrush", Color.FromArgb(255, 123, 126, 133))
         };
         var clearBtn = new Button
         {
@@ -1047,8 +1079,8 @@ public sealed partial class SensorChartsPage : Page
 
         var statusPill = new Border
         {
-            Background        = new SolidColorBrush(Color.FromArgb(255, 11, 16, 32)),
-            BorderBrush       = new SolidColorBrush(Color.FromArgb(255, 45, 50, 56)),
+            Background        = ResolveBrush("DkInputBgBrush", Color.FromArgb(255, 11, 16, 32)),
+            BorderBrush       = ResolveBrush("DkBorderBrush", Color.FromArgb(255, 45, 50, 56)),
             BorderThickness   = new Thickness(1),
             CornerRadius      = new CornerRadius(4),
             Padding           = new Thickness(8, 4, 8, 4),
@@ -1291,7 +1323,7 @@ public sealed partial class SensorChartsPage : Page
         var spanned = isRight ? slot.ColumnSpan > 1 : slot.RowSpan > 1;
         if (!canGrow && !spanned) return null;
 
-        var barBrush = new SolidColorBrush(Color.FromArgb(230, 96, 165, 250));
+        var barBrush = new SolidColorBrush(WithAlpha(ResolveColor("DkBlueLightBrush", Color.FromArgb(255, 96, 165, 250)), 230));
         Rectangle bar = isRight
             ? new Rectangle
             {
@@ -1333,21 +1365,60 @@ public sealed partial class SensorChartsPage : Page
         grip.PointerEntered += (_, _) => { grip.HoverCursor = resizeCursor; bar.Opacity = 1.0; };
         grip.PointerExited  += (_, _) => { grip.HoverCursor = null; bar.Opacity = 0.5; };
 
+        double Threshold()
+        {
+            var cellSize = isRight
+                ? ChartsHost.ActualWidth / Math.Max(1, _columns)
+                : ChartsHost.ActualHeight / Math.Max(1, RowsPerLayout);
+            return cellSize > 0 ? cellSize / 2 : 60;
+        }
+
         var dragTotal = 0.0;
-        grip.ManipulationStarted += (_, _) => dragTotal = 0;
+        var dimmedNeighbors = new List<FrameworkElement>();
+
+        void ClearDim()
+        {
+            foreach (var el in dimmedNeighbors) el.Opacity = 1;
+            dimmedNeighbors.Clear();
+        }
+
+        grip.ManipulationStarted += (_, _) => { dragTotal = 0; ClearDim(); };
+
+        // Live preview while dragging (not a post-release animation): once the drag has
+        // crossed the half-cell threshold, dim whichever neighbor cell(s) would actually get
+        // absorbed if the grip were released right now — same set ExpandColumn()/ExpandRow()
+        // would consume. Dropping back below the threshold (or reversing direction) restores
+        // full opacity, tracking the live drag rather than committing anything.
         grip.ManipulationDelta += (_, e) =>
+        {
             dragTotal += isRight ? e.Delta.Translation.X : e.Delta.Translation.Y;
+            if (slot == _expandedSlot) return;
+
+            var wantsExpand = dragTotal > Threshold() && (isRight ? CanExpandRight(slot) : CanExpandDown(slot));
+            var targetNeighbors = wantsExpand
+                ? NeighborsForExpand(slot, isRight)
+                    .Select(n => _slotElements.TryGetValue(n, out var el) ? el : null)
+                    .Where(el => el != null)
+                    .Cast<FrameworkElement>()
+                    .ToList()
+                : new List<FrameworkElement>();
+
+            foreach (var el in dimmedNeighbors)
+                if (!targetNeighbors.Contains(el)) el.Opacity = 1;
+            foreach (var el in targetNeighbors)
+                el.Opacity = 0.35;
+            dimmedNeighbors = targetNeighbors;
+        };
+
         grip.ManipulationCompleted += (_, _) =>
         {
+            ClearDim();
+
             // A no-op while this card is detached into the fullscreen overlay — its grip
             // travels with it there, but resizing a "fullscreen" card has no meaning.
             if (slot == _expandedSlot) return;
 
-            var cellSize = isRight
-                ? ChartsHost.ActualWidth / Math.Max(1, _columns)
-                : ChartsHost.ActualHeight / Math.Max(1, RowsPerLayout);
-            var threshold = cellSize > 0 ? cellSize / 2 : 60;
-
+            var threshold = Threshold();
             if (dragTotal > threshold)
             {
                 if (isRight) ExpandColumn(slot); else ExpandRow(slot);
@@ -1365,15 +1436,15 @@ public sealed partial class SensorChartsPage : Page
     {
         if (connected)
         {
-            ConnectionDot.Fill       = new SolidColorBrush(Color.FromArgb(255, 63, 207, 142));
+            ConnectionDot.Fill       = ResolveBrush("DkGreenBrush", Color.FromArgb(255, 63, 207, 142));
             ConnectionText.Text      = "CONNECTED";
-            ConnectionText.Foreground = new SolidColorBrush(Color.FromArgb(255, 96, 165, 250));
+            ConnectionText.Foreground = ResolveBrush("DkBlueLightBrush", Color.FromArgb(255, 96, 165, 250));
         }
         else
         {
-            ConnectionDot.Fill       = new SolidColorBrush(Color.FromArgb(255, 61, 96, 112));
+            ConnectionDot.Fill       = ResolveBrush("DkConnectionOfflineBrush", Color.FromArgb(255, 61, 96, 112));
             ConnectionText.Text      = "CONNECTING...";
-            ConnectionText.Foreground = new SolidColorBrush(Color.FromArgb(255, 61, 96, 112));
+            ConnectionText.Foreground = ResolveBrush("DkConnectionOfflineBrush", Color.FromArgb(255, 61, 96, 112));
         }
     }
 
@@ -1391,28 +1462,24 @@ public sealed partial class SensorChartsPage : Page
         _                                  => "other"
     };
 
-    private static SKColor ChartColor(string type) => type switch
+    // Derived from AccentColor(type) rather than a second hardcoded SKColor table —
+    // same eight hues, just converted into SkiaSharp's color type for LiveCharts.
+    private static SKColor ChartColor(string type)
     {
-        "temperature" => new SKColor(255, 77,  77),
-        "humidity"    => new SKColor(34,  211, 238),
-        "light"       => new SKColor(255, 184, 0),
-        "waterlevel"  => new SKColor(80,  160, 255),
-        "radar"       => new SKColor(0,   255, 136),
-        "vibration"   => new SKColor(132, 204, 22),
-        "infrared"    => new SKColor(255, 105, 180),
-        _             => new SKColor(173, 198, 255)
-    };
+        var c = AccentColor(type);
+        return new SKColor(c.R, c.G, c.B);
+    }
 
     private static Color AccentColor(string type) => type switch
     {
-        "temperature" => Color.FromArgb(255, 255, 77,  77),
-        "humidity"    => Color.FromArgb(255, 34,  211, 238),
-        "light"       => Color.FromArgb(255, 255, 184, 0),
-        "waterlevel"  => Color.FromArgb(255, 80,  160, 255),
-        "radar"       => Color.FromArgb(255, 0,   255, 136),
-        "vibration"   => Color.FromArgb(255, 132, 204, 22),
-        "infrared"    => Color.FromArgb(255, 255, 105, 180),
-        _             => Color.FromArgb(255, 173, 198, 255)
+        "temperature" => ResolveColor("SensorAccentTemperatureBrush", Color.FromArgb(255, 255, 77,  77)),
+        "humidity"    => ResolveColor("MonitoringSensorHumidityBrush", Color.FromArgb(255, 34,  211, 238)),
+        "light"       => ResolveColor("SensorAccentLightBrush", Color.FromArgb(255, 255, 184, 0)),
+        "waterlevel"  => ResolveColor("SensorAccentWaterLevelBrush", Color.FromArgb(255, 80,  160, 255)),
+        "radar"       => ResolveColor("SensorAccentRadarBrush", Color.FromArgb(255, 0,   255, 136)),
+        "vibration"   => ResolveColor("MonitoringSensorVibrationBrush", Color.FromArgb(255, 132, 204, 22)),
+        "infrared"    => ResolveColor("SensorAccentInfraredBrush", Color.FromArgb(255, 255, 105, 180)),
+        _             => ResolveColor("SensorAccentDefaultBrush", Color.FromArgb(255, 173, 198, 255))
     };
 
     private static string SensorLabel(string type) => type switch

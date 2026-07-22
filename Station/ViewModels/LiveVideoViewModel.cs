@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Timers;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -301,17 +302,40 @@ namespace Station.ViewModels
             return true;
         }
 
+        /// Enumerates the slot(s) that would be absorbed if <paramref name="slot"/> grew
+        /// one cell further right (isRight) or down (!isRight) — used both to actually
+        /// perform the expand and, from the view, to preview which cell(s) a resize drag
+        /// is about to absorb before the drag is released.
+        public IEnumerable<CameraSlotViewModel> GetExpandNeighbors(CameraSlotViewModel slot, bool isRight)
+        {
+            if (isRight)
+            {
+                int newCol = slot.Column + slot.ColumnSpan;
+                for (int r = slot.Row; r < slot.Row + slot.RowSpan; r++)
+                {
+                    var neighbor = SlotAt(r, newCol);
+                    if (neighbor != null) yield return neighbor;
+                }
+            }
+            else
+            {
+                int newRow = slot.Row + slot.RowSpan;
+                for (int c = slot.Column; c < slot.Column + slot.ColumnSpan; c++)
+                {
+                    var neighbor = SlotAt(newRow, c);
+                    if (neighbor != null) yield return neighbor;
+                }
+            }
+        }
+
         /// Grows a slot to cover the column immediately to its right. The camera
         /// occupying that column (if any) is unassigned — "cameras that get occupied
         /// by the span automatically hide".
         public void ExpandColumn(CameraSlotViewModel slot)
         {
             if (!CanExpandRight(slot)) return;
-            int newCol = slot.Column + slot.ColumnSpan;
-            for (int r = slot.Row; r < slot.Row + slot.RowSpan; r++)
+            foreach (var neighbor in GetExpandNeighbors(slot, isRight: true))
             {
-                var neighbor = SlotAt(r, newCol);
-                if (neighbor == null) continue;
                 neighbor.IsHiddenBySpan = true;
                 neighbor.AssignedCamera = null;
             }
@@ -341,11 +365,8 @@ namespace Station.ViewModels
         public void ExpandRow(CameraSlotViewModel slot)
         {
             if (!CanExpandDown(slot)) return;
-            int newRow = slot.Row + slot.RowSpan;
-            for (int c = slot.Column; c < slot.Column + slot.ColumnSpan; c++)
+            foreach (var neighbor in GetExpandNeighbors(slot, isRight: false))
             {
-                var neighbor = SlotAt(newRow, c);
-                if (neighbor == null) continue;
                 neighbor.IsHiddenBySpan = true;
                 neighbor.AssignedCamera = null;
             }
@@ -530,7 +551,7 @@ namespace Station.ViewModels
         public string StreamToggleTooltip => _isStreamEnabled ? "Tạm dừng nhận stream" : "Bật nhận stream";
         public SolidColorBrush StreamToggleColor => _isStreamEnabled
             ? new SolidColorBrush(Colors.Gray)
-            : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 251, 191, 36));
+            : ResolveBrush("LiveVideoPausedIndicatorBrush", Windows.UI.Color.FromArgb(255, 251, 191, 36));
 
         // Path to a local video file — set by FileOpenPicker in code-behind.
         // When non-null, CameraVideoControl plays the file instead of the MJPEG stream.
@@ -580,7 +601,7 @@ namespace Station.ViewModels
         // hue, per PRODUCT.md's "not color-alone" accessibility bar.
         public SolidColorBrush StatusFillBrush => _isOnline
             ? StatusColor
-            : new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0));
+            : new SolidColorBrush(Colors.Transparent);
 
         partial void OnIsOnlineChanged(bool value)
         {
@@ -705,11 +726,19 @@ namespace Station.ViewModels
         [ObservableProperty]
         private bool _isDragHighlighted;
 
+        // True while a resize-grip drag on a neighboring slot has crossed the expand
+        // threshold and would absorb this slot on release — dims the card live, tracking
+        // the pointer, so it un-dims immediately if the drag retreats before release.
+        [ObservableProperty]
+        private bool _isResizePreviewDimmed;
+
         public bool IsEmpty => _assignedCamera == null;
 
         public string SlotLabel => $"Trống (Kênh {_channelIndex:00})";
 
         public double DragHighlightOpacity => _isDragHighlighted ? 0.4 : 0;
+
+        public double ResizePreviewOpacity => _isResizePreviewDimmed ? 0.35 : 1.0;
 
         partial void OnAssignedCameraChanged(CameraStreamViewModel? value)
         {
@@ -717,5 +746,7 @@ namespace Station.ViewModels
         }
 
         partial void OnIsDragHighlightedChanged(bool value) => OnPropertyChanged(nameof(DragHighlightOpacity));
+
+        partial void OnIsResizePreviewDimmedChanged(bool value) => OnPropertyChanged(nameof(ResizePreviewOpacity));
     }
 }

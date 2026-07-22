@@ -1,3 +1,4 @@
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -8,6 +9,8 @@ using Station.Dialogs;
 using Station.Models;
 using Station.ViewModels;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -17,6 +20,20 @@ using Windows.System;
 
 namespace Station.Views
 {
+    // UIElement.ProtectedCursor is protected, so a plain Grid declared in XAML can't change
+    // its own hover cursor — this thin subclass exposes it publicly so the resize grips
+    // (declared as <views:CursorGrid> in LiveVideoPage.xaml) can show a resize cursor on
+    // hover. Same technique as SensorChartsPage's private CursorGrid, made public here since
+    // this one is instantiated from XAML rather than from code.
+    public sealed class CursorGrid : Grid
+    {
+        public InputCursor? HoverCursor
+        {
+            get => ProtectedCursor;
+            set => ProtectedCursor = value;
+        }
+    }
+
     public sealed partial class LiveVideoPage : Page
     {
         public LiveVideoViewModel ViewModel { get; }
@@ -68,8 +85,16 @@ namespace Station.Views
             sender.Opacity = 1.0;
         }
 
-        private static readonly SolidColorBrush _rowHoverBrush = new(Windows.UI.Color.FromArgb(18, 255, 255, 255));
-        private static readonly SolidColorBrush _rowIdleBrush = new(Windows.UI.Color.FromArgb(0, 255, 255, 255));
+        // Resolves a brush from Colors.xaml by key so this page's palette stays in sync
+        // with the shared design tokens instead of duplicating raw ARGB values here —
+        // same pattern as LiveVideoViewModel.ResolveBrush().
+        private static SolidColorBrush ResolveBrush(string key, Windows.UI.Color fallback) =>
+            Application.Current.Resources.TryGetValue(key, out var resource) && resource is SolidColorBrush brush
+                ? brush
+                : new SolidColorBrush(fallback);
+
+        private static readonly SolidColorBrush _rowHoverBrush = ResolveBrush("DkRowHoverOverlayBrush", Windows.UI.Color.FromArgb(18, 255, 255, 255));
+        private static readonly SolidColorBrush _rowIdleBrush = new(Microsoft.UI.Colors.Transparent);
 
         private void CameraListItem_PointerEntered(object sender, PointerRoutedEventArgs e)
         {
@@ -130,16 +155,29 @@ namespace Station.Views
             else if (e.Key == VirtualKey.Up) { ViewModel.CollapseRow(slot); e.Handled = true; }
         }
 
-        private void ResizeGrip_PointerEntered(object sender, PointerRoutedEventArgs e)
+        private static readonly InputCursor _horizontalResizeCursor =
+            InputSystemCursor.Create(InputSystemCursorShape.SizeWestEast);
+        private static readonly InputCursor _verticalResizeCursor =
+            InputSystemCursor.Create(InputSystemCursorShape.SizeNorthSouth);
+
+        private void RightGrip_PointerEntered(object sender, PointerRoutedEventArgs e) =>
+            ResizeGripPointerEntered(sender, _horizontalResizeCursor);
+
+        private void BottomGrip_PointerEntered(object sender, PointerRoutedEventArgs e) =>
+            ResizeGripPointerEntered(sender, _verticalResizeCursor);
+
+        private static void ResizeGripPointerEntered(object sender, InputCursor cursor)
         {
-            if (sender is Grid grid && grid.Children.Count > 0 && grid.Children[0] is Rectangle bar)
-                bar.Opacity = 1.0;
+            if (sender is not CursorGrid grip) return;
+            grip.HoverCursor = cursor;
+            if (grip.Children.Count > 0 && grip.Children[0] is Rectangle bar) bar.Opacity = 1.0;
         }
 
         private void ResizeGrip_PointerExited(object sender, PointerRoutedEventArgs e)
         {
-            if (sender is Grid grid && grid.Children.Count > 0 && grid.Children[0] is Rectangle bar)
-                bar.Opacity = 0.5;
+            if (sender is not CursorGrid grip) return;
+            grip.HoverCursor = null;
+            if (grip.Children.Count > 0 && grip.Children[0] is Rectangle bar) bar.Opacity = 0.5;
         }
 
         // ── Fixed camera grid: position each slot's generated container on the
@@ -219,19 +257,51 @@ namespace Station.Views
         private CameraSlotViewModel? _resizingRowSlot;
         private double _rowDragTotal;
 
+        // Neighbor slot(s) currently dimmed by a live resize-grip drag — tracked so the
+        // dim can be cleared the instant the drag retreats below threshold or is released,
+        // instead of playing a fixed animation after the fact.
+        private List<CameraSlotViewModel> _resizeDimmedSlots = new();
+
+        private void ClearResizeDim()
+        {
+            foreach (var s in _resizeDimmedSlots) s.IsResizePreviewDimmed = false;
+            _resizeDimmedSlots.Clear();
+        }
+
+        private void UpdateResizeDim(CameraSlotViewModel slot, bool isRight, bool wantsExpand)
+        {
+            var target = wantsExpand
+                ? ViewModel.GetExpandNeighbors(slot, isRight).ToList()
+                : new List<CameraSlotViewModel>();
+
+            foreach (var s in _resizeDimmedSlots)
+                if (!target.Contains(s)) s.IsResizePreviewDimmed = false;
+            foreach (var s in target)
+                s.IsResizePreviewDimmed = true;
+            _resizeDimmedSlots = target;
+        }
+
         private void RightGrip_ManipulationStarted(object sender, ManipulationStartedRoutedEventArgs e)
         {
             _resizingColumnSlot = ((FrameworkElement)sender).DataContext as CameraSlotViewModel;
             _columnDragTotal = 0;
+            ClearResizeDim();
         }
 
         private void RightGrip_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
         {
             _columnDragTotal += e.Delta.Translation.X;
+            if (_resizingColumnSlot is not CameraSlotViewModel slot) return;
+
+            double cellWidth = (CameraGridPanel?.ActualWidth ?? 0) / Math.Max(1, ViewModel.GridColumns);
+            double threshold = cellWidth > 0 ? cellWidth / 2 : 60;
+            var wantsExpand = _columnDragTotal > threshold && ViewModel.CanExpandRight(slot);
+            UpdateResizeDim(slot, isRight: true, wantsExpand);
         }
 
         private void RightGrip_ManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
         {
+            ClearResizeDim();
             if (_resizingColumnSlot is not CameraSlotViewModel slot) return;
 
             double cellWidth = (CameraGridPanel?.ActualWidth ?? 0) / Math.Max(1, ViewModel.GridColumns);
@@ -249,15 +319,23 @@ namespace Station.Views
         {
             _resizingRowSlot = ((FrameworkElement)sender).DataContext as CameraSlotViewModel;
             _rowDragTotal = 0;
+            ClearResizeDim();
         }
 
         private void BottomGrip_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
         {
             _rowDragTotal += e.Delta.Translation.Y;
+            if (_resizingRowSlot is not CameraSlotViewModel slot) return;
+
+            double cellHeight = (CameraGridPanel?.ActualHeight ?? 0) / Math.Max(1, ViewModel.GridRows);
+            double threshold = cellHeight > 0 ? cellHeight / 2 : 60;
+            var wantsExpand = _rowDragTotal > threshold && ViewModel.CanExpandDown(slot);
+            UpdateResizeDim(slot, isRight: false, wantsExpand);
         }
 
         private void BottomGrip_ManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
         {
+            ClearResizeDim();
             if (_resizingRowSlot is not CameraSlotViewModel slot) return;
 
             double cellHeight = (CameraGridPanel?.ActualHeight ?? 0) / Math.Max(1, ViewModel.GridRows);

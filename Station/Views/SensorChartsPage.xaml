@@ -26,7 +26,7 @@
                 <!-- Left: app label + connection / counters pill -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
 
-                    <TextBlock Text="GIÁM SÁT CẢM BIẾN" FontSize="14" FontFamily="Consolas"
+                    <TextBlock Text="GIÁM SÁT CẢM BIẾN" FontSize="{StaticResource FontSizeNormal}" FontFamily="Consolas"
                                FontWeight="Bold" Foreground="{StaticResource DkTextPrimaryBrush}"
                                VerticalAlignment="Center"/>
 
@@ -36,26 +36,26 @@
                         <StackPanel Orientation="Horizontal" Spacing="14">
                             <StackPanel Orientation="Horizontal" Spacing="7">
                                 <Ellipse x:Name="ConnectionDot" Width="6" Height="6"
-                                         Fill="#3D6070" VerticalAlignment="Center"/>
+                                         Fill="{StaticResource DkConnectionOfflineBrush}" VerticalAlignment="Center"/>
                                 <TextBlock x:Name="ConnectionText" Text="CONNECTING..."
-                                           FontSize="11" FontFamily="Consolas" FontWeight="SemiBold"
-                                           Foreground="#3D6070" VerticalAlignment="Center"/>
+                                           FontSize="{StaticResource FontSizeCompact}" FontFamily="Consolas" FontWeight="SemiBold"
+                                           Foreground="{StaticResource DkConnectionOfflineBrush}" VerticalAlignment="Center"/>
                             </StackPanel>
 
                             <Rectangle Width="1" Height="14" Fill="{StaticResource DkBorderBrush}"/>
 
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <TextBlock Text="SENSORS" FontSize="8" FontFamily="Consolas"
+                                <TextBlock Text="SENSORS" FontSize="{StaticResource FontSizeTiny}" FontFamily="Consolas"
                                            Foreground="{StaticResource DkTextDimBrush}" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="SensorCountText" Text="0" FontSize="15"
+                                <TextBlock x:Name="SensorCountText" Text="0" FontSize="{StaticResource FontSizeSubtitle}"
                                            FontFamily="Consolas" FontWeight="Bold"
                                            Foreground="{StaticResource DkTextPrimaryBrush}" VerticalAlignment="Center"/>
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <TextBlock Text="UPDATES" FontSize="8" FontFamily="Consolas"
+                                <TextBlock Text="UPDATES" FontSize="{StaticResource FontSizeTiny}" FontFamily="Consolas"
                                            Foreground="{StaticResource DkTextDimBrush}" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TotalUpdatesText" Text="0" FontSize="15"
+                                <TextBlock x:Name="TotalUpdatesText" Text="0" FontSize="{StaticResource FontSizeSubtitle}"
                                            FontFamily="Consolas" FontWeight="Bold"
                                            Foreground="{StaticResource DkTextPrimaryBrush}" VerticalAlignment="Center"/>
                             </StackPanel>
@@ -69,19 +69,19 @@
                             Background="{StaticResource DkSurfaceBrush}"
                             BorderBrush="{StaticResource DkBorderBrush}" BorderThickness="1">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon Glyph="&#xE74D;" FontSize="11" Foreground="{StaticResource DkTextMutedBrush}"/>
-                            <TextBlock Text="CLEAR" FontFamily="Consolas" FontSize="10"
+                            <FontIcon Glyph="&#xE74D;" FontSize="{StaticResource FontSizeCompact}" Foreground="{StaticResource DkTextMutedBrush}"/>
+                            <TextBlock Text="CLEAR" FontFamily="Consolas" FontSize="{StaticResource FontSizeXSmall}"
                                        Foreground="{StaticResource DkTextMutedBrush}"/>
                         </StackPanel>
                     </Button>
 
                     <Button Style="{StaticResource DkIconButtonStyle}"
                             ToolTipService.ToolTip="Thông báo">
-                        <FontIcon Glyph="&#xE7E7;" FontSize="15" Foreground="{StaticResource DkTextMutedBrush}"/>
+                        <FontIcon Glyph="&#xE7E7;" FontSize="{StaticResource FontSizeSubtitle}" Foreground="{StaticResource DkTextMutedBrush}"/>
                     </Button>
                     <Button Style="{StaticResource DkIconButtonStyle}"
                             ToolTipService.ToolTip="Cấu hình">
-                        <FontIcon Glyph="&#xE713;" FontSize="15" Foreground="{StaticResource DkTextMutedBrush}"/>
+                        <FontIcon Glyph="&#xE713;" FontSize="{StaticResource FontSizeSubtitle}" Foreground="{StaticResource DkTextMutedBrush}"/>
                     </Button>
                 </StackPanel>
             </Grid>
@@ -106,7 +106,7 @@
 
                     <!-- Section: Bố cục -->
                     <StackPanel Grid.Row="0" Margin="0,20,0,4">
-                        <TextBlock Text="BỐ CỤC" FontSize="9" FontFamily="Consolas"
+                        <TextBlock Text="BỐ CỤC" FontSize="{StaticResource FontSizeCaption}" FontFamily="Consolas"
                                    FontWeight="SemiBold" Foreground="{StaticResource DkTextDimBrush}"
                                    CharacterSpacing="80" Margin="18,0,18,10"/>
 
@@ -118,7 +118,7 @@
                                 <Grid Width="16" Height="12" VerticalAlignment="Center">
                                     <Rectangle Fill="{StaticResource DkTextSecondaryBrush}"/>
                                 </Grid>
-                                <TextBlock x:Name="LblLayout1" Text="1 CỘT" FontSize="11"
+                                <TextBlock x:Name="LblLayout1" Text="1 CỘT" FontSize="{StaticResource FontSizeCompact}"
                                            FontFamily="Consolas" VerticalAlignment="Center"
                                            Foreground="{StaticResource DkTextMutedBrush}"/>
                             </StackPanel>
@@ -137,7 +137,7 @@
                                     <Rectangle Grid.Column="0" Fill="{StaticResource DkBlueLightBrush}"/>
                                     <Rectangle Grid.Column="1" Fill="{StaticResource DkBlueLightBrush}"/>
                                 </Grid>
-                                <TextBlock x:Name="LblLayout2" Text="2 CỘT" FontSize="11"
+                                <TextBlock x:Name="LblLayout2" Text="2 CỘT" FontSize="{StaticResource FontSizeCompact}"
                                            FontFamily="Consolas" VerticalAlignment="Center"
                                            Foreground="{StaticResource DkBlueLightBrush}"/>
                             </StackPanel>
@@ -158,7 +158,7 @@
                                     <Rectangle Grid.Column="1" Fill="{StaticResource DkTextSecondaryBrush}"/>
                                     <Rectangle Grid.Column="2" Fill="{StaticResource DkTextSecondaryBrush}"/>
                                 </Grid>
-                                <TextBlock x:Name="LblLayout3" Text="3 CỘT" FontSize="11"
+                                <TextBlock x:Name="LblLayout3" Text="3 CỘT" FontSize="{StaticResource FontSizeCompact}"
                                            FontFamily="Consolas" VerticalAlignment="Center"
                                            Foreground="{StaticResource DkTextMutedBrush}"/>
                             </StackPanel>
@@ -168,10 +168,10 @@
                     <!-- Section: Danh sách cảm biến (nguồn kéo-thả) -->
                     <StackPanel Grid.Row="1">
                         <Rectangle Height="1" Fill="{StaticResource DkBorderSubtleBrush}" Margin="0,10,0,14"/>
-                        <TextBlock Text="DANH SÁCH CẢM BIẾN" FontSize="9" FontFamily="Consolas"
+                        <TextBlock Text="DANH SÁCH CẢM BIẾN" FontSize="{StaticResource FontSizeCaption}" FontFamily="Consolas"
                                    FontWeight="SemiBold" Foreground="{StaticResource DkTextDimBrush}"
                                    CharacterSpacing="80" Margin="18,0,18,2"/>
-                        <TextBlock Text="Kéo cảm biến vào ô trống để hiển thị" FontSize="10"
+                        <TextBlock Text="Kéo cảm biến vào ô trống để hiển thị" FontSize="{StaticResource FontSizeXSmall}"
                                    Foreground="{StaticResource DkTextDimBrush}" Opacity="0.7"
                                    TextWrapping="Wrap" Margin="18,0,18,10"/>
                     </StackPanel>
@@ -203,12 +203,12 @@
                         </Grid.ColumnDefinitions>
 
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                            <TextBlock x:Name="ChartsTitleText" Text="BẢNG ĐIỀU KHIỂN CẢM BIẾN" FontSize="15"
+                            <TextBlock x:Name="ChartsTitleText" Text="BẢNG ĐIỀU KHIỂN CẢM BIẾN" FontSize="{StaticResource FontSizeSubtitle}"
                                        FontFamily="Consolas" FontWeight="Bold"
                                        Foreground="{StaticResource DkTextPrimaryBrush}"/>
                             <Border Background="{StaticResource DkSurfaceBrush}" Padding="8,3">
                                 <TextBlock x:Name="ChartCountBadge" Text="0 / 0 hiển thị"
-                                           FontSize="10" FontFamily="Consolas"
+                                           FontSize="{StaticResource FontSizeXSmall}" FontFamily="Consolas"
                                            Foreground="{StaticResource DkBlueLightBrush}"/>
                             </Border>
                         </StackPanel>
@@ -219,25 +219,25 @@
                                     BorderBrush="{StaticResource DkBorderBrush}" BorderThickness="1"
                                     Padding="2">
                                 <StackPanel Orientation="Horizontal" Spacing="0" VerticalAlignment="Center">
-                                    <TextBlock Text="LỊCH SỬ" FontSize="9" FontFamily="Consolas"
+                                    <TextBlock Text="LỊCH SỬ" FontSize="{StaticResource FontSizeCaption}" FontFamily="Consolas"
                                                Foreground="{StaticResource DkTextDimBrush}"
                                                VerticalAlignment="Center" Margin="8,0"/>
                                     <Border x:Name="HistOpt30" Tag="30" IsTapEnabled="True"
                                             Tapped="HistoryOption_Tapped" Padding="10,6"
                                             Background="Transparent" BorderThickness="0" BorderBrush="Transparent">
-                                        <TextBlock x:Name="HistLbl30" Text="30" FontSize="11"
+                                        <TextBlock x:Name="HistLbl30" Text="30" FontSize="{StaticResource FontSizeCompact}"
                                                    FontFamily="Consolas" Foreground="{StaticResource DkTextMutedBrush}"/>
                                     </Border>
                                     <Border x:Name="HistOpt60" Tag="60" IsTapEnabled="True"
                                             Tapped="HistoryOption_Tapped" Padding="10,6"
                                             Background="{StaticResource DkBlueBgBrush}" BorderThickness="0" BorderBrush="Transparent">
-                                        <TextBlock x:Name="HistLbl60" Text="60" FontSize="11" FontWeight="Bold"
+                                        <TextBlock x:Name="HistLbl60" Text="60" FontSize="{StaticResource FontSizeCompact}" FontWeight="Bold"
                                                    FontFamily="Consolas" Foreground="{StaticResource DkBlueLightBrush}"/>
                                     </Border>
                                     <Border x:Name="HistOpt100" Tag="100" IsTapEnabled="True"
                                             Tapped="HistoryOption_Tapped" Padding="10,6"
                                             Background="Transparent" BorderThickness="0" BorderBrush="Transparent">
-                                        <TextBlock x:Name="HistLbl100" Text="100" FontSize="11"
+                                        <TextBlock x:Name="HistLbl100" Text="100" FontSize="{StaticResource FontSizeCompact}"
                                                    FontFamily="Consolas" Foreground="{StaticResource DkTextMutedBrush}"/>
                                     </Border>
                                 </StackPanel>
@@ -247,8 +247,8 @@
                                     Style="{StaticResource DkSecondaryButtonStyle}" Padding="14,7"
                                     ToolTipService.ToolTip="Tự động lấp đầy ô trống">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE710;" FontSize="12"/>
-                                    <TextBlock Text="LẤP ĐẦY" FontSize="10" FontFamily="Consolas"/>
+                                    <FontIcon Glyph="&#xE710;" FontSize="{StaticResource FontSizeSmall}"/>
+                                    <TextBlock Text="LẤP ĐẦY" FontSize="{StaticResource FontSizeXSmall}" FontFamily="Consolas"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -268,14 +268,14 @@
                             Spacing="16" Visibility="Visible">
                     <Border Width="56" Height="56" Background="{StaticResource DkSurfaceBrush}"
                             HorizontalAlignment="Center">
-                        <FontIcon Glyph="&#xE9D9;" FontSize="24" Foreground="{StaticResource DkTextDimBrush}"
+                        <FontIcon Glyph="&#xE9D9;" FontSize="{StaticResource FontSizeXLarge}" Foreground="{StaticResource DkTextDimBrush}"
                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
                     </Border>
                     <StackPanel Spacing="4" HorizontalAlignment="Center">
                         <TextBlock x:Name="EmptyStateLabel" Text="ĐANG KẾT NỐI..."
-                                   FontFamily="Consolas" FontSize="12" FontWeight="SemiBold"
+                                   FontFamily="Consolas" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold"
                                    Foreground="{StaticResource DkTextMutedBrush}" TextAlignment="Center"/>
-                        <TextBlock Text="Waiting for sensor data stream" FontSize="10"
+                        <TextBlock Text="Waiting for sensor data stream" FontSize="{StaticResource FontSizeXSmall}"
                                    Foreground="{StaticResource DkTextDimBrush}" TextAlignment="Center"/>
                     </StackPanel>
                 </StackPanel>
@@ -291,22 +291,22 @@
 
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <TextBlock Text="Cảm biến đã gán:" FontSize="10" FontFamily="Consolas"
+                                <TextBlock Text="Cảm biến đã gán:" FontSize="{StaticResource FontSizeXSmall}" FontFamily="Consolas"
                                            Foreground="{StaticResource DkTextDimBrush}"/>
-                                <TextBlock x:Name="TotalNodesText" Text="0" FontSize="10" FontFamily="Consolas"
+                                <TextBlock x:Name="TotalNodesText" Text="0" FontSize="{StaticResource FontSizeXSmall}" FontFamily="Consolas"
                                            FontWeight="Bold" Foreground="{StaticResource DkTextPrimaryBrush}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <TextBlock Text="Cảnh báo:" FontSize="10" FontFamily="Consolas"
+                                <TextBlock Text="Cảnh báo:" FontSize="{StaticResource FontSizeXSmall}" FontFamily="Consolas"
                                            Foreground="{StaticResource DkTextDimBrush}"/>
-                                <TextBlock x:Name="ActiveAlertsText" Text="0" FontSize="10" FontFamily="Consolas"
+                                <TextBlock x:Name="ActiveAlertsText" Text="0" FontSize="{StaticResource FontSizeXSmall}" FontFamily="Consolas"
                                            FontWeight="Bold" Foreground="{StaticResource DkYellowBrush}"/>
                             </StackPanel>
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <FontIcon Glyph="&#xE7C2;" FontSize="11" Foreground="{StaticResource DkTextDimBrush}"/>
-                            <TextBlock Text="Kéo cảm biến từ danh sách để hiển thị" FontSize="10"
+                            <FontIcon Glyph="&#xE7C2;" FontSize="{StaticResource FontSizeCompact}" Foreground="{StaticResource DkTextDimBrush}"/>
+                            <TextBlock Text="Kéo cảm biến từ danh sách để hiển thị" FontSize="{StaticResource FontSizeXSmall}"
                                        Foreground="{StaticResource DkTextDimBrush}"/>
                         </StackPanel>
                     </Grid>
@@ -335,7 +335,7 @@
                             Style="{StaticResource DkIconButtonStyle}"
                             HorizontalAlignment="Right" VerticalAlignment="Top"
                             ToolTipService.ToolTip="Thu nhỏ">
-                        <FontIcon Glyph="&#xE73F;" FontSize="15" Foreground="{StaticResource DkTextMutedBrush}"/>
+                        <FontIcon Glyph="&#xE73F;" FontSize="{StaticResource FontSizeSubtitle}" Foreground="{StaticResource DkTextMutedBrush}"/>
                     </Button>
                 </Grid>
             </Grid>

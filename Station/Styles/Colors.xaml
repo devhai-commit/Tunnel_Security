@@ -346,9 +346,17 @@
     </ResourceDictionary.ThemeDictionaries>
 
     <!-- Typography & Spacing -->
+    <x:Double x:Key="FontSizeMicro">7</x:Double>
+    <x:Double x:Key="FontSizeTiny">8</x:Double>
+    <x:Double x:Key="FontSizeCaption">9</x:Double>
+    <x:Double x:Key="FontSizeXSmall">10</x:Double>
+    <x:Double x:Key="FontSizeCompact">11</x:Double>
     <x:Double x:Key="FontSizeSmall">12</x:Double>
+    <x:Double x:Key="FontSizeBody">13</x:Double>
     <x:Double x:Key="FontSizeNormal">14</x:Double>
+    <x:Double x:Key="FontSizeSubtitle">15</x:Double>
     <x:Double x:Key="FontSizeMedium">16</x:Double>
+    <x:Double x:Key="FontSizeTitle">18</x:Double>
     <x:Double x:Key="FontSizeLarge">20</x:Double>
     <x:Double x:Key="FontSizeXLarge">24</x:Double>
     <x:Double x:Key="FontSizeXXLarge">32</x:Double>
@@ -438,5 +446,55 @@
     <SolidColorBrush x:Key="MonitoringJoinBadgeHoverBrush"    Color="#92400E"/>
     <SolidColorBrush x:Key="MonitoringJoinBadgePressedBrush"  Color="#451A03"/>
     <SolidColorBrush x:Key="MonitoringJoinBorderBrush"        Color="#F59E0B"/>
+
+    <!-- ====================================
+    SensorChartsPage — dark dashboard-specific tokens (không trùng bảng Dk*/Monitoring* ở trên)
+    ==================================== -->
+    <SolidColorBrush x:Key="DkRowHoverOverlayBrush"   Color="#12FFFFFF"/>
+    <SolidColorBrush x:Key="DkTextSubtleBrush"        Color="#C2C6D6"/>
+    <SolidColorBrush x:Key="DkTextFaintBrush"         Color="#5A616E"/>
+    <SolidColorBrush x:Key="DkChartAxisLabelBrush"    Color="#646E82"/>
+    <SolidColorBrush x:Key="DkChartGridBrush"         Color="#C81E2A44"/>
+    <SolidColorBrush x:Key="DkChartValueBrush"        Color="#DAE2FD"/>
+    <SolidColorBrush x:Key="DkConnectionOfflineBrush" Color="#3D6070"/>
+
+    <!-- Sensor-type accent colors — SensorChartsPage's own identity palette (distinct
+         from MonitoringDashboard's MonitoringSensor*Brush set above; two of the eight
+         happen to share a hue and reuse those brushes directly). -->
+    <SolidColorBrush x:Key="SensorAccentTemperatureBrush" Color="#FF4D4D"/>
+    <SolidColorBrush x:Key="SensorAccentLightBrush"       Color="#FFB800"/>
+    <SolidColorBrush x:Key="SensorAccentWaterLevelBrush"  Color="#50A0FF"/>
+    <SolidColorBrush x:Key="SensorAccentRadarBrush"       Color="#00FF88"/>
+    <SolidColorBrush x:Key="SensorAccentInfraredBrush"    Color="#FF69B4"/>
+    <SolidColorBrush x:Key="SensorAccentDefaultBrush"     Color="#ADC6FF"/>
+
+    <!-- ====================================
+    LiveVideoPage — cảnh báo camera & overlay video (luôn dark, không phụ thuộc theme,
+    giống như bảng Dk*/Monitoring* ở trên — banner/thẻ cảnh báo giữ nguyên màu bất kể
+    theme sáng/tối của phần khung chính trang này)
+    ==================================== -->
+    <SolidColorBrush x:Key="LiveAlertBannerBrightBrush"      Color="#BF1D1D"/>
+    <SolidColorBrush x:Key="LiveAlertAccentBrush"             Color="#EF4444"/>
+    <SolidColorBrush x:Key="LiveAlertTextBrush"               Color="#FCA5A5"/>
+    <SolidColorBrush x:Key="LiveAlertActionButtonBrush"       Color="#DC2626"/>
+    <SolidColorBrush x:Key="LiveAlertChipBgBrush"             Color="#1F0E0E"/>
+    <SolidColorBrush x:Key="LiveAlertRowBgBrush"              Color="#120808"/>
+    <SolidColorBrush x:Key="LiveAlertCardTitleBrush"          Color="#F1F5F9"/>
+    <SolidColorBrush x:Key="LiveAlertCardBgBrush"             Color="#0F0505"/>
+    <SolidColorBrush x:Key="LiveAlertCardHeaderBgBrush"       Color="#1A0808"/>
+    <SolidColorBrush x:Key="LiveAlertCardVideoBgBrush"        Color="#080101"/>
+    <SolidColorBrush x:Key="LiveAlertBadgeStrongOverlayBrush" Color="#CC000000"/>
+    <SolidColorBrush x:Key="LiveAlertBadgeBgBrush"            Color="#CC7F1D1D"/>
+    <SolidColorBrush x:Key="LiveAlertLocationTextBrush"       Color="#94A3B8"/>
+    <SolidColorBrush x:Key="LiveVideoBadgeOverlayBrush"       Color="#99000000"/>
+    <SolidColorBrush x:Key="LiveVideoChipBgBrush"             Color="#1E1B4B"/>
+    <SolidColorBrush x:Key="LiveVideoChipBorderBrush"         Color="#4F46E5"/>
+    <SolidColorBrush x:Key="LiveVideoChipIconBrush"           Color="#818CF8"/>
+    <SolidColorBrush x:Key="LiveVideoChipTextBrush"           Color="#A5B4FC"/>
+    <SolidColorBrush x:Key="FullscreenCameraIdTextBrush"      Color="#99FFFFFF"/>
+    <SolidColorBrush x:Key="FullscreenLabelTextBrush"         Color="#AAFFFFFF"/>
+    <SolidColorBrush x:Key="FullscreenButtonBgBrush"          Color="#44FFFFFF"/>
+    <SolidColorBrush x:Key="FullscreenInfoTextBrush"          Color="#88FFFFFF"/>
+    <SolidColorBrush x:Key="LiveVideoPausedIndicatorBrush"    Color="#FBBF24"/>
 
 </ResourceDictionary>

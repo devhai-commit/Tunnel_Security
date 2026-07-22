@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>SensorMonitor | Dashboard</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap"
+    rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary-fixed": "#400010",
+            "surface": "#051424",
+            "inverse-primary": "#575e70",
+            "tertiary-fixed-dim": "#ffb2b9",
+            "outline": "#909097",
+            "error-container": "#93000a",
+            "surface-container-high": "#1c2b3c",
+            "surface-tint": "#c0c6db",
+            "outline-variant": "#45464c",
+            "on-primary-fixed-variant": "#404758",
+            "on-primary-fixed": "#141b2b",
+            "surface-variant": "#273647",
+            "primary-fixed-dim": "#c0c6db",
+            "on-primary-container": "#7a8194",
+            "on-secondary": "#00363e",
+            "on-background": "#d4e4fa",
+            "tertiary-fixed": "#ffdadc",
+            "on-secondary-fixed": "#001f25",
+            "surface-container": "#122131",
+            "inverse-on-surface": "#233143",
+            "tertiary-container": "#3a000e",
+            "inverse-surface": "#d4e4fa",
+            "on-tertiary-container": "#d7566a",
+            "on-primary": "#293040",
+            "secondary-container": "#00cbe6",
+            "surface-container-low": "#0d1c2d",
+            "on-surface-variant": "#c6c6cd",
+            "on-tertiary": "#67001f",
+            "on-secondary-container": "#00515d",
+            "surface-dim": "#051424",
+            "on-tertiary-fixed-variant": "#891933",
+            "surface-bright": "#2c3a4c",
+            "primary": "#c0c6db",
+            "background": "#051424",
+            "tertiary": "#ffb2b9",
+            "on-error-container": "#ffdad6",
+            "on-error": "#690005",
+            "on-secondary-fixed-variant": "#004e5a",
+            "on-surface": "#d4e4fa",
+            "surface-container-highest": "#273647",
+            "primary-container": "#111827",
+            "error": "#ffb4ab",
+            "primary-fixed": "#dce2f7",
+            "secondary-fixed-dim": "#2fd9f4",
+            "surface-container-lowest": "#010f1f",
+            "secondary": "#5de6ff",
+            "secondary-fixed": "#a2eeff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "card-padding": "12px",
+            "unit": "4px",
+            "margin-desktop": "24px",
+            "gutter": "16px",
+            "margin-mobile": "12px"
+          },
+          "fontFamily": {
+            "label-caps": ["JetBrains Mono"],
+            "metric-sm": ["JetBrains Mono"],
+            "display-metric": ["JetBrains Mono"],
+            "headline-sm": ["Hanken Grotesk"],
+            "body-md": ["Hanken Grotesk"]
+          },
+          "fontSize": {
+            "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "metric-sm": ["14px", { "lineHeight": "18px", "fontWeight": "500" }],
+            "display-metric": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+          }
+        },
+      },
+    }
+  </script>
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      font-size: 20px;
+    }
+
+    .chart-grid {
+      background-image: linear-gradient(to right, #1F2937 1px, transparent 1px), linear-gradient(to bottom, #1F2937 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    .pulsing-green {
+      box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.7);
+      animation: pulse-green 2s infinite;
+    }
+
+    @keyframes pulse-green {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.7);
+      }
+
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(34, 211, 238, 0);
+      }
+
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(34, 211, 238, 0);
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-background text-on-surface font-body-md selection:bg-secondary selection:text-on-secondary-container">
+  <!-- Top Navigation Bar -->
+  <header
+    class="fixed top-0 left-0 w-full h-16 bg-surface flex justify-between items-center px-margin-desktop border-b border-outline-variant z-50 transition-colors duration-200">
+    <div class="flex items-center gap-6">
+      <span class="font-headline-sm text-headline-sm font-bold text-on-surface">SensorMonitor</span>
+      <div class="hidden md:flex items-center gap-4 bg-surface-container-low px-3 py-1 rounded">
+        <div class="w-2 h-2 rounded-full bg-secondary pulsing-green"></div>
+        <span class="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">CONNECTED</span>
+        <span class="text-outline-variant">|</span>
+        <span class="font-label-caps text-label-caps text-on-surface-variant">SENSORS: 20</span>
+        <span class="font-label-caps text-label-caps text-on-surface-variant">UPDATES: 0</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <button
+        class="hover:bg-surface-variant px-3 py-1.5 rounded transition-colors duration-200 border border-outline-variant font-label-caps text-label-caps uppercase">Clear</button>
+      <div class="flex gap-2">
+        <button
+          class="material-symbols-outlined p-2 hover:bg-surface-variant rounded transition-colors duration-200">notifications</button>
+        <button
+          class="material-symbols-outlined p-2 hover:bg-surface-variant rounded transition-colors duration-200">settings</button>
+      </div>
+    </div>
+  </header>
+  <!-- Side Navigation -->
+  <aside
+    class="fixed left-0 top-0 h-full w-[240px] bg-surface-container border-r border-outline-variant flex flex-col pt-16 z-40 transition-all duration-200">
+    <div class="p-6">
+      <h2 class="font-label-caps text-label-caps text-on-surface-variant opacity-60 mb-2">LOẠI CẢM BIẾN</h2>
+      <p class="font-body-md text-body-md text-secondary text-xs">Sensor Types</p>
+    </div>
+    <nav class="flex-1">
+      <!-- Active Tab: Temperature -->
+      <a class="text-secondary font-bold border-l-2 border-secondary bg-surface-variant px-4 py-3 flex items-center gap-3 transition-all duration-200"
+        href="#">
+        <span class="material-symbols-outlined">thermostat</span>
+        <span class="font-label-caps text-label-caps">Temperature</span>
+      </a>
+      <a class="text-on-surface-variant px-4 py-3 flex items-center gap-3 hover:text-on-surface hover:bg-surface-container-high transition-all duration-200"
+        href="#">
+        <span class="material-symbols-outlined">humidity_mid</span>
+        <span class="font-label-caps text-label-caps">Humidity</span>
+      </a>
+      <a class="text-on-surface-variant px-4 py-3 flex items-center gap-3 hover:text-on-surface hover:bg-surface-container-high transition-all duration-200"
+        href="#">
+        <span class="material-symbols-outlined">light_mode</span>
+        <span class="font-label-caps text-label-caps">Light</span>
+      </a>
+      <a class="text-on-surface-variant px-4 py-3 flex items-center gap-3 hover:text-on-surface hover:bg-surface-container-high transition-all duration-200"
+        href="#">
+        <span class="material-symbols-outlined">water_drop</span>
+        <span class="font-label-caps text-label-caps">Water Level</span>
+      </a>
+      <a class="text-on-surface-variant px-4 py-3 flex items-center gap-3 hover:text-on-surface hover:bg-surface-container-high transition-all duration-200"
+        href="#">
+        <span class="material-symbols-outlined">radar</span>
+        <span class="font-label-caps text-label-caps">Radar</span>
+      </a>
+    </nav>
+    <div class="p-6 border-t border-outline-variant">
+      <h3 class="font-label-caps text-label-caps text-on-surface-variant opacity-60 mb-4">LAYOUT</h3>
+      <div class="flex flex-col gap-2">
+        <button class="text-on-surface-variant flex items-center gap-3 px-2 py-1 hover:text-on-surface transition-all">
+          <span class="material-symbols-outlined">view_stream</span>
+          <span class="font-label-caps text-label-caps">1 Column</span>
+        </button>
+        <button class="text-secondary font-bold flex items-center gap-3 px-2 py-1 transition-all">
+          <span class="material-symbols-outlined">view_module</span>
+          <span class="font-label-caps text-label-caps">2 Columns</span>
+        </button>
+        <button class="text-on-surface-variant flex items-center gap-3 px-2 py-1 hover:text-on-surface transition-all">
+          <span class="material-symbols-outlined">view_comfy</span>
+          <span class="font-label-caps text-label-caps">3 Columns</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+  <!-- Main Content Area -->
+  <main class="ml-[240px] pt-20 px-margin-desktop pb-12 min-h-screen">
+    <!-- Header Controls -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+      <div class="flex items-center gap-3">
+        <h1 class="font-headline-sm text-headline-sm text-on-surface">Temperature Monitoring</h1>
+        <span class="px-2 py-0.5 rounded bg-surface-variant text-secondary font-label-caps text-[10px]">20
+          SENSORS</span>
+      </div>
+      <div class="flex items-center gap-6">
+        <div class="flex items-center bg-surface-container-low p-1 rounded border border-outline-variant">
+          <span class="font-label-caps text-label-caps px-3 py-1 text-on-surface-variant">HISTORY</span>
+          <button class="px-3 py-1 font-label-caps text-label-caps hover:bg-surface-variant rounded">30</button>
+          <button
+            class="px-3 py-1 font-label-caps text-label-caps bg-secondary text-on-secondary rounded font-bold">60</button>
+          <button class="px-3 py-1 font-label-caps text-label-caps hover:bg-surface-variant rounded">100</button>
+        </div>
+        <button
+          class="flex items-center gap-2 bg-surface-container-high px-4 py-2 rounded-lg border border-outline-variant hover:bg-surface-variant transition-all">
+          <span class="material-symbols-outlined">filter_list</span>
+          <span class="font-label-caps text-label-caps">Filter Nodes</span>
+        </button>
+      </div>
+    </div>
+    <!-- Sensor Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
+      <!-- Sensor Card Pattern -->
+      <div
+        class="bg-surface-container rounded border border-outline-variant p-card-padding flex flex-col h-64 relative group overflow-hidden">
+        <div class="flex justify-between items-start mb-4 relative z-10">
+          <div class="flex flex-col">
+            <span
+              class="font-label-caps text-label-caps text-on-tertiary-container uppercase tracking-widest text-[10px]">NHIỆT
+              ĐỘ</span>
+            <span class="font-body-md text-on-surface-variant opacity-70 text-xs">Node giám sát hầm số 10</span>
+          </div>
+          <button
+            class="material-symbols-outlined text-outline-variant hover:text-on-surface opacity-0 group-hover:opacity-100 transition-opacity">settings</button>
+        </div>
+        <div class="flex-1 relative mb-4">
+          <div class="absolute inset-0 chart-grid opacity-10"></div>
+          <!-- Simplified Visual Chart -->
+          <div class="absolute inset-0 flex items-center">
+            <svg class="w-full h-24 overflow-visible" viewbox="0 0 400 100">
+              <path d="M0 60 Q 50 55, 100 60 T 200 62 T 300 58 T 400 60" fill="none" stroke="#d7566a" stroke-width="2">
+              </path>
+              <circle cx="400" cy="60" fill="#d7566a" r="3"></circle>
+            </svg>
+          </div>
+        </div>
+        <div class="flex justify-between items-end relative z-10">
+          <div class="flex items-baseline gap-1">
+            <span class="font-display-metric text-display-metric text-on-surface">16.0</span>
+            <span class="font-metric-sm text-metric-sm text-on-tertiary-container">°C</span>
+          </div>
+          <div class="flex items-center gap-2 bg-surface-variant px-2 py-0.5 rounded border border-outline-variant">
+            <div class="w-1.5 h-1.5 rounded-full bg-secondary"></div>
+            <span class="font-label-caps text-[10px] text-secondary">NORMAL</span>
+          </div>
+        </div>
+      </div>
+      <!-- Card 2 -->
+      <div
+        class="bg-surface-container rounded border border-outline-variant p-card-padding flex flex-col h-64 relative group overflow-hidden">
+        <div class="flex justify-between items-start mb-4 relative z-10">
+          <div class="flex flex-col">
+            <span
+              class="font-label-caps text-label-caps text-on-tertiary-container uppercase tracking-widest text-[10px]">NHIỆT
+              ĐỘ</span>
+            <span class="font-body-md text-on-surface-variant opacity-70 text-xs">Node giám sát hầm số 11</span>
+          </div>
+          <button
+            class="material-symbols-outlined text-outline-variant hover:text-on-surface opacity-0 group-hover:opacity-100 transition-opacity">settings</button>
+        </div>
+        <div class="flex-1 relative mb-4">
+          <div class="absolute inset-0 chart-grid opacity-10"></div>
+          <div class="absolute inset-0 flex items-center">
+            <svg class="w-full h-24 overflow-visible" viewbox="0 0 400 100">
+              <path d="M0 40 Q 80 45, 160 40 T 320 38 T 400 42" fill="none" stroke="#d7566a" stroke-width="2"></path>
+              <circle cx="400" cy="42" fill="#d7566a" r="3"></circle>
+            </svg>
+          </div>
+        </div>
+        <div class="flex justify-between items-end relative z-10">
+          <div class="flex items-baseline gap-1">
+            <span class="font-display-metric text-display-metric text-on-surface">18.4</span>
+            <span class="font-metric-sm text-metric-sm text-on-tertiary-container">°C</span>
+          </div>
+          <div class="flex items-center gap-2 bg-surface-variant px-2 py-0.5 rounded border border-outline-variant">
+            <div class="w-1.5 h-1.5 rounded-full bg-secondary"></div>
+            <span class="font-label-caps text-[10px] text-secondary">NORMAL</span>
+          </div>
+        </div>
+      </div>
+      <!-- Card 3 -->
+      <div
+        class="bg-surface-container rounded border border-outline-variant p-card-padding flex flex-col h-64 relative group overflow-hidden">
+        <div class="flex justify-between items-start mb-4 relative z-10">
+          <div class="flex flex-col">
+            <span
+              class="font-label-caps text-label-caps text-on-tertiary-container uppercase tracking-widest text-[10px]">NHIỆT
+              ĐỘ</span>
+            <span class="font-body-md text-on-surface-variant opacity-70 text-xs">Node giám sát hầm số 12</span>
+          </div>
+          <button
+            class="material-symbols-outlined text-outline-variant hover:text-on-surface opacity-0 group-hover:opacity-100 transition-opacity">settings</button>
+        </div>
+        <div class="flex-1 relative mb-4">
+          <div class="absolute inset-0 chart-grid opacity-10"></div>
+          <div class="absolute inset-0 flex items-center">
+            <svg class="w-full h-24 overflow-visible" viewbox="0 0 400 100">
+              <path d="M0 70 Q 100 65, 200 72 T 400 68" fill="none" stroke="#d7566a" stroke-width="2"></path>
+              <circle cx="400" cy="68" fill="#d7566a" r="3"></circle>
+            </svg>
+          </div>
+        </div>
+        <div class="flex justify-between items-end relative z-10">
+          <div class="flex items-baseline gap-1">
+            <span class="font-display-metric text-display-metric text-on-surface">15.2</span>
+            <span class="font-metric-sm text-metric-sm text-on-tertiary-container">°C</span>
+          </div>
+          <div class="flex items-center gap-2 bg-surface-variant px-2 py-0.5 rounded border border-outline-variant">
+            <div class="w-1.5 h-1.5 rounded-full bg-secondary"></div>
+            <span class="font-label-caps text-[10px] text-secondary">NORMAL</span>
+          </div>
+        </div>
+      </div>
+      <!-- Card 4 -->
+      <div
+        class="bg-surface-container rounded border border-outline-variant p-card-padding flex flex-col h-64 relative group overflow-hidden">
+        <div class="flex justify-between items-start mb-4 relative z-10">
+          <div class="flex flex-col">
+            <span
+              class="font-label-caps text-label-caps text-on-tertiary-container uppercase tracking-widest text-[10px]">NHIỆT
+              ĐỘ</span>
+            <span class="font-body-md text-on-surface-variant opacity-70 text-xs">Node giám sát hầm số 13</span>
+          </div>
+          <button
+            class="material-symbols-outlined text-outline-variant hover:text-on-surface opacity-0 group-hover:opacity-100 transition-opacity">settings</button>
+        </div>
+        <div class="flex-1 relative mb-4">
+          <div class="absolute inset-0 chart-grid opacity-10"></div>
+          <div class="absolute inset-0 flex items-center">
+            <svg class="w-full h-24 overflow-visible" viewbox="0 0 400 100">
+              <path d="M0 50 Q 50 30, 100 50 T 200 60 T 300 40 T 400 50" fill="none" stroke="#d7566a" stroke-width="2">
+              </path>
+              <circle cx="400" cy="50" fill="#d7566a" r="3"></circle>
+            </svg>
+          </div>
+        </div>
+        <div class="flex justify-between items-end relative z-10">
+          <div class="flex items-baseline gap-1">
+            <span class="font-display-metric text-display-metric text-on-surface">16.8</span>
+            <span class="font-metric-sm text-metric-sm text-on-tertiary-container">°C</span>
+          </div>
+          <div class="flex items-center gap-2 bg-surface-variant px-2 py-0.5 rounded border border-outline-variant">
+            <div class="w-1.5 h-1.5 rounded-full bg-error"></div>
+            <span class="font-label-caps text-[10px] text-error">WARNING</span>
+          </div>
+        </div>
+      </div>
+      <!-- Card 5 -->
+      <div
+        class="bg-surface-container rounded border border-outline-variant p-card-padding flex flex-col h-64 relative group overflow-hidden">
+        <div class="flex justify-between items-start mb-4 relative z-10">
+          <div class="flex flex-col">
+            <span
+              class="font-label-caps text-label-caps text-on-tertiary-container uppercase tracking-widest text-[10px]">NHIỆT
+              ĐỘ</span>
+            <span class="font-body-md text-on-surface-variant opacity-70 text-xs">Node giám sát hầm số 14</span>
+          </div>
+          <button
+            class="material-symbols-outlined text-outline-variant hover:text-on-surface opacity-0 group-hover:opacity-100 transition-opacity">settings</button>
+        </div>
+        <div class="flex-1 relative mb-4">
+          <div class="absolute inset-0 chart-grid opacity-10"></div>
+          <div class="absolute inset-0 flex items-center">
+            <svg class="w-full h-24 overflow-visible" viewbox="0 0 400 100">
+              <path d="M0 60 L 100 60 L 200 60 L 400 60" fill="none" stroke="#d7566a" stroke-width="2"></path>
+              <circle cx="400" cy="60" fill="#d7566a" r="3"></circle>
+            </svg>
+          </div>
+        </div>
+        <div class="flex justify-between items-end relative z-10">
+          <div class="flex items-baseline gap-1">
+            <span class="font-display-metric text-display-metric text-on-surface">16.0</span>
+            <span class="font-metric-sm text-metric-sm text-on-tertiary-container">°C</span>
+          </div>
+          <div class="flex items-center gap-2 bg-surface-variant px-2 py-0.5 rounded border border-outline-variant">
+            <div class="w-1.5 h-1.5 rounded-full bg-secondary"></div>
+            <span class="font-label-caps text-[10px] text-secondary">NORMAL</span>
+          </div>
+        </div>
+      </div>
+      <!-- Card 6 -->
+      <div
+        class="bg-surface-container rounded border border-outline-variant p-card-padding flex flex-col h-64 relative group overflow-hidden">
+        <div class="flex justify-between items-start mb-4 relative z-10">
+          <div class="flex flex-col">
+            <span
+              class="font-label-caps text-label-caps text-on-tertiary-container uppercase tracking-widest text-[10px]">NHIỆT
+              ĐỘ</span>
+            <span class="font-body-md text-on-surface-variant opacity-70 text-xs">Node giám sát hầm số 15</span>
+          </div>
+          <button
+            class="material-symbols-outlined text-outline-variant hover:text-on-surface opacity-0 group-hover:opacity-100 transition-opacity">settings</button>
+        </div>
+        <div class="flex-1 relative mb-4">
+          <div class="absolute inset-0 chart-grid opacity-10"></div>
+          <div class="absolute inset-0 flex items-center">
+            <svg class="w-full h-24 overflow-visible" viewbox="0 0 400 100">
+              <path d="M0 45 Q 200 48, 400 45" fill="none" stroke="#d7566a" stroke-width="2"></path>
+              <circle cx="400" cy="45" fill="#d7566a" r="3"></circle>
+            </svg>
+          </div>
+        </div>
+        <div class="flex justify-between items-end relative z-10">
+          <div class="flex items-baseline gap-1">
+            <span class="font-display-metric text-display-metric text-on-surface">17.2</span>
+            <span class="font-metric-sm text-metric-sm text-on-tertiary-container">°C</span>
+          </div>
+          <div class="flex items-center gap-2 bg-surface-variant px-2 py-0.5 rounded border border-outline-variant">
+            <div class="w-1.5 h-1.5 rounded-full bg-secondary"></div>
+            <span class="font-label-caps text-[10px] text-secondary">NORMAL</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Footer / Pagination -->
+    <div class="mt-12 flex justify-between items-center text-outline-variant font-label-caps text-label-caps">
+      <div class="flex gap-4">
+        <span>Total Nodes: 20</span>
+        <span>Active Alerts: 1</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="material-symbols-outlined p-1 hover:bg-surface-variant rounded">chevron_left</button>
+        <span class="text-on-surface">1 of 4</span>
+        <button class="material-symbols-outlined p-1 hover:bg-surface-variant rounded">chevron_right</button>
+      </div>
+    </div>
+  </main>
+  <!-- Micro-interaction Scripts -->
+  <script>
+    // Simple interactive feedback for chart cards
+    document.querySelectorAll('.bg-surface-container').forEach(card => {
+      card.addEventListener('mouseenter', () => {
+        card.classList.add('border-secondary');
+        card.style.transform = 'translateY(-2px)';
+        card.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      });
+      card.addEventListener('mouseleave', () => {
+        card.classList.remove('border-secondary');
+        card.style.transform = 'translateY(0)';
+      });
+    });
+
+    // Toggle layout classes (Mock logic)
+    const layoutButtons = document.querySelectorAll('.layout-toggle');
+    layoutButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        layoutButtons.forEach(b => b.classList.remove('text-secondary', 'font-bold'));
+        btn.classList.add('text-secondary', 'font-bold');
+      });
+    });
+  </script>
+</body>
+
+</html>
