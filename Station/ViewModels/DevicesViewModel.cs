@@ -106,7 +106,7 @@ namespace Station.ViewModels
         public ObservableCollection<string> LineFilters { get; } = new();
 
         // Pagination
-        private const int PageSize = 6;
+        private const int PageSize = 8;
         private int _currentPage = 1;
         public int CurrentPage => _currentPage;
         public int TotalPages => Math.Max(1, (int)Math.Ceiling(FilteredNodes.Count / (double)PageSize));

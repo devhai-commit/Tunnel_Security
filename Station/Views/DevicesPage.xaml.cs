@@ -106,7 +106,7 @@ namespace Station.Views
                 if (btn == activeBtn)
                 {
                     btn.Background = (SolidColorBrush)Application.Current.Resources["DkBlueBrush"];
-                    btn.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
+                    btn.Foreground = (SolidColorBrush)Application.Current.Resources["DkTextPrimaryBrush"];
                 }
                 else
                 {

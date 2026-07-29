@@ -1002,7 +1002,8 @@
 
     <!-- Dark label (uppercase muted caption) -->
     <Style x:Key="DkLabelStyle" TargetType="TextBlock">
-        <Setter Property="FontSize"         Value="10"/>
+        <Setter Property="FontFamily"       Value="Consolas"/>
+        <Setter Property="FontSize"         Value="{StaticResource FontSizeXSmall}"/>
         <Setter Property="FontWeight"       Value="Bold"/>
         <Setter Property="Foreground"       Value="{StaticResource DkTextMutedBrush}"/>
         <Setter Property="CharacterSpacing" Value="60"/>

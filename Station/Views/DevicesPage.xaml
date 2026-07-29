@@ -14,74 +14,47 @@
         </Grid.RowDefinitions>
 
         <!-- ═══════════════════════════════════════════════════
-             HEADER  (title · actions · tabs)
+             HEADER
         ══════════════════════════════════════════════════════ -->
-        <Border Grid.Row="0"
-                Background="{StaticResource DkBgBrush}"
+        <Border Grid.Row="0" Background="{StaticResource DkBgBrush}"
                 BorderBrush="{StaticResource DkBorderBrush}"
-                BorderThickness="0,0,0,1">
+                BorderThickness="0,0,0,1" Padding="20,10">
             <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-                <!-- Title + Action buttons -->
-                <Grid Grid.Row="0" Padding="24,18,24,14">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                <!-- Left: title + tab switcher -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
 
-                    <StackPanel Grid.Column="0" Spacing="5" VerticalAlignment="Center">
-                        <TextBlock Text="Quản lý Thiết bị"
-                                   FontSize="26" FontWeight="Bold"
-                                   Foreground="{StaticResource DkTextPrimaryBrush}"/>
-                        <TextBlock Text="Giám sát và cấu hình toàn bộ thiết bị trong hệ thống cống ngầm"
-                                   FontSize="13"
-                                   Foreground="{StaticResource DkTextMutedBrush}"/>
-                    </StackPanel>
+                    <TextBlock Text="QUẢN LÝ THIẾT BỊ" FontSize="{StaticResource FontSizeNormal}" FontFamily="Consolas"
+                               FontWeight="Bold" Foreground="{StaticResource DkTextPrimaryBrush}"
+                               VerticalAlignment="Center"/>
 
-                    <StackPanel Grid.Column="1"
-                                Orientation="Horizontal" Spacing="10"
-                                VerticalAlignment="Center">
-                        <Button Style="{StaticResource DkSecondaryButtonStyle}">
-                            <StackPanel Orientation="Horizontal" Spacing="7">
-                                <FontIcon Glyph="&#xE74E;" FontSize="12"/>
-                                <TextBlock Text="Xuất báo cáo" FontSize="12"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Style="{StaticResource DkPrimaryButtonStyle}"
-                                Click="AddDeviceButton_Click">
-                            <StackPanel Orientation="Horizontal" Spacing="7">
-                                <FontIcon Glyph="&#xE710;" FontSize="13"/>
-                                <TextBlock Text="Đăng ký thiết bị" FontSize="12" FontWeight="SemiBold"/>
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
-                </Grid>
+                    <Rectangle Width="1" Height="18" Fill="{StaticResource DkBorderBrush}"/>
 
-                <!-- Tab buttons -->
-                <Grid Grid.Row="1" Padding="24,0,24,0">
-                    <StackPanel Orientation="Horizontal" Spacing="2"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Bottom">
+                    <StackPanel Orientation="Horizontal" Spacing="0"
+                                Background="{StaticResource DkBgBrush}"
+                                BorderBrush="{StaticResource DkBorderBrush}"
+                                BorderThickness="1"
+                                Padding="2">
                         <Button x:Name="DevicesTabBtn"
                                 Click="DevicesTabBtn_Click"
-                                Padding="16,9"
+                                Padding="14,6"
                                 CornerRadius="0"
-                                BorderBrush="{StaticResource DkBorderBrush}"
-                                BorderThickness="1,1,1,0"
-                                FontSize="12"
+                                BorderThickness="0"
+                                FontFamily="Consolas"
+                                FontSize="{StaticResource FontSizeSmall}"
                                 FontWeight="SemiBold"
                                 Content="Danh sách thiết bị"/>
                         <Button x:Name="JoinRequestsTabBtn"
                                 Click="JoinRequestsTabBtn_Click"
-                                Padding="16,9"
+                                Padding="14,6"
                                 CornerRadius="0"
-                                BorderBrush="{StaticResource DkBorderBrush}"
-                                BorderThickness="1,1,1,0"
-                                FontSize="12"
+                                BorderThickness="0"
+                                FontFamily="Consolas"
+                                FontSize="{StaticResource FontSizeSmall}"
                                 FontWeight="SemiBold">
                             <StackPanel Orientation="Horizontal" Spacing="9">
                                 <TextBlock Text="Yêu cầu join"/>
@@ -92,14 +65,32 @@
                                         Padding="7,1"
                                         VerticalAlignment="Center">
                                     <TextBlock Text="{x:Bind ViewModel.PendingJoinCount, Mode=OneWay}"
-                                               FontSize="10"
+                                               FontFamily="Consolas"
+                                               FontSize="{StaticResource FontSizeXSmall}"
                                                FontWeight="Bold"
                                                Foreground="{StaticResource MonitoringJoinBorderBrush}"/>
                                 </Border>
                             </StackPanel>
                         </Button>
                     </StackPanel>
-                </Grid>
+                </StackPanel>
+
+                <!-- Right: actions -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button Style="{StaticResource DkSecondaryButtonStyle}">
+                        <StackPanel Orientation="Horizontal" Spacing="7">
+                            <FontIcon Glyph="&#xE74E;" FontSize="{StaticResource FontSizeSmall}"/>
+                            <TextBlock Text="Xuất báo cáo" FontFamily="Consolas" FontSize="{StaticResource FontSizeSmall}"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource DkPrimaryButtonStyle}"
+                            Click="AddDeviceButton_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="7">
+                            <FontIcon Glyph="&#xE710;" FontSize="{StaticResource FontSizeBody}"/>
+                            <TextBlock Text="Đăng ký thiết bị" FontFamily="Consolas" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </Grid>
         </Border>
 
@@ -127,15 +118,16 @@
                         Padding="20,20" Margin="0,0,8,0">
                     <StackPanel Spacing="16">
                         <StackPanel Orientation="Horizontal" Spacing="10">
-                            <FontIcon Glyph="&#xE968;" FontSize="18"
+                            <FontIcon Glyph="&#xE968;" FontSize="{StaticResource FontSizeTitle}"
                                       Foreground="{StaticResource DkBlueBrush}"
                                       VerticalAlignment="Center"/>
-                            <TextBlock Text="Tổng thiết bị" FontSize="12"
+                            <TextBlock Text="Tổng thiết bị" FontFamily="Consolas" FontSize="{StaticResource FontSizeSmall}"
                                        Foreground="{StaticResource DkTextSecondaryBrush}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
                         <TextBlock Text="{x:Bind ViewModel.TotalDevices, Mode=OneWay}"
-                                   FontSize="30" FontWeight="Bold"
+                                   FontFamily="Consolas"
+                                   FontSize="{StaticResource FontSizeXXLarge}" FontWeight="Bold"
                                    Foreground="{StaticResource DkTextPrimaryBrush}"
                                    Typography.NumeralAlignment="Tabular"/>
                     </StackPanel>
@@ -149,15 +141,16 @@
                         Padding="20,20" Margin="8,0,8,0">
                     <StackPanel Spacing="16">
                         <StackPanel Orientation="Horizontal" Spacing="10">
-                            <FontIcon Glyph="&#xE73E;" FontSize="18"
+                            <FontIcon Glyph="&#xE73E;" FontSize="{StaticResource FontSizeTitle}"
                                       Foreground="{StaticResource DkGreenBrush}"
                                       VerticalAlignment="Center"/>
-                            <TextBlock Text="Đang hoạt động" FontSize="12"
+                            <TextBlock Text="Đang hoạt động" FontFamily="Consolas" FontSize="{StaticResource FontSizeSmall}"
                                        Foreground="{StaticResource DkTextSecondaryBrush}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
                         <TextBlock Text="{x:Bind ViewModel.OnlineDevices, Mode=OneWay}"
-                                   FontSize="30" FontWeight="Bold"
+                                   FontFamily="Consolas"
+                                   FontSize="{StaticResource FontSizeXXLarge}" FontWeight="Bold"
                                    Foreground="{StaticResource DkGreenBrush}"
                                    Typography.NumeralAlignment="Tabular"/>
                     </StackPanel>
@@ -171,15 +164,16 @@
                         Padding="20,20" Margin="8,0,8,0">
                     <StackPanel Spacing="16">
                         <StackPanel Orientation="Horizontal" Spacing="10">
-                            <FontIcon Glyph="&#xE7BA;" FontSize="18"
+                            <FontIcon Glyph="&#xE7BA;" FontSize="{StaticResource FontSizeTitle}"
                                       Foreground="{StaticResource DkYellowBrush}"
                                       VerticalAlignment="Center"/>
-                            <TextBlock Text="Cảnh báo" FontSize="12"
+                            <TextBlock Text="Cảnh báo" FontFamily="Consolas" FontSize="{StaticResource FontSizeSmall}"
                                        Foreground="{StaticResource DkTextSecondaryBrush}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
                         <TextBlock Text="{x:Bind ViewModel.FaultDevices, Mode=OneWay}"
-                                   FontSize="30" FontWeight="Bold"
+                                   FontFamily="Consolas"
+                                   FontSize="{StaticResource FontSizeXXLarge}" FontWeight="Bold"
                                    Foreground="{StaticResource DkYellowBrush}"
                                    Typography.NumeralAlignment="Tabular"/>
                     </StackPanel>
@@ -193,15 +187,16 @@
                         Padding="20,20" Margin="8,0,0,0">
                     <StackPanel Spacing="16">
                         <StackPanel Orientation="Horizontal" Spacing="10">
-                            <FontIcon Glyph="&#xE783;" FontSize="18"
+                            <FontIcon Glyph="&#xE783;" FontSize="{StaticResource FontSizeTitle}"
                                       Foreground="{StaticResource DkGrayBrush}"
                                       VerticalAlignment="Center"/>
-                            <TextBlock Text="Ngoại tuyến" FontSize="12"
+                            <TextBlock Text="Ngoại tuyến" FontFamily="Consolas" FontSize="{StaticResource FontSizeSmall}"
                                        Foreground="{StaticResource DkTextSecondaryBrush}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
                         <TextBlock Text="{x:Bind ViewModel.OfflineDevices, Mode=OneWay}"
-                                   FontSize="30" FontWeight="Bold"
+                                   FontFamily="Consolas"
+                                   FontSize="{StaticResource FontSizeXXLarge}" FontWeight="Bold"
                                    Foreground="{StaticResource DkGrayBrush}"
                                    Typography.NumeralAlignment="Tabular"/>
                     </StackPanel>
@@ -231,7 +226,8 @@
                 <StackPanel Grid.Column="0"
                             Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <TextBlock Text="Loại:"
-                               FontSize="11" FontWeight="SemiBold"
+                               FontFamily="Consolas"
+                               FontSize="{StaticResource FontSizeCompact}" FontWeight="SemiBold"
                                Foreground="{StaticResource DkTextMutedBrush}"
                                VerticalAlignment="Center"/>
                     <ComboBox Style="{StaticResource DkComboBoxStyle}"
@@ -252,7 +248,8 @@
                 <StackPanel Grid.Column="2"
                             Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <TextBlock Text="Trạng thái:"
-                               FontSize="11" FontWeight="SemiBold"
+                               FontFamily="Consolas"
+                               FontSize="{StaticResource FontSizeCompact}" FontWeight="SemiBold"
                                Foreground="{StaticResource DkTextMutedBrush}"
                                VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" Spacing="0"
@@ -268,7 +265,8 @@
                                 BorderThickness="1"
                                 CornerRadius="0"
                                 Padding="11,5"
-                                FontSize="12" FontWeight="SemiBold">
+                                FontFamily="Consolas"
+                                FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold">
                             Tất cả
                         </Button>
                         <Button x:Name="StatusOnlineBtn" Tag="Hoạt động"
@@ -278,7 +276,8 @@
                                 BorderThickness="0"
                                 CornerRadius="0"
                                 Padding="11,5"
-                                FontSize="12">
+                                FontFamily="Consolas"
+                                FontSize="{StaticResource FontSizeSmall}">
                             Hoạt động
                         </Button>
                         <Button x:Name="StatusOfflineBtn" Tag="Ngoại tuyến"
@@ -288,7 +287,8 @@
                                 BorderThickness="0"
                                 CornerRadius="0"
                                 Padding="11,5"
-                                FontSize="12">
+                                FontFamily="Consolas"
+                                FontSize="{StaticResource FontSizeSmall}">
                             Ngoại tuyến
                         </Button>
                     </StackPanel>
@@ -304,7 +304,7 @@
                              Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              PlaceholderText="Tìm kiếm ID, tên, vị trí..."
                              HorizontalAlignment="Stretch"/>
-                    <FontIcon Glyph="&#xE721;" FontSize="13"
+                    <FontIcon Glyph="&#xE721;" FontSize="{StaticResource FontSizeBody}"
                               Foreground="{StaticResource DkTextMutedBrush}"
                               HorizontalAlignment="Left" VerticalAlignment="Center"
                               Margin="12,0,0,0" IsHitTestVisible="False"/>
@@ -337,12 +337,11 @@
                                     Padding="24,12">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="200"/>
-                                        <ColumnDefinition Width="160"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="120"/>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="1.4*"/>
+                                        <ColumnDefinition Width="1.8*"/>
+                                        <ColumnDefinition Width="130"/>
                                         <ColumnDefinition Width="110"/>
-                                        <ColumnDefinition Width="90"/>
                                     </Grid.ColumnDefinitions>
 
                                     <TextBlock Grid.Column="0" Text="ID / TÊN THIẾT BỊ"
@@ -356,13 +355,10 @@
                                                VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="3" Text="TRẠNG THÁI"
                                                Style="{StaticResource DkLabelStyle}"
-                                               VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="4" Text="CẬP NHẬT CUỐI"
-                                               Style="{StaticResource DkLabelStyle}"
-                                               TextWrapping="Wrap"
+                                               HorizontalTextAlignment="Left"
                                                VerticalAlignment="Center"
-                                               HorizontalTextAlignment="Right"/>
-                                    <TextBlock Grid.Column="5" Text="THAO TÁC"
+                                               Margin="11,0,0,0"/>
+                                    <TextBlock Grid.Column="4" Text="THAO TÁC"
                                                Style="{StaticResource DkLabelStyle}"
                                                VerticalAlignment="Center"
                                                HorizontalTextAlignment="Center"/>
@@ -384,23 +380,22 @@
                                                 Tag="{Binding}">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="200"/>
-                                                    <ColumnDefinition Width="160"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="2*"/>
+                                                    <ColumnDefinition Width="1.4*"/>
+                                                    <ColumnDefinition Width="1.8*"/>
+                                                    <ColumnDefinition Width="130"/>
                                                     <ColumnDefinition Width="110"/>
-                                                    <ColumnDefinition Width="90"/>
                                                 </Grid.ColumnDefinitions>
 
                                                 <!-- Node name + ID -->
                                                 <StackPanel Grid.Column="0"
                                                             Spacing="4" VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding NodeName}"
-                                                               FontSize="13" FontWeight="SemiBold"
+                                                               FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                                                Foreground="{StaticResource DkTextPrimaryBrush}"
                                                                TextTrimming="CharacterEllipsis"/>
                                                     <TextBlock Text="{Binding NodeId}"
-                                                               FontSize="10"
+                                                               FontSize="{StaticResource FontSizeXSmall}"
                                                                Foreground="{StaticResource DkTextDimBrush}"
                                                                FontFamily="Consolas"
                                                                TextTrimming="CharacterEllipsis"/>
@@ -415,12 +410,12 @@
                                                         Padding="10,5"
                                                         HorizontalAlignment="Left"
                                                         VerticalAlignment="Center"
-                                                        MaxWidth="140">
+                                                        MaxWidth="240">
                                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                                        <FontIcon Glyph="&#xE968;" FontSize="11"
+                                                        <FontIcon Glyph="&#xE968;" FontSize="{StaticResource FontSizeCompact}"
                                                                   Foreground="{StaticResource DkTextMutedBrush}"/>
                                                         <TextBlock Text="{Binding DeviceType}"
-                                                                   FontSize="12"
+                                                                   FontSize="{StaticResource FontSizeSmall}"
                                                                    Foreground="{StaticResource DkTextSecondaryBrush}"
                                                                    TextTrimming="CharacterEllipsis"/>
                                                     </StackPanel>
@@ -430,11 +425,11 @@
                                                 <StackPanel Grid.Column="2"
                                                             Orientation="Horizontal" Spacing="6"
                                                             VerticalAlignment="Center">
-                                                    <FontIcon Glyph="&#xE81D;" FontSize="11"
+                                                    <FontIcon Glyph="&#xE81D;" FontSize="{StaticResource FontSizeCompact}"
                                                               Foreground="{StaticResource DkTextMutedBrush}"
                                                               VerticalAlignment="Center"/>
                                                     <TextBlock Text="{Binding Location}"
-                                                               FontSize="12"
+                                                               FontSize="{StaticResource FontSizeSmall}"
                                                                Foreground="{StaticResource DkTextSecondaryBrush}"
                                                                VerticalAlignment="Center"
                                                                TextTrimming="CharacterEllipsis"/>
@@ -454,22 +449,14 @@
                                                                  Fill="{Binding StatusColor}"
                                                                  VerticalAlignment="Center"/>
                                                         <TextBlock Text="{Binding StatusText}"
-                                                                   FontSize="11" FontWeight="SemiBold"
+                                                                   FontFamily="Consolas"
+                                                                   FontSize="{StaticResource FontSizeCompact}" FontWeight="SemiBold"
                                                                    Foreground="{Binding StatusColor}"/>
                                                     </StackPanel>
                                                 </Border>
 
-                                                <!-- Last telemetry -->
-                                                <TextBlock Grid.Column="4"
-                                                           Text="{Binding LastTelemetry}"
-                                                           FontSize="12"
-                                                           Foreground="{StaticResource DkTextSecondaryBrush}"
-                                                           VerticalAlignment="Center"
-                                                           HorizontalTextAlignment="Right"
-                                                           FontFamily="Consolas"/>
-
                                                 <!-- Row actions — centered -->
-                                                <StackPanel Grid.Column="5"
+                                                <StackPanel Grid.Column="4"
                                                             Orientation="Horizontal" Spacing="4"
                                                             HorizontalAlignment="Center"
                                                             VerticalAlignment="Center">
@@ -477,19 +464,19 @@
                                                             ToolTipService.ToolTip="Chi tiết"
                                                             Tag="{Binding}"
                                                             Click="ViewDetails_Click">
-                                                        <FontIcon Glyph="&#xE71B;" FontSize="12"/>
+                                                        <FontIcon Glyph="&#xE71B;" FontSize="{StaticResource FontSizeSmall}"/>
                                                     </Button>
                                                     <Button Style="{StaticResource DkIconButtonStyle}"
                                                             ToolTipService.ToolTip="Chỉnh sửa"
                                                             Tag="{Binding}"
                                                             Click="EditButton_Click">
-                                                        <FontIcon Glyph="&#xE70F;" FontSize="12"/>
+                                                        <FontIcon Glyph="&#xE70F;" FontSize="{StaticResource FontSizeSmall}"/>
                                                     </Button>
                                                     <Button Style="{StaticResource DkIconButtonStyle}"
                                                             ToolTipService.ToolTip="Xóa thiết bị"
                                                             Tag="{Binding}"
                                                             Click="DeleteButton_Click">
-                                                        <FontIcon Glyph="&#xE74D;" FontSize="12"
+                                                        <FontIcon Glyph="&#xE74D;" FontSize="{StaticResource FontSizeSmall}"
                                                                   Foreground="{StaticResource DkRedBrush}"/>
                                                     </Button>
                                                 </StackPanel>
@@ -512,7 +499,8 @@
                                     </Grid.ColumnDefinitions>
 
                                     <TextBlock Text="{x:Bind ViewModel.PageFooterText, Mode=OneWay}"
-                                               FontSize="12"
+                                               FontFamily="Consolas"
+                                               FontSize="{StaticResource FontSizeSmall}"
                                                Foreground="{StaticResource DkTextMutedBrush}"
                                                VerticalAlignment="Center"/>
 
@@ -520,19 +508,20 @@
                                         <Button Style="{StaticResource DkIconButtonStyle}"
                                                 Command="{x:Bind ViewModel.PrevPageCommand}"
                                                 IsEnabled="{x:Bind ViewModel.CanGoPrevPage, Mode=OneWay}">
-                                            <FontIcon Glyph="&#xE76B;" FontSize="11"/>
+                                            <FontIcon Glyph="&#xE76B;" FontSize="{StaticResource FontSizeCompact}"/>
                                         </Button>
                                         <Button Width="28" Height="28"
                                                 Background="{StaticResource DkBlueDarkBrush}"
                                                 BorderThickness="0"
-                                                Foreground="White"
+                                                Foreground="{StaticResource DkTextPrimaryBrush}"
                                                 CornerRadius="0"
-                                                FontSize="12" FontWeight="SemiBold"
+                                                FontFamily="Consolas"
+                                                FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold"
                                                 Content="{x:Bind ViewModel.CurrentPage, Mode=OneWay}"/>
                                         <Button Style="{StaticResource DkIconButtonStyle}"
                                                 Command="{x:Bind ViewModel.NextPageCommand}"
                                                 IsEnabled="{x:Bind ViewModel.CanGoNextPage, Mode=OneWay}">
-                                            <FontIcon Glyph="&#xE76C;" FontSize="11"/>
+                                            <FontIcon Glyph="&#xE76C;" FontSize="{StaticResource FontSizeCompact}"/>
                                         </Button>
                                     </StackPanel>
                                 </Grid>
@@ -580,7 +569,8 @@
                                     </StackPanel>
                                     <TextBlock Grid.Column="1"
                                                Text="{x:Bind ViewModel.PendingJoinLastUpdatedDisplay, Mode=OneWay}"
-                                               FontSize="11"
+                                               FontFamily="Consolas"
+                                               FontSize="{StaticResource FontSizeCompact}"
                                                Foreground="{StaticResource DkTextMutedBrush}"
                                                VerticalAlignment="Center"/>
                                 </Grid>
@@ -644,18 +634,18 @@
                                                             CornerRadius="6"
                                                             VerticalAlignment="Center">
                                                         <FontIcon Glyph="&#xE968;"
-                                                                  FontSize="14"
+                                                                  FontSize="{StaticResource FontSizeNormal}"
                                                                   Foreground="{StaticResource DkTextMutedBrush}"
                                                                   HorizontalAlignment="Center"
                                                                   VerticalAlignment="Center"/>
                                                     </Border>
                                                     <StackPanel VerticalAlignment="Center" Spacing="2">
                                                         <TextBlock Text="{Binding DeviceName}"
-                                                                   FontSize="13" FontWeight="SemiBold"
+                                                                   FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                                                    Foreground="{StaticResource DkTextPrimaryBrush}"
                                                                    FontFamily="Consolas"/>
                                                         <TextBlock Text="{Binding DeviceType}"
-                                                                   FontSize="11"
+                                                                   FontSize="{StaticResource FontSizeCompact}"
                                                                    Foreground="{StaticResource DkTextSecondaryBrush}"/>
                                                     </StackPanel>
                                                 </StackPanel>
@@ -663,7 +653,7 @@
                                                 <!-- Firmware -->
                                                 <TextBlock Grid.Column="1"
                                                            Text="{Binding FirmwareDisplay}"
-                                                           FontSize="12"
+                                                           FontSize="{StaticResource FontSizeSmall}"
                                                            Foreground="{StaticResource DkTextSecondaryBrush}"
                                                            VerticalAlignment="Center"
                                                            FontFamily="Consolas"/>
@@ -671,7 +661,7 @@
                                                 <!-- Hardware ID -->
                                                 <TextBlock Grid.Column="2"
                                                            Text="{Binding HardwareIdHex}"
-                                                           FontSize="11"
+                                                           FontSize="{StaticResource FontSizeCompact}"
                                                            Foreground="{StaticResource DkTextSecondaryBrush}"
                                                            VerticalAlignment="Center"
                                                            FontFamily="Consolas"/>
@@ -680,10 +670,11 @@
                                                 <StackPanel Grid.Column="3"
                                                             VerticalAlignment="Center" Spacing="2">
                                                     <TextBlock Text="{Binding IpAddressDisplay}"
-                                                               FontSize="12"
+                                                               FontFamily="Consolas"
+                                                               FontSize="{StaticResource FontSizeSmall}"
                                                                Foreground="{StaticResource DkTextSecondaryBrush}"/>
                                                     <TextBlock Text="{Binding MacAddressDisplay}"
-                                                               FontSize="10"
+                                                               FontSize="{StaticResource FontSizeXSmall}"
                                                                Foreground="{StaticResource DkTextMutedBrush}"
                                                                FontFamily="Consolas"/>
                                                 </StackPanel>
@@ -692,7 +683,7 @@
                                                 <TextBox Grid.Column="4"
                                                          Text="{Binding NodeByteIdInput, Mode=TwoWay}"
                                                          PlaceholderText="ID"
-                                                         FontSize="12"
+                                                         FontSize="{StaticResource FontSizeSmall}"
                                                          VerticalAlignment="Center"
                                                          HorizontalAlignment="Stretch"
                                                          Style="{StaticResource DkSearchBoxStyle}"/>
@@ -710,13 +701,15 @@
                                                             BorderThickness="1"
                                                             CornerRadius="6"
                                                             Padding="13,7"
-                                                            FontSize="12"
+                                                            FontFamily="Consolas"
+                                                            FontSize="{StaticResource FontSizeSmall}"
                                                             FontWeight="SemiBold"
                                                             Content="Từ chối"/>
                                                     <Button Command="{Binding ApproveCommand}"
                                                             IsEnabled="{Binding IsNotProcessing}"
                                                             Style="{StaticResource DkPrimaryButtonStyle}"
                                                             Padding="13,7"
+                                                            FontFamily="Consolas"
                                                             Content="Phê duyệt"/>
                                                 </StackPanel>
                                             </Grid>
@@ -738,20 +731,22 @@
                                     </Grid.ColumnDefinitions>
 
                                     <TextBlock Text="{x:Bind ViewModel.PendingJoinFooterText, Mode=OneWay}"
-                                               FontSize="11"
+                                               FontFamily="Consolas"
+                                               FontSize="{StaticResource FontSizeCompact}"
                                                Foreground="{StaticResource DkTextMutedBrush}"
                                                VerticalAlignment="Center"/>
 
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
                                         <Button Style="{StaticResource DkIconButtonStyle}" IsEnabled="False">
-                                            <FontIcon Glyph="&#xE76B;" FontSize="10"/>
+                                            <FontIcon Glyph="&#xE76B;" FontSize="{StaticResource FontSizeXSmall}"/>
                                         </Button>
                                         <Button Width="26" Height="26"
                                                 Background="{StaticResource DkBlueBrush}"
                                                 BorderThickness="0"
-                                                Foreground="White"
+                                                Foreground="{StaticResource DkTextPrimaryBrush}"
                                                 CornerRadius="0"
-                                                FontSize="11"
+                                                FontFamily="Consolas"
+                                                FontSize="{StaticResource FontSizeCompact}"
                                                 Content="1"/>
                                         <Button Width="26" Height="26"
                                                 Background="Transparent"
@@ -759,7 +754,8 @@
                                                 BorderThickness="1"
                                                 Foreground="{StaticResource DkTextSecondaryBrush}"
                                                 CornerRadius="0"
-                                                FontSize="11"
+                                                FontFamily="Consolas"
+                                                FontSize="{StaticResource FontSizeCompact}"
                                                 Content="2"/>
                                         <Button Width="26" Height="26"
                                                 Background="Transparent"
@@ -767,10 +763,11 @@
                                                 BorderThickness="1"
                                                 Foreground="{StaticResource DkTextSecondaryBrush}"
                                                 CornerRadius="0"
-                                                FontSize="11"
+                                                FontFamily="Consolas"
+                                                FontSize="{StaticResource FontSizeCompact}"
                                                 Content="3"/>
                                         <Button Style="{StaticResource DkIconButtonStyle}" IsEnabled="False">
-                                            <FontIcon Glyph="&#xE76C;" FontSize="10"/>
+                                            <FontIcon Glyph="&#xE76C;" FontSize="{StaticResource FontSizeXSmall}"/>
                                         </Button>
                                     </StackPanel>
                                 </Grid>

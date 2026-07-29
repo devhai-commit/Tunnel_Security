@@ -88,10 +88,9 @@
         <!-- ═══════════════════════════════════════════════════
              TOP TITLE BAR (full width, hidden while fullscreen)
              ═══════════════════════════════════════════════════ -->
-        <Border Grid.Row="1" Padding="10"
-                Background="{StaticResource BackgroundPrimaryBrush}"
-                BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1"
-                Height="72"
+        <Border Grid.Row="1" Padding="20,10"
+                Background="{StaticResource DkBgBrush}"
+                BorderBrush="{StaticResource DkBorderBrush}" BorderThickness="0,0,0,1"
                 Visibility="{x:Bind ViewModel.IsCameraFocused, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -100,19 +99,18 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-                    <TextBlock Text="Giám sát Trực tiếp" FontSize="{StaticResource FontSizeTitle}" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="GIÁM SÁT TRỰC TIẾP" FontSize="{StaticResource FontSizeNormal}" FontFamily="Consolas"
+                               FontWeight="Bold" Foreground="{StaticResource DkTextPrimaryBrush}" VerticalAlignment="Center"/>
 
-                    <Border Background="{StaticResource BackgroundSecondaryBrush}" CornerRadius="4" Padding="10,5"
-                            BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
+                    <Border Background="{StaticResource DkSurfaceBrush}" Padding="10,5"
                             Height="36" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                             <Ellipse Width="7" Height="7" Fill="{StaticResource SeverityLowBrush}" VerticalAlignment="Center"/>
-                            <TextBlock FontSize="{StaticResource FontSizeSmall}" VerticalAlignment="Center">
-                                <Run Text="Hoạt động:" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                <Run Text="{x:Bind ViewModel.ActiveCameras, Mode=OneWay}" FontWeight="Bold"/>
-                                <Run Text="/" Foreground="{StaticResource TextTertiaryBrush}"/>
-                                <Run Text="{x:Bind ViewModel.TotalCameras, Mode=OneWay}" Foreground="{StaticResource TextTertiaryBrush}"/>
+                            <TextBlock FontSize="{StaticResource FontSizeSmall}" FontFamily="Consolas" VerticalAlignment="Center">
+                                <Run Text="Hoạt động:" Foreground="{StaticResource DkTextDimBrush}"/>
+                                <Run Text="{x:Bind ViewModel.ActiveCameras, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource DkTextPrimaryBrush}"/>
+                                <Run Text="/" Foreground="{StaticResource DkTextDimBrush}"/>
+                                <Run Text="{x:Bind ViewModel.TotalCameras, Mode=OneWay}" Foreground="{StaticResource DkTextDimBrush}"/>
                             </TextBlock>
                         </StackPanel>
                     </Border>
@@ -121,14 +119,13 @@
 
                 <!-- Actions -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <Button Style="{StaticResource SecondaryButtonStyle}"
+                    <Button Style="{StaticResource DkSecondaryButtonStyle}"
                             Height="36" MinHeight="36" MaxHeight="36" MinWidth="0" Padding="12,0"
                             ToolTipService.ToolTip="Thay đổi bố cục"
-                            VerticalAlignment="Center"
-                            BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
+                            VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                             <FontIcon Glyph="&#xE80A;" FontSize="{StaticResource FontSizeBody}"/>
-                            <TextBlock Text="Bố cục" FontSize="{StaticResource FontSizeBody}"/>
+                            <TextBlock Text="BỐ CỤC" FontSize="{StaticResource FontSizeXSmall}" FontFamily="Consolas"/>
                             <FontIcon Glyph="&#xE70D;" FontSize="{StaticResource FontSizeXSmall}" Opacity="0.6"/>
                         </StackPanel>
                         <Button.Flyout>
@@ -148,13 +145,10 @@
                             </MenuFlyout>
                         </Button.Flyout>
                     </Button>
-                    <Button Style="{StaticResource SecondaryButtonStyle}"
+                    <Button Style="{StaticResource DkIconButtonStyle}"
                             Command="{x:Bind ViewModel.RefreshStreamsCommand}"
-                            Height="36" MinHeight="36" MaxHeight="36" Width="36" MinWidth="36" Padding="0"
-                            ToolTipService.ToolTip="Làm mới"
-                            VerticalAlignment="Center"
-                            BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
-                        <FontIcon Glyph="&#xE72C;" FontSize="{StaticResource FontSizeNormal}"/>
+                            ToolTipService.ToolTip="Làm mới">
+                        <FontIcon Glyph="&#xE72C;" FontSize="{StaticResource FontSizeNormal}" Foreground="{StaticResource DkTextMutedBrush}"/>
                     </Button>
                 </StackPanel>
             </Grid>
@@ -188,10 +182,10 @@
 
                         <StackPanel x:Name="SidebarTitlePanel" Grid.Column="0"
                                     VerticalAlignment="Center">
-                            <TextBlock Text="DANH SÁCH CAMERA" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
+                            <TextBlock Text="DANH SÁCH CAMERA" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" FontWeight="SemiBold"
                                        CharacterSpacing="20"
                                        Foreground="{StaticResource TextPrimaryBrush}"/>
-                            <TextBlock Text="Kéo camera vào ô trống để xem" FontSize="{StaticResource FontSizeCompact}"
+                            <TextBlock Text="Kéo camera vào ô trống để xem" FontSize="{StaticResource FontSizeCompact}" FontFamily="Consolas"
                                        Foreground="{StaticResource TextSecondaryBrush}" Margin="0,1,0,0"/>
                         </StackPanel>
 
@@ -223,7 +217,7 @@
                                 Padding="16,8">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Ellipse Width="7" Height="7" Fill="{StaticResource LiveAlertAccentBrush}" VerticalAlignment="Center"/>
-                                <TextBlock FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource LiveAlertTextBrush}" VerticalAlignment="Center">
+                                <TextBlock FontSize="{StaticResource FontSizeSmall}" FontFamily="Consolas" Foreground="{StaticResource LiveAlertTextBrush}" VerticalAlignment="Center">
                                     <Run Text="{x:Bind ViewModel.ActiveAlertCount, Mode=OneWay}" FontWeight="Bold"/>
                                     <Run Text=" cảnh báo đang hoạt động"/>
                                 </TextBlock>
@@ -263,10 +257,10 @@
                                                     </Grid.ColumnDefinitions>
                                                     <StackPanel Spacing="2" VerticalAlignment="Center">
                                                         <TextBlock Text="{x:Bind CameraName}"
-                                                                   FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
+                                                                   FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" FontWeight="SemiBold"
                                                                    Foreground="{StaticResource LiveAlertCardTitleBrush}"/>
                                                         <TextBlock Text="{x:Bind AlertTitle}"
-                                                                   FontSize="{StaticResource FontSizeCompact}" Foreground="{StaticResource LiveAlertTextBrush}"
+                                                                   FontSize="{StaticResource FontSizeCompact}" FontFamily="Consolas" Foreground="{StaticResource LiveAlertTextBrush}"
                                                                    TextTrimming="CharacterEllipsis" MaxWidth="160"/>
                                                     </StackPanel>
                                                     <Ellipse Grid.Column="1" Width="7" Height="7"
@@ -315,10 +309,10 @@
                                                 <StackPanel Grid.Column="4" Spacing="2"
                                                             VerticalAlignment="Center">
                                                     <TextBlock Text="{x:Bind CameraName}"
-                                                               FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
+                                                               FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" FontWeight="SemiBold"
                                                                Foreground="{StaticResource TextPrimaryBrush}"/>
                                                     <TextBlock Text="{x:Bind CameraId}"
-                                                               FontSize="{StaticResource FontSizeCompact}"
+                                                               FontSize="{StaticResource FontSizeCompact}" FontFamily="Consolas"
                                                                Foreground="{StaticResource TextTertiaryBrush}"/>
                                                 </StackPanel>
 
